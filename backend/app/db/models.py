@@ -28,6 +28,8 @@ class User(Base):
     role = Column(String, default="analyst")
     created_at = Column(DateTime, default=datetime.utcnow)
 
+
+
 class Subject(Base):
     __tablename__ = "subjects"
 
