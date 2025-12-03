@@ -2,8 +2,10 @@ import networkx as nx
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
+from collections import defaultdict, deque
 from typing import List, Dict, Any, Set
 from uuid import UUID
+from datetime import datetime
 
 from app.db.models import Transaction
 from app.models.mens_rea import AnalysisResult
@@ -40,7 +42,14 @@ class GraphAnalyzer:
                 continue
                 
             # Add Node
-            graph.add_node(str(subject.id), label=subject.name, type="subject", risk_score=0.0) # TODO: Fetch risk score
+            # Fetch risk score from analysis results
+            risk_score = 0.0
+            if hasattr(subject, 'analysis_results') and subject.analysis_results:
+                # Get the latest analysis result's risk score
+                latest_analysis = max(subject.analysis_results, key=lambda x: x.created_at if x.created_at else datetime.min)
+                risk_score = latest_analysis.risk_score if latest_analysis.risk_score else 0.0
+            
+            graph.add_node(str(subject.id), label=subject_name, type="subject", risk_score=risk_score)
             
             if current_depth < depth:
                 # Fetch Transactions (Outgoing and Incoming)

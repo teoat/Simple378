@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { cn } from '../lib/utils';
-import { AlertTriangle, Clock, FileText, Network, Shield, DollarSign } from 'lucide-react';
+import { Clock, FileText, Network, DollarSign } from 'lucide-react';
 import { EntityGraph } from '../components/visualizations/EntityGraph';
 import { Timeline } from '../components/visualizations/Timeline';
 import { FinancialSankey } from '../components/visualizations/FinancialSankey';
@@ -15,7 +15,7 @@ const tabs = [
   { name: 'Financials', id: 'financials', icon: DollarSign },
 ];
 
-export function CaseDetail() {
+export function CaseDetail()  {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -25,13 +25,13 @@ export function CaseDetail() {
     enabled: !!id,
   });
 
-  const { data: timelineData } = useQuery({
+  useQuery({
     queryKey: ['case', id, 'timeline'],
     queryFn: () => api.getCaseTimeline(id!),
     enabled: !!id && activeTab === 'timeline',
   });
 
-  const { data: graphData } = useQuery({
+  useQuery({
     queryKey: ['graph', caseData?.subject_name],
     queryFn: () => api.getGraph(caseData!.subject_name),
     enabled: !!caseData?.subject_name && activeTab === 'graph',
@@ -64,7 +64,7 @@ export function CaseDetail() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold leading-7 text-slate-900 sm:truncate sm:text-3xl sm:tracking-tight dark:text-white">
-            {caseData.case_id}
+            Case: {caseData.id}
           </h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             Subject: {caseData.subject_name} | Status: <span className="font-medium text-yellow-600">{caseData.status}</span>
@@ -132,18 +132,22 @@ export function CaseDetail() {
             </div>
             
             <div className="rounded-lg bg-white p-6 shadow dark:bg-slate-800">
-              <h3 className="text-lg font-medium leading-6 text-slate-900 dark:text-white">Top Indicators</h3>
-              <ul className="mt-4 space-y-4">
-                <li className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <AlertTriangle className="h-5 w-5 text-red-500" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">Structuring Detected</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Multiple transactions just below $10,000 threshold.</p>
-                  </div>
-                </li>
-              </ul>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Case Summary
+              </h3>
+              <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">
+                {caseData.description || 'No description available'}
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">Risk Score</p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">{caseData.risk_score}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Assigned To</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">{caseData.assigned_to}</p>
+                </div>
+              </div>
             </div>
           </div>
         )}

@@ -1,117 +1,128 @@
 import { useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { api } from '../lib/api';
+import toast from 'react-hot-toast';
 import { FileUploader } from '../components/forensics/FileUploader';
-import { FileText, Image, ShieldCheck, Search } from 'lucide-react';
+import { FileText, AlertTriangle, CheckCircle } from 'lucide-react';
 
 export function Forensics() {
-  const [analyzedFiles, setAnalyzedFiles] = useState<any[]>([]);
+  const [uploadedFileId, setUploadedFileId] = useState<string | null>(null);
 
-  const handleUpload = (files: File[]) => {
-    // Simulate analysis results
-    const newResults = files.map((file, index) => ({
-      id: `FILE-${Date.now()}-${index}`,
-      name: file.name,
-      type: file.type.includes('image') ? 'Image' : 'Document',
-      metadata: {
-        created: '2023-10-15 14:30:00',
-        device: 'iPhone 14 Pro',
-        location: '37.7749° N, 122.4194° W',
-      },
-      flags: index % 2 === 0 ? ['Metadata mismatch'] : [],
-      status: 'Analyzed',
-    }));
-    setAnalyzedFiles((prev) => [...newResults, ...prev]);
+  const uploadMutation = useMutation({
+    mutationFn: api.uploadFile,
+    onSuccess: (data) => {
+      setUploadedFileId(data.file_id);
+      toast.success('File uploaded successfully');
+    },
+    onError: (error) => {
+      toast.error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    },
+  });
+
+  const { data: results, isLoading: resultsLoading } = useQuery({
+    queryKey: ['forensics', uploadedFileId],
+    queryFn: () => api.getForensicsResults(uploadedFileId!),
+    enabled: !!uploadedFileId,
+    refetchInterval: (data) => {
+      // Poll every 2s while processing
+      return data?.status === 'processing' ? 2000 : false;
+    },
+  });
+
+  const handleFileUpload = (file: File) => {
+    uploadMutation.mutate(file);
   };
 
   return (
-    <div className="space-y-8">
+    <div className="p-6 space-y-6">
       <div>
-        <h2 className="text-2xl font-bold leading-7 text-slate-900 sm:truncate sm:text-3xl sm:tracking-tight dark:text-white">
-          Forensics Lab
-        </h2>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Forensics Lab</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Upload documents and images for metadata extraction and tampering detection.
+          Upload files for metadata extraction and manipulation detection
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* Upload Section */}
-        <div className="lg:col-span-1">
-          <div className="rounded-lg bg-white p-6 shadow dark:bg-slate-800">
-            <h3 className="mb-4 text-base font-semibold leading-6 text-slate-900 dark:text-white">
-              Upload Evidence
-            </h3>
-            <FileUploader onUpload={handleUpload} />
-          </div>
-        </div>
+      {/* File Upload */}
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+        <FileUploader
+          onUpload={handleFileUpload}
+          isUploading={uploadMutation.isPending}
+        />
+      </div>
 
-        {/* Results Section */}
-        <div className="lg:col-span-2">
-          <div className="rounded-lg bg-white shadow dark:bg-slate-800">
-            <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-700">
-              <h3 className="text-base font-semibold leading-6 text-slate-900 dark:text-white">
-                Analysis Results
-              </h3>
+      {/* Results */}
+      {uploadedFileId && (
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+            Analysis Results
+          </h2>
+
+          {resultsLoading || results?.status === 'processing' ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">
+                  Analyzing file...
+                </p>
+              </div>
             </div>
-            <div className="divide-y divide-slate-200 dark:divide-slate-700">
-              {analyzedFiles.length === 0 ? (
-                <div className="p-12 text-center text-slate-500 dark:text-slate-400">
-                  <Search className="mx-auto h-12 w-12 opacity-50" />
-                  <p className="mt-2">No files analyzed yet.</p>
+          ) : results?.status === 'completed' ? (
+            <div className="space-y-6">
+              {/* Status Badge */}
+              <div className="flex items-center gap-2">
+                {results.manipulation_detected ? (
+                  <>
+                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                    <span className="text-red-600 font-medium">Manipulation Detected</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <span className="text-green-600 font-medium">No Manipulation Detected</span>
+                  </>
+                )}
+              </div>
+
+              {/* Metadata */}
+              <div>
+                <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-2">Metadata</h3>
+                <div className="bg-slate-50 dark:bg-slate-900 rounded p-4">
+                  <dl className="grid grid-cols-2 gap-4 text-sm">
+                    {Object.entries(results.metadata || {}).map(([key, value]) => (
+                      <div key={key}>
+                        <dt className="text-slate-500 dark:text-slate-400">{key}</dt>
+                        <dd className="text-slate-900 dark:text-white font-medium">{String(value)}</dd>
+                      </div>
+                    ))}
+                  </dl>
                 </div>
-              ) : (
-                analyzedFiles.map((file) => (
-                  <div key={file.id} className="p-6 hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4">
-                        <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-900/30">
-                          {file.type === 'Image' ? (
-                            <Image className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                          ) : (
-                            <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                          )}
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium text-slate-900 dark:text-white">
-                            {file.name}
-                          </h4>
-                          <div className="mt-1 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                            <span className="font-mono">{file.id}</span>
-                            <span>•</span>
-                            <span>{file.type}</span>
-                          </div>
-                          
-                          <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="text-slate-500 dark:text-slate-400">Created:</span>
-                              <span className="ml-2 text-slate-900 dark:text-white">{file.metadata.created}</span>
-                            </div>
-                            <div>
-                              <span className="text-slate-500 dark:text-slate-400">Device:</span>
-                              <span className="ml-2 text-slate-900 dark:text-white">{file.metadata.device}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col items-end gap-2">
-                        <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                          <ShieldCheck className="mr-1 h-3 w-3" />
-                          {file.status}
-                        </span>
-                        {file.flags.length > 0 && (
-                          <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                            {file.flags.length} Issues Found
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))
+              </div>
+
+              {/* Findings */}
+              {results.findings && results.findings.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-2">Findings</h3>
+                  <ul className="space-y-2">
+                    {results.findings.map((finding: string, index: number) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <FileText className="h-4 w-4 text-slate-400 mt-0.5" />
+                        <span className="text-sm text-slate-600 dark:text-slate-400">{finding}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </div>
-          </div>
+          ) : results?.status === 'failed' ? (
+            <div className="text-center py-12">
+              <AlertTriangle className="h-12 w-12 text-red-600 mx-auto" />
+              <p className="mt-4 text-sm text-red-600">
+                Analysis failed: {results.error || 'Unknown error'}
+              </p>
+            </div>
+          ) : null}
         </div>
-      </div>
+      )}
     </div>
   );
 }

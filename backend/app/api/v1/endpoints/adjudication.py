@@ -110,3 +110,45 @@ async def download_case_report(
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=case_report_{analysis_id}.pdf"}
     )
+
+@router.post("/{analysis_id}/export-offline")
+async def export_offline_package(
+    analysis_id: str,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user = Depends(deps.get_current_user)
+):
+    """
+    Export encrypted offline case package for field work.
+    """
+    from fastapi.responses import StreamingResponse
+    from app.services.offline import OfflineStorageService
+    from io import BytesIO
+
+    try:
+        analysis_uuid = uuid.UUID(analysis_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID")
+
+    result = await db.execute(select(models.AnalysisResult).where(models.AnalysisResult.id == analysis_uuid))
+    analysis = result.scalars().first()
+    
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis result not found")
+
+    # Prepare case data
+    case_data = {
+        "id": str(analysis.id),
+        "subject_id": analysis.subject_id,
+        "status": analysis.adjudication_status,
+        "risk_score": analysis.risk_score,
+        "created_at": analysis.created_at.isoformat() if analysis.created_at else None
+    }
+
+    offline_service = OfflineStorageService()
+    encrypted_data = await offline_service.export_case(case_data)
+    
+    return StreamingResponse(
+        BytesIO(encrypted_data),
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f"attachment; filename=case_offline_{analysis_id}.enc"}
+    )

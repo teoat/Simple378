@@ -78,3 +78,27 @@ class OfflineStorageService:
             os.remove(file_path)
             
         return encrypted_path, key
+
+    async def export_case(self, case_data: Dict[str, Any]) -&gt; bytes:
+        """
+        Complete export workflow: create SQLite, encrypt, return encrypted bytes.
+        """
+        case_id = case_data["id"]
+        
+        # Export to SQLite
+        db_path = await self.export_case_to_sqlite(case_id, case_data)
+        
+        # Encrypt the database
+        encrypted_path, key = await self.encrypt_archive(db_path)
+        
+        # Read encrypted file
+        with open(encrypted_path, "rb") as f:
+            encrypted_data = f.read()
+        
+        # Clean up encrypted file
+        if os.path.exists(encrypted_path):
+            os.remove(encrypted_path)
+        
+        # TODO: Store encryption key securely (e.g., in database or return to user)
+        # For MVP, we're just returning the encrypted data
+        return encrypted_data

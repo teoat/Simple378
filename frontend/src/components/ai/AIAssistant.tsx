@@ -30,9 +30,10 @@ export function AIAssistant() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 rounded-full bg-blue-600 p-4 text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 z-50"
+          aria-label="Open AI Assistant"
+          className="fixed bottom-6 right-6 p-4 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all z-50"
         >
-          <MessageCircle className="h-6 w-6" />
+          <MessageSquare className="w-6 h-6" />
         </button>
       )}
 
@@ -47,6 +48,7 @@ export function AIAssistant() {
             </div>
             <button
               onClick={() => setIsOpen(false)}
+              aria-label="Close AI Assistant"
               className="rounded-full p-1 hover:bg-blue-700 focus:outline-none"
             >
               <X className="h-5 w-5" />
@@ -90,6 +92,7 @@ export function AIAssistant() {
               />
               <button
                 onClick={handleSend}
+                aria-label="Send message"
                 className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <Send className="h-4 w-4" />
