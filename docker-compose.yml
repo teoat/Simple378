@@ -4,7 +4,9 @@ services:
     container_name: fraud_backend
     ports:
       - "8000:8000"
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: >
+      bash -c "poetry run alembic upgrade head && \
+               uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
       - ./backend:/app
     env_file:

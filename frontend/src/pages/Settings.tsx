@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { cn } from '../lib/utils';
 import { User, Shield, Bell, Eye, Database } from 'lucide-react';
 import { AuditLogViewer } from '../components/settings/AuditLogViewer';

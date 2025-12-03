@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { FileUploader } from '../components/forensics/FileUploader';
 import { FileText, Image, ShieldCheck, Search } from 'lucide-react';
 

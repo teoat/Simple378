@@ -1,58 +1,97 @@
-import React from 'react';
-import { Users, AlertTriangle, FileText, Activity } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../lib/api';
 import { StatCard } from '../components/dashboard/StatCard';
 import { RecentActivity } from '../components/dashboard/RecentActivity';
-
-const stats = [
-  { name: 'Active Cases', value: '24', change: '+12%', changeType: 'increase', icon: FileText },
-  { name: 'High Risk Subjects', value: '7', change: '+4%', changeType: 'increase', icon: AlertTriangle },
-  { name: 'Pending Reviews', value: '12', change: '-2%', changeType: 'decrease', icon: Users },
-  { name: 'System Load', value: '34%', change: '+1%', changeType: 'neutral', icon: Activity },
-];
+import { BarChart3, TrendingUp } from 'lucide-react';
 
 export function Dashboard() {
+  const { data: metrics, isLoading: metricsLoading } = useQuery({
+    queryKey: ['dashboard', 'metrics'],
+    queryFn: api.getDashboardMetrics,
+    refetchInterval: 30000, // Refetch every 30s
+  });
+
+  const { data: activity, isLoading: activityLoading } = useQuery({
+    queryKey: ['dashboard', 'activity'],
+    queryFn: api.getRecentActivity,
+  });
+
+  if (metricsLoading || activityLoading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-slate-200 rounded w-1/4"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-32 bg-slate-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold leading-7 text-slate-900 sm:truncate sm:text-3xl sm:tracking-tight dark:text-white">
-          Dashboard
-        </h2>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Overview of current fraud detection operations.
-        </p>
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
+        <div className="flex gap-2">
+          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            New Case
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((item) => (
-          <StatCard
-            key={item.name}
-            name={item.name}
-            value={item.value}
-            change={item.change}
-            changeType={item.changeType as 'increase' | 'decrease' | 'neutral'}
-            icon={item.icon}
-          />
-        ))}
+      {/* Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCard
+          title="Active Cases"
+          value={metrics?.active_cases ?? 0}
+          icon={BarChart3}
+          trend={{ value: 12, isPositive: true }}
+        />
+        <StatCard
+          title="High Risk Subjects"
+          value={metrics?.high_risk_subjects ?? 0}
+          icon={TrendingUp}
+          trend={{ value: 5, isPositive: false }}
+        />
+        <StatCard
+          title="Pending Reviews"
+          value={metrics?.pending_reviews ?? 0}
+          icon={BarChart3}
+        />
+        <StatCard
+          title="System Load"
+          value={`${metrics?.system_load ?? 0}%`}
+          icon={TrendingUp}
+        />
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <div className="rounded-lg bg-white p-6 shadow dark:bg-slate-800">
-          <h3 className="text-base font-semibold leading-6 text-slate-900 dark:text-white">
-            Recent Activity
-          </h3>
-          <div className="mt-6">
-            <RecentActivity />
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">
+            Case Risk Distribution
+          </h2>
+          <div className="h-64 flex items-center justify-center text-slate-400">
+            Chart Placeholder
           </div>
         </div>
-        
-        <div className="rounded-lg bg-white p-6 shadow dark:bg-slate-800">
-          <h3 className="text-base font-semibold leading-6 text-slate-900 dark:text-white">
-            Risk Distribution
-          </h3>
-          <div className="mt-6 flex h-64 items-center justify-center rounded-lg border-2 border-dashed border-slate-200 dark:border-slate-700">
-            <span className="text-sm text-slate-500">Chart Placeholder (Recharts/Nivo)</span>
+
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">
+            Weekly Activity
+          </h2>
+          <div className="h-64 flex items-center justify-center text-slate-400">
+            Chart Placeholder
           </div>
         </div>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+        <RecentActivity activities={activity ?? []} />
       </div>
     </div>
   );

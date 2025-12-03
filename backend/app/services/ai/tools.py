@@ -2,7 +2,7 @@ from typing import List, Dict, Any
 from uuid import UUID
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.transaction import Transaction
+from app.db.models import Transaction
 from app.services.graph_analyzer import GraphAnalyzer
 
 async def get_recent_transactions(db: AsyncSession, subject_id: UUID, limit: int = 10) -> List[Dict[str, Any]]:

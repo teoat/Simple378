@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     
     ANTHROPIC_API_KEY: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
+    
+    CORS_ORIGINS: list = ["http://localhost:5173", "http://localhost:3000"]
 
     class Config:
         env_file = ".env"

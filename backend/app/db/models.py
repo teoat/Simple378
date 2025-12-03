@@ -61,3 +61,25 @@ class AuditLog(Base):
     resource_id = Column(UUID(as_uuid=True), nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
     details = Column(JSON, nullable=True)
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    subject_id = Column(UUID(as_uuid=True), ForeignKey("subjects.id"), nullable=False)
+    
+    amount = Column(String, nullable=False)  # Store as string to avoid float precision issues
+    currency = Column(String, default="USD")
+    date = Column(DateTime, nullable=False)
+    description = Column(String, nullable=True)
+    
+    # Provenance
+    source_bank = Column(String, nullable=False)
+    source_file_id = Column(String, nullable=True)
+    external_id = Column(String, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    subject = relationship("Subject", back_populates="transactions")

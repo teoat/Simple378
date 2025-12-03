@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Bell, Search } from 'lucide-react';
 
 export function Header() {

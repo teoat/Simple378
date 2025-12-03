@@ -3,7 +3,7 @@ import io
 from datetime import datetime
 from typing import List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.transaction import Transaction
+from app.db.models import Transaction
 from uuid import UUID
 
 class IngestionService:

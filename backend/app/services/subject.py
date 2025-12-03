@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from app.db.models import Subject, Transaction, Consent
+from app.db.models import Subject, Consent
 from app.models.mens_rea import AnalysisResult, Indicator
 import uuid
 

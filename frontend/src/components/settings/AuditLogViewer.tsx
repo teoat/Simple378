@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Search, Filter, Download } from 'lucide-react';
 
 const logs = [

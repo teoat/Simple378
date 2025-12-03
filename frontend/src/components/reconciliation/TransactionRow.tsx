@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { GripVertical, AlertCircle, CheckCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 

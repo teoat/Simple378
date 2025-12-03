@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../lib/api';
 import { cn } from '../lib/utils';
 import { AlertTriangle, Clock, FileText, Network, Shield, DollarSign } from 'lucide-react';
 import { EntityGraph } from '../components/visualizations/EntityGraph';
@@ -7,16 +9,54 @@ import { Timeline } from '../components/visualizations/Timeline';
 import { FinancialSankey } from '../components/visualizations/FinancialSankey';
 
 const tabs = [
-  { name: 'Overview', icon: FileText, current: true },
-  { name: 'Graph Analysis', icon: Network, current: false },
-  { name: 'Financials', icon: DollarSign, current: false },
-  { name: 'Timeline', icon: Clock, current: false },
-  { name: 'Evidence', icon: Shield, current: false },
+  { name: 'Overview', id: 'overview', icon: FileText },
+  { name: 'Graph Analysis', id: 'graph', icon: Network },
+  { name: 'Timeline', id: 'timeline', icon: Clock },
+  { name: 'Financials', id: 'financials', icon: DollarSign },
 ];
 
 export function CaseDetail() {
-  const { id } = useParams();
-  const [activeTab, setActiveTab] = useState('Overview');
+  const { id } = useParams<{ id: string }>();
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const { data: caseData, isLoading: caseLoading } = useQuery({
+    queryKey: ['case', id],
+    queryFn: () => api.getCase(id!),
+    enabled: !!id,
+  });
+
+  const { data: timelineData } = useQuery({
+    queryKey: ['case', id, 'timeline'],
+    queryFn: () => api.getCaseTimeline(id!),
+    enabled: !!id && activeTab === 'timeline',
+  });
+
+  const { data: graphData } = useQuery({
+    queryKey: ['graph', caseData?.subject_name],
+    queryFn: () => api.getGraph(caseData!.subject_name),
+    enabled: !!caseData?.subject_name && activeTab === 'graph',
+  });
+
+  if (caseLoading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-slate-200 rounded w-1/3"></div>
+          <div className="h-64 bg-slate-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!caseData) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
+          Case not found
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -24,10 +64,10 @@ export function CaseDetail() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold leading-7 text-slate-900 sm:truncate sm:text-3xl sm:tracking-tight dark:text-white">
-            {id}
+            {caseData.case_id}
           </h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Subject: John Doe | Status: <span className="font-medium text-yellow-600">In Review</span>
+            Subject: {caseData.subject_name} | Status: <span className="font-medium text-yellow-600">{caseData.status}</span>
           </p>
         </div>
         <div className="flex gap-2">

@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from typing import List, Dict, Any, Set
 from uuid import UUID
 
-from app.models.transaction import Transaction
+from app.db.models import Transaction
 from app.models.mens_rea import AnalysisResult
 from app.db.models import Subject
 
