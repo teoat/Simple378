@@ -1,27 +1,43 @@
 import { useState } from 'react';
 import { X, Send, Bot, MessageSquare } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
 import { cn } from '../../lib/utils';
+import { api } from '../../lib/api';
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 export function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([
+  const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: 'Hello! I\'m your fraud detection AI assistant. How can I help you today?' }
   ]);
+
+  const sendMessageMutation = useMutation({
+    mutationFn: (msg: string) => api.sendChatMessage(msg),
+    onSuccess: (response) => {
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: response.response 
+      }]);
+    },
+    onError: () => {
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Sorry, I encountered an error. Please try again.' 
+      }]);
+    },
+  });
 
   const handleSend = () => {
     if (!message.trim()) return;
     
     setMessages(prev => [...prev, { role: 'user', content: message }]);
+    sendMessageMutation.mutate(message);
     setMessage('');
-    
-    // Simulate AI response
-    setTimeout(() => {
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'This is a placeholder response. In production, this will connect to the AI orchestrator backend.' 
-      }]);
-    }, 1000);
   };
 
   return (
