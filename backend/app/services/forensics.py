@@ -3,6 +3,7 @@ import subprocess
 import tempfile
 import os
 import logging
+import asyncio
 from typing import Dict, Any, Optional
 
 # Configure logger
@@ -33,12 +34,16 @@ class ForensicsService:
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        metadata = await self.extract_metadata(file_path)
-        manipulation_score = await self.detect_manipulation(file_path)
+        # Run independent tasks concurrently
+        metadata_task = self.extract_metadata(file_path)
+        manipulation_task = self.detect_manipulation(file_path)
+        
+        metadata, manipulation_score = await asyncio.gather(metadata_task, manipulation_task)
         
         file_type = "unknown"
         if magic:
-            file_type = magic.from_file(file_path, mime=True)
+            # Run magic.from_file in a thread as it is blocking
+            file_type = await asyncio.to_thread(magic.from_file, file_path, mime=True)
 
         return {
             "file_path": file_path,
@@ -53,13 +58,13 @@ class ForensicsService:
         Extracts metadata using ExifTool.
         """
         try:
-            # Run exiftool as a subprocess
-            process = subprocess.Popen(
-                [self.exiftool_path, "-j", file_path],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+            # Run exiftool as a subprocess asynchronously
+            process = await asyncio.create_subprocess_exec(
+                self.exiftool_path, "-j", file_path,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
             )
-            stdout, stderr = process.communicate()
+            stdout, stderr = await process.communicate()
 
             if process.returncode != 0:
                 logger.error(f"ExifTool failed: {stderr.decode()}")
@@ -85,11 +90,12 @@ class ForensicsService:
 
         try:
             # Only analyze images
-            if not self._is_image(file_path):
+            if not await self._is_image(file_path):
                 return {"status": "skipped", "reason": "Not an image file"}
 
             # 1. Error Level Analysis (ELA)
-            ela_score = self._calculate_ela_score(file_path)
+            # Run CPU-intensive ELA in a separate thread
+            ela_score = await asyncio.to_thread(self._calculate_ela_score, file_path)
             
             # 2. Metadata Consistency Check (Placeholder)
             # In a real implementation, we would check if Software tag exists in metadata
@@ -104,9 +110,9 @@ class ForensicsService:
             logger.error(f"Error in manipulation detection: {str(e)}")
             return {"error": str(e)}
 
-    def _is_image(self, file_path: str) -> bool:
+    async def _is_image(self, file_path: str) -> bool:
         if magic:
-            mime = magic.from_file(file_path, mime=True)
+            mime = await asyncio.to_thread(magic.from_file, file_path, mime=True)
             return mime.startswith("image/")
         return file_path.lower().endswith(('.jpg', '.jpeg', '.png', '.tiff'))
 
@@ -115,30 +121,25 @@ class ForensicsService:
         Calculates a simple ELA score.
         Resaves the image at 90% quality and compares the difference.
         Returns a score between 0.0 and 1.0.
+        NOTE: This runs in a thread, so it can be blocking.
         """
         try:
             original = cv2.imread(file_path)
             if original is None:
                 return 0.0
 
-            # Create a temp file for the resaved image
-            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
-                tmp_path = tmp.name
-
-            # Resave with 90% quality
-            cv2.imwrite(tmp_path, original, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            # Use in-memory encoding/decoding to avoid disk I/O
+            # Encode to JPEG with 90% quality
+            _, encoded_img = cv2.imencode('.jpg', original, [cv2.IMWRITE_JPEG_QUALITY, 90])
             
-            # Read back
-            resaved = cv2.imread(tmp_path)
+            # Decode back
+            resaved = cv2.imdecode(encoded_img, cv2.IMREAD_COLOR)
             
             # Calculate absolute difference
             diff = cv2.absdiff(original, resaved)
             
             # Calculate mean difference intensity
             score = np.mean(diff) / 255.0
-            
-            # Cleanup
-            os.remove(tmp_path)
             
             # Normalize score (heuristic)
             # A raw score of 0.1 is actually quite high for ELA difference
