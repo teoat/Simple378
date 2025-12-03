@@ -10,7 +10,7 @@ export function Dashboard() {
   const queryClient = useQueryClient();
   const { isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats'],
-    queryFn: api.getDashboardStats,
+    queryFn: api.getDashboardMetrics,
   });
 
   // Real-time updates

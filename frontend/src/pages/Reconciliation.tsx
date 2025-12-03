@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import toast from 'react-hot-toast';
 import { TransactionRow } from '../components/reconciliation/TransactionRow';
+import { FileUploader } from '../components/forensics/FileUploader';
 import { ArrowRight, CheckCircle } from 'lucide-react';
 
 export function Reconciliation() {
@@ -38,6 +39,32 @@ export function Reconciliation() {
     },
   });
 
+  const [subjectId, setSubjectId] = useState('');
+  const [bankName, setBankName] = useState('');
+
+  const uploadMutation = useMutation({
+    mutationFn: (files: File[]) => api.uploadTransactions(files[0], subjectId, bankName),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
+      toast.success('Transactions uploaded successfully');
+      setSubjectId('');
+      setBankName('');
+    },
+    onError: (error) => {
+      toast.error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    },
+  });
+
+  const handleFileUpload = (files: File[]) => {
+    if (!subjectId || !bankName) {
+      toast.error('Please enter Subject ID and Bank Name');
+      return;
+    }
+    if (files.length > 0) {
+      uploadMutation.mutate(files);
+    }
+  };
+
   const isLoading = expensesLoading || transactionsLoading;
 
   return (
@@ -67,6 +94,38 @@ export function Reconciliation() {
             {autoReconcileMutation.isPending ? 'Running...' : 'Auto-Reconcile'}
           </button>
         </div>
+      </div>
+
+      {/* Upload Section */}
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6 mb-6">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Upload Transactions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Subject ID (UUID)
+            </label>
+            <input
+              type="text"
+              value={subjectId}
+              onChange={(e) => setSubjectId(e.target.value)}
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+              placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Bank Name
+            </label>
+            <input
+              type="text"
+              value={bankName}
+              onChange={(e) => setBankName(e.target.value)}
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+              placeholder="e.g. Chase"
+            />
+          </div>
+        </div>
+        <FileUploader onUpload={handleFileUpload} />
       </div>
 
       {isLoading ? (

@@ -181,12 +181,14 @@ export const api = {
       method: 'POST',
     }),
 
-  // Forensics
-  uploadFile: (file: File) => {
+  // Ingestion
+  uploadTransactions: (file: File, subjectId: string, bankName: string) => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('subject_id', subjectId);
+    formData.append('bank_name', bankName);
 
-    return fetch(`${API_V1}/forensics/upload`, {
+    return fetch(`${API_V1}/ingestion/upload`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${getAuthToken()}`,
@@ -198,14 +200,22 @@ export const api = {
     });
   },
 
-  getForensicsResults: (fileId: string) =>
-    request<{
-      file_name: string;
-      file_type: string;
-      size: number;
-      metadata: Record<string, unknown>;
-      flags: Array<{ type: string; severity: string; message: string }>;
-    }>(`/forensics/${fileId}/results`),
+  // Forensics
+  analyzeFile: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return fetch(`${API_V1}/forensics/analyze`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${getAuthToken()}`,
+      },
+      body: formData,
+    }).then((res) => {
+      if (!res.ok) throw new Error('Analysis failed');
+      return res.json();
+    });
+  },
 
   // Audit
   getAuditLogs: (params?: { page?: number; limit?: number; search?: string }) =>
@@ -213,15 +223,15 @@ export const api = {
       items: Array<{
         id: string;
         timestamp: string;
-        user: string;
+        actor_id: string;
         action: string;
-        resource: string;
-        status: string;
+        resource_id: string;
+        details: any;
       }>;
       total: number;
       page: number;
       pages: number;
-    }>(`/audit/logs?${new URLSearchParams(params as Record<string, string>).toString()}`),
+    }>(`/audit-logs?${new URLSearchParams(params as Record<string, string>).toString()}`),
 
   exportAuditLogs: () =>
     fetch(`${API_V1}/audit/export`, {
