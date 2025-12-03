@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import login, mens_rea, adjudication, ingestion, graph, ai, forensics, orchestration, subjects, compliance
+from app.api.v1.endpoints import login, mens_rea, adjudication, ingestion, graph, ai, forensics, orchestration, subjects, compliance, dashboard
 
 api_router = APIRouter()
 api_router.include_router(login.router, prefix="/login", tags=["login"])
@@ -12,3 +12,4 @@ api_router.include_router(forensics.router, prefix="/forensics", tags=["forensic
 api_router.include_router(orchestration.router, prefix="/orchestration", tags=["orchestration"])
 api_router.include_router(subjects.router, prefix="/subjects", tags=["subjects"])
 api_router.include_router(compliance.router, prefix="/compliance", tags=["compliance"])
+api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])

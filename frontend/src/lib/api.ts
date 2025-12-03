@@ -122,7 +122,7 @@ export const api = {
       total: number;
       page: number;
       pages: number;
-    }>(`/cases?${new URLSearchParams(params as Record<string, string>).toString()}`),
+    }>(`/subjects?${new URLSearchParams(params as Record<string, string>).toString()}`),
 
   getCase: (id: string) =>
     request<{
@@ -133,7 +133,7 @@ export const api = {
       description: string;
       assigned_to: string;
       created_at: string;
-    }>(`/cases/${id}`),
+    }>(`/subjects/${id}`),
 
   getCaseTimeline: (id: string) =>
     request<
