@@ -40,7 +40,8 @@ export function Settings() {
   });
 
   const handleThemeToggle = () => {
-    const newTheme = profile?.preferences?.theme === 'dark' ? 'light' : 'dark';
+    const isDark = document.documentElement.classList.contains('dark');
+    const newTheme = isDark ? 'light' : 'dark';
     updatePreferencesMutation.mutate({ theme: newTheme });
     document.documentElement.classList.toggle('dark');
   };
@@ -143,7 +144,7 @@ export function Settings() {
                   disabled={updatePreferencesMutation.isPending}
                   className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
                 >
-                  {profile?.preferences?.theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                  {document.documentElement.classList.contains('dark') ? 'Light Mode' : 'Dark Mode'}
                 </button>
               </div>
             </div>

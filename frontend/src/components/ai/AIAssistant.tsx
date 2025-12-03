@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MessageCircle, X, Send } from 'lucide-react';
+import { X, Send, Bot, MessageSquare } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export function AIAssistant() {
@@ -43,7 +43,7 @@ export function AIAssistant() {
           {/* Header */}
           <div className="flex items-center justify-between rounded-t-lg bg-blue-600 px-4 py-3 text-white">
             <div className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5" />
+              <Bot className="h-5 w-5" />
               <h3 className="font-semibold">AI Assistant</h3>
             </div>
             <button

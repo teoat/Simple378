@@ -43,9 +43,11 @@ class GraphAnalyzer:
                 
             # Add Node
             # Fetch risk score from analysis results
+            subject_name = f"Subject_{str(subject.id)[:8]}"  # Use truncated ID as name for MVP
             risk_score = 0.0
             if hasattr(subject, 'analysis_results') and subject.analysis_results:
                 # Get the latest analysis result's risk score
+                from datetime import datetime
                 latest_analysis = max(subject.analysis_results, key=lambda x: x.created_at if x.created_at else datetime.min)
                 risk_score = latest_analysis.risk_score if latest_analysis.risk_score else 0.0
             

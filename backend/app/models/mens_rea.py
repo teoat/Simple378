@@ -21,6 +21,9 @@ class AnalysisResult(Base):
     decision = Column(String, nullable=True)  # confirmed_fraud, false_positive, escalated
     reviewer_notes = Column(String, nullable=True)
     reviewer_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    
+    # Chain of Custody
+    chain_of_custody = Column(JSON, default=list)  # List of custody log entries
 
     # Relationships
     subject = relationship("Subject", back_populates="analysis_results")

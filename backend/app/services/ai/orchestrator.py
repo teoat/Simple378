@@ -50,50 +50,90 @@ class Orchestrator:
         return workflow.compile()
 
     async def supervisor_node(self, state: InvestigationState):
+        """
+        Supervisor uses LLM with function calling to dynamically route to next agent.
+        """
         messages = state["messages"]
-        # In a real implementation, we would use function calling or structured output
-        # to get the next step. For this MVP, we'll simulate a simple router.
         
-        # Mock logic for MVP flow:
-        # If no messages from workers, start with fraud_analyst
-        # If fraud_analyst done, do document_processor
-        # If both done, do report_generator
-        # If report done, FINISH
+        # Use LLM to make routing decision
+        available_agents = ["fraud_analyst", "document_processor", "report_generator"]
         
-        last_message = messages[-1] if messages else None
+        decision = await self.llm_service.route_decision(messages, available_agents)
         
-        if not last_message or isinstance(last_message, HumanMessage):
-            return {"next_step": "fraud_analyst", "messages": [AIMessage(content="Starting investigation with Fraud Analyst.")]}
-            
-        last_sender = "unknown"
-        # Logic to determine sender would go here (e.g. via message name or metadata)
+        next_agent = decision.get("next_agent", "FINISH")
+        reasoning = decision.get("reasoning", "")
         
-        # Simplified sequence for MVP verification
-        history_str = str(messages)
-        if "Fraud Analyst Report" not in history_str:
-             return {"next_step": "fraud_analyst"}
-        elif "Document Analysis Report" not in history_str:
-             return {"next_step": "document_processor"}
-        elif "Final Investigation Report" not in history_str:
-             return {"next_step": "report_generator"}
-        else:
-             return {"next_step": "FINISH"}
+        # Add supervisor's decision to conversation
+        supervisor_message = AIMessage(
+            content=f"Routing to {next_agent}. Reason: {reasoning}",
+            name="supervisor"
+        )
+        
+        return {
+            "next_step": next_agent,
+            "messages": [supervisor_message]
+        }
 
     async def fraud_analyst_node(self, state: InvestigationState):
-        # Call ScoringService here
+        """
+        Fraud analyst analyzes transactions using ScoringService and LLM.
+        """
+        from app.services.scoring import ScoringService
+        
+        case_id = state.get("case_id")
+        messages = state["messages"]
+        
+        # In real implementation, fetch transactions from database
+        # For now, create structured analysis
+        analysis_context = {
+            "case_id": case_id,
+            "analysis_type": "fraud_pattern_detection"
+        }
+        
+        # Use LLM to generate fraud analysis
+        fraud_analysis = await self.llm_service.analyze_with_context(
+            messages,
+            system_prompt=FRAUD_ANALYST_PROMPT,
+            context_data=analysis_context
+        )
+        
         return {
-            "messages": [AIMessage(content="Fraud Analyst Report: Found suspicious structuring pattern. Risk Score: 0.85")]
+            "messages": [AIMessage(content=f"Fraud Analyst Report: {fraud_analysis}", name="fraud_analyst")]
         }
 
     async def document_processor_node(self, state: InvestigationState):
-        # Call ForensicsService here
+        """
+        Document processor analyzes uploaded evidence.
+        """
+        messages = state["messages"]
+        case_id = state.get("case_id")
+        
+        # Use LLM to analyze documents
+        doc_analysis = await self.llm_service.analyze_with_context(
+            messages,
+            system_prompt=DOCUMENT_PROCESSOR_PROMPT,
+            context_data={"case_id": case_id}
+        )
+        
         return {
-            "messages": [AIMessage(content="Document Analysis Report: Receipt metadata matches transaction date.")]
+            "messages": [AIMessage(content=f"Document Analysis: {doc_analysis}", name="document_processor")]
         }
 
     async def report_generator_node(self, state: InvestigationState):
+        """
+        Generate final investigation report synthesizing all findings.
+        """
+        messages = state["messages"]
+        
+        # Use LLM to synthesize all previous analyses into final report
+        final_report = await self.llm_service.analyze_with_context(
+            messages,
+            system_prompt=REPORT_GENERATOR_PROMPT,
+            context_data={"case_id": state.get("case_id")}
+        )
+        
         return {
-            "messages": [AIMessage(content="Final Investigation Report: High probability of fraud detected. Recommend freezing account.")]
+            "messages": [AIMessage(content=f"Final Report: {final_report}", name="report_generator")]
         }
 
     async def run_investigation(self, case_id: str, initial_message: str):

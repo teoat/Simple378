@@ -20,7 +20,15 @@ export function Reconciliation() {
   });
 
   const autoReconcileMutation = useMutation({
-    mutationFn: () => api.autoReconcile(threshold),
+    mutationFn: async () => {
+      const result = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/reconciliation/auto-reconcile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threshold }),
+      });
+      if (!result.ok) throw new Error('Auto-reconciliation failed');
+      return result.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
       toast.success('Auto-reconciliation completed');
@@ -81,7 +89,7 @@ export function Reconciliation() {
                   date={expense.date}
                   description={expense.description}
                   amount={expense.amount}
-                  status={expense.status}
+                  status={expense.status as 'matched' | 'unmatched' | 'flagged'}
                 />
               ))}
               {expenses?.length === 0 && (
@@ -107,11 +115,11 @@ export function Reconciliation() {
                 <TransactionRow
                   key={transaction.id}
                   id={transaction.id}
-                  type="transaction"
+                  type="bank"
                   date={transaction.date}
                   description={transaction.description}
                   amount={transaction.amount}
-                  status={transaction.status}
+                  status={transaction.status as 'matched' | 'unmatched' | 'flagged'}
                 />
               ))}
               {transactions?.length === 0 && (

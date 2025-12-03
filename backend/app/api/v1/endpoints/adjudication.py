@@ -99,7 +99,8 @@ async def download_case_report(
         "status": analysis.adjudication_status,
         "risk_score": analysis.risk_score,
         "description": f"Fraud analysis for subject {analysis.subject_id}",
-        "evidence": [] # Populate with actual evidence if available
+        "evidence": [],  # Populate with actual evidence if available
+        "chain_of_custody": analysis.chain_of_custody or []  # Include custody log
     }
 
     reporting_service = ReportingService()

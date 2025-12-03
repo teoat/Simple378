@@ -9,6 +9,9 @@ from prometheus_fastapi_instrumentator import Instrumentator
 # Setup logging
 setup_logging()
 
+# Import tracing after app creation to avoid circular imports
+from app.core.tracing import setup_tracing
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
@@ -20,6 +23,13 @@ app.add_exception_handler(Exception, global_exception_handler)
 
 # Setup Prometheus metrics
 Instrumentator().instrument(app).expose(app)
+
+# Setup OpenTelemetry tracing
+try:
+    setup_tracing(app, service_name=settings.PROJECT_NAME)
+except Exception as e:
+    # Tracing is optional - log error but continue
+    print(f"Warning: Failed to setup tracing: {e}")
 
 # Set all CORS enabled origins
 app.add_middleware(

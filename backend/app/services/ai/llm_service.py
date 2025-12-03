@@ -1,40 +1,37 @@
-from typing import Optional, List, Dict, Any
+```
+import os
+from typing import Optional, Dict, Any, List
 from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 from app.core.config import settings
+import json
 
 class LLMService:
     def __init__(self):
-        self.anthropic_client = None
-        if settings.ANTHROPIC_API_KEY:
-            self.anthropic_client = ChatAnthropic(
-                model="claude-3-opus-20240229",
-                anthropic_api_key=settings.ANTHROPIC_API_KEY,
-                temperature=0
-            )
-        
-        # Placeholder for OpenAI fallback
-        self.openai_client = None
-
-    async def generate_response(
-        self, 
-        messages: List[BaseMessage], 
-        system_prompt: Optional[str] = None
-    ) -> BaseMessage:
+        self.model = ChatAnthropic(
+            model="claude-3-5-sonnet-20241022",
+            api_key=settings.ANTHROPIC_API_KEY,
+            temperature=0
+        )
+    
+    async def generate_response(self, messages: List[BaseMessage], system_prompt: Optional[str] = None) -> str:
         """
-        Generates a response from the LLM.
-        Defaults to Anthropic Claude 3 Opus.
+        Generate a response using the LLM.
         """
-        if not self.anthropic_client:
-            # Fallback or mock for dev without keys
-            from langchain_core.messages import AIMessage
-            return AIMessage(content="LLM Service not configured with API keys.")
-
         if system_prompt:
-            # Prepend system prompt if supported or manage via messages
-            pass 
+            messages = [SystemMessage(content=system_prompt)] + list(messages)
+        
+        response = await self.model.ainvoke(messages)
+        return response.content
+    
+    async def route_decision(self, messages: List[BaseMessage], available_agents: List[str]) -> Dict[str, Any]:
+        """
+        Use LLM with function calling to decide next agent in workflow.
+        
+        Args:
+            messages: Conversation history
+            available_agents: List of available agent names
             
-        try:
             response = await self.anthropic_client.ainvoke(messages)
             return response
         except Exception as e:
