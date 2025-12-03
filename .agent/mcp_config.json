@@ -1,0 +1,113 @@
+{
+  "mcpServers": {
+    "agent-coordination": {
+      "command": "/usr/local/Cellar/node/25.2.1/bin/node",
+      "args": [
+        "/Users/Arief/Desktop/Simple378/mcp-server/dist/index.js"
+      ],
+      "env": {
+        "NODE_ENV": "development",
+        "REDIS_URL": "redis://localhost:6380/0",
+        "COORDINATION_TTL": "3600",
+        "PROJECT_ROOT": "/Users/Arief/Desktop/Simple378",
+        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    },
+    "redis": {
+      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-redis"
+      ],
+      "env": {
+        "REDIS_URL": "redis://localhost:6380/0",
+        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    },
+    "prometheus": {
+      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "args": [
+        "-y",
+        "@wkronmiller/prometheus-mcp-server"
+      ],
+      "env": {
+        "PROMETHEUS_URL": "http://localhost:9090",
+        "PROMETHEUS_TIMEOUT": "10000",
+        "PROMETHEUS_RETRIES": "3",
+        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    },
+    "postgres": {
+      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://postgres:postgres@localhost:5433/fraud_detection"
+      ],
+      "env": {
+        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    },
+    "chrome-devtools": {
+      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-puppeteer"
+      ],
+      "env": {
+        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    },
+    "memory": {
+      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "env": {
+        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    },
+    "context7": {
+      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "env": {
+        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    },
+    "sequential-thinking": {
+      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "env": {
+        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    },
+    "github": {
+      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_TOKEN_HERE",
+        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    },
+    "git": {
+      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-git"
+      ],
+      "env": {
+        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    }
+  }
+}
