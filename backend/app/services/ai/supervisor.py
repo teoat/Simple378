@@ -19,7 +19,9 @@ class InvestigationState(TypedDict):
     final_verdict: Optional[str]
 
 # Initialize LLM
-llm = ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=os.getenv("ANTHROPIC_API_KEY"))
+from app.core.config import settings
+
+llm = ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=settings.ANTHROPIC_API_KEY)
 
 # Define Nodes
 def supervisor_node(state: InvestigationState):

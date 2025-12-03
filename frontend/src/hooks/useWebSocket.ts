@@ -14,7 +14,7 @@ interface UseWebSocketOptions {
 }
 
 export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -29,19 +29,27 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
   const connectRef = useRef<() => void>(() => {});
 
   const connect = useCallback(() => {
-    if (!token) return;
+    const token = localStorage.getItem('auth_token');
+    if (!isAuthenticated || !token) return;
 
     try {
+      // Append token to URL for WebSocket authentication
+      // Assuming the backend expects token in query param or we use a different auth mechanism for WS
+      // For now, just connecting. If auth is needed via header, WS API doesn't support headers in browser.
+      // Often passed as query param: ?token=...
+      // const wsUrl = new URL(url, window.location.origin);
+      // wsUrl.searchParams.set('token', token); 
+      // Keeping original URL logic for now as I don't know backend WS auth requirement.
+      // But checking token existence is good.
+      
       const ws = new WebSocket(url);
 
       ws.onopen = () => {
-        console.log('WebSocket connected');
         setIsConnected(true);
         reconnectCountRef.current = 0;
       };
 
       ws.onclose = () => {
-        console.log('WebSocket disconnected');
         setIsConnected(false);
         
         // Attempt reconnect
@@ -51,8 +59,8 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
         }
       };
 
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+      ws.onerror = () => {
+        // Optionally, handle error state or log to a different service
       };
 
       ws.onmessage = (event) => {
@@ -62,16 +70,16 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
           if (onMessage) {
             onMessage(data);
           }
-        } catch (e) {
-          console.error('Failed to parse WebSocket message:', e);
+        } catch {
+          // Silently ignore malformed messages
         }
       };
 
       wsRef.current = ws;
-    } catch (error) {
-      console.error('Failed to create WebSocket connection:', error);
+    } catch {
+      // Connection failed, will retry if enabled
     }
-  }, [url, token, onMessage, reconnectAttempts, reconnectInterval]);
+  }, [url, isAuthenticated, onMessage, reconnectAttempts, reconnectInterval]);
 
   useEffect(() => {
     connectRef.current = connect;
@@ -90,7 +98,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type, payload }));
     } else {
-      console.warn('WebSocket is not connected');
+      // WebSocket not connected, message not sent
     }
   }, []);
 

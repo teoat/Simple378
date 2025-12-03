@@ -5,6 +5,7 @@ from app.api.v1.api import api_router
 from app.core.logging import setup_logging
 from app.core.exceptions import global_exception_handler
 from prometheus_fastapi_instrumentator import Instrumentator
+import structlog
 
 # Setup logging
 setup_logging()
@@ -25,11 +26,14 @@ app.add_exception_handler(Exception, global_exception_handler)
 Instrumentator().instrument(app).expose(app)
 
 # Setup OpenTelemetry tracing
-try:
-    setup_tracing(app, service_name=settings.PROJECT_NAME)
-except Exception as e:
-    # Tracing is optional - log error but continue
-    print(f"Warning: Failed to setup tracing: {e}")
+import os
+if os.getenv("ENABLE_OTEL", "true").lower() == "true":
+    try:
+        setup_tracing(app, service_name=settings.PROJECT_NAME)
+    except Exception as e:
+        # Tracing is optional - log error but continue
+        logger = structlog.get_logger()
+        logger.error("Failed to setup tracing", error=str(e))
 
 # Set all CORS enabled origins
 app.add_middleware(

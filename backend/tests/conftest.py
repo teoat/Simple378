@@ -7,11 +7,15 @@ from typing import AsyncGenerator
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import NullPool
+from sqlalchemy.pool import StaticPool
 
-from app.main import app
+import app.main
+fastapi_app = app.main.app
+# print(f"DEBUG: fastapi_app is {fastapi_app}, type: {type(fastapi_app)}")
 from app.db.session import Base
 from app.core.config import settings
+# Import models to ensure they are registered with Base
+import app.db.models
 
 # Test database URL (use in-memory SQLite for tests)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -28,7 +32,12 @@ async def db() -> AsyncGenerator[AsyncSession, None]:
     """
     Create a fresh database for each test.
     """
-    engine = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool)
+    # Use StaticPool to share the same in-memory database across connections
+    engine = create_async_engine(
+        TEST_DATABASE_URL, 
+        poolclass=StaticPool,
+        connect_args={"check_same_thread": False}
+    )
     
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -56,9 +65,9 @@ async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     async def override_get_db():
         yield db
     
-    app.dependency_overrides[deps.get_db] = override_get_db
+    fastapi_app.dependency_overrides[deps.get_db] = override_get_db
     
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=fastapi_app, base_url="http://test") as ac:
         yield ac
     
-    app.dependency_overrides.clear()
+    fastapi_app.dependency_overrides.clear()

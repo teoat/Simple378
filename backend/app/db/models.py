@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, JSON
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, JSON, Uuid
+# from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
 
@@ -21,7 +21,7 @@ class ActionType(str, enum.Enum):
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     full_name = Column(String)
@@ -33,7 +33,7 @@ class User(Base):
 class Subject(Base):
     __tablename__ = "subjects"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
     # Encrypted PII stored as JSON (e.g., {"name": "...", "national_id": "..."})
     encrypted_pii = Column(JSON, nullable=False) 
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -46,8 +46,8 @@ class Subject(Base):
 class Consent(Base):
     __tablename__ = "consents"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    subject_id = Column(UUID(as_uuid=True), ForeignKey("subjects.id"))
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    subject_id = Column(Uuid, ForeignKey("subjects.id"))
     consent_type = Column(Enum(ConsentType), nullable=False)
     granted_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime, nullable=True)
@@ -57,18 +57,18 @@ class Consent(Base):
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    actor_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    actor_id = Column(Uuid, ForeignKey("users.id"))
     action = Column(Enum(ActionType), nullable=False)
-    resource_id = Column(UUID(as_uuid=True), nullable=False)
+    resource_id = Column(Uuid, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
     details = Column(JSON, nullable=True)
 
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    subject_id = Column(UUID(as_uuid=True), ForeignKey("subjects.id"), nullable=False)
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    subject_id = Column(Uuid, ForeignKey("subjects.id"), nullable=False)
     
     amount = Column(String, nullable=False)  # Store as string to avoid float precision issues
     currency = Column(String, default="USD")

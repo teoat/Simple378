@@ -20,12 +20,23 @@ async def login_access_token(
     """
     OAuth2 compatible token login, get an access token for future requests
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Login attempt for user: {form_data.username}")
+
     # Find user by email
     result = await db.execute(select(User).where(User.email == form_data.username))
     user = result.scalars().first()
 
-    if not user or not security.verify_password(form_data.password, user.hashed_password):
+    if not user:
+        logger.warning(f"Login failed: User {form_data.username} not found")
         raise HTTPException(status_code=400, detail="Incorrect email or password")
+    
+    if not security.verify_password(form_data.password, user.hashed_password):
+        logger.warning(f"Login failed: Invalid password for user {form_data.username}")
+        raise HTTPException(status_code=400, detail="Incorrect email or password")
+    
+    logger.info(f"Login successful for user: {form_data.username}")
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {

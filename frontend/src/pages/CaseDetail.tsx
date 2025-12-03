@@ -1,23 +1,27 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { cn } from '../lib/utils';
-import { Clock, FileText, Network, DollarSign } from 'lucide-react';
+import { Clock, FileText, Network, DollarSign, ChevronLeft, Shield, AlertTriangle, CheckCircle, Download, Edit } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { EntityGraph } from '../components/visualizations/EntityGraph';
 import { Timeline } from '../components/visualizations/Timeline';
 import { FinancialSankey } from '../components/visualizations/FinancialSankey';
+import { RiskBar } from '../components/cases/RiskBar';
+import { StatusBadge } from '../components/cases/StatusBadge';
 
 const tabs = [
   { name: 'Overview', id: 'overview', icon: FileText },
   { name: 'Graph Analysis', id: 'graph', icon: Network },
   { name: 'Timeline', id: 'timeline', icon: Clock },
   { name: 'Financials', id: 'financials', icon: DollarSign },
+  { name: 'Evidence', id: 'evidence', icon: Shield },
 ];
 
 export function CaseDetail()  {
   const { id } = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('Overview');
 
   const { data: caseData, isLoading: caseLoading } = useQuery({
     queryKey: ['case', id],
@@ -28,30 +32,28 @@ export function CaseDetail()  {
   useQuery({
     queryKey: ['case', id, 'timeline'],
     queryFn: () => api.getCaseTimeline(id!),
-    enabled: !!id && activeTab === 'timeline',
+    enabled: !!id && activeTab === 'Timeline',
   });
 
   useQuery({
     queryKey: ['graph', caseData?.subject_name],
     queryFn: () => api.getGraph(caseData!.subject_name),
-    enabled: !!caseData?.subject_name && activeTab === 'graph',
+    enabled: !!caseData?.subject_name && activeTab === 'Graph Analysis',
   });
 
   if (caseLoading) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-slate-200 rounded w-1/3"></div>
-          <div className="h-64 bg-slate-200 rounded"></div>
-        </div>
+      <div className="p-8 space-y-6 min-h-screen bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-1/3 animate-pulse"></div>
+        <div className="h-64 bg-slate-200 dark:bg-slate-700 rounded-2xl animate-pulse"></div>
       </div>
     );
   }
 
   if (!caseData) {
     return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
+      <div className="p-8 min-h-screen bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg shadow-sm">
           Case not found
         </div>
       </div>
@@ -59,28 +61,66 @@ export function CaseDetail()  {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold leading-7 text-slate-900 sm:truncate sm:text-3xl sm:tracking-tight dark:text-white">
-            Case: {caseData.id}
-          </h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Subject: {caseData.subject_name} | Status: <span className="font-medium text-yellow-600">{caseData.status}</span>
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button className="inline-flex items-center justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-white dark:ring-slate-700 dark:hover:bg-slate-700">
-            Escalate
-          </button>
-          <button className="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
-            Approve Decision
-          </button>
+    <div className="p-8 space-y-8 min-h-screen bg-slate-50/50 dark:bg-slate-900/50">
+      {/* Navigation */}
+      <Link 
+        to="/cases" 
+        className="inline-flex items-center text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+      >
+        <ChevronLeft className="h-4 w-4 mr-1" />
+        Back to Cases
+      </Link>
+
+      {/* Header Card */}
+      <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/50 p-6">
+        <div className="flex flex-col lg:flex-row justify-between gap-6">
+          <div className="flex gap-6">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-blue-500/20">
+              {caseData.subject_name.charAt(0)}
+            </div>
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{caseData.subject_name}</h1>
+                <StatusBadge status={caseData.status} />
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-mono mb-4">ID: {caseData.id}</p>
+              
+              <div className="flex items-center gap-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 dark:text-slate-400">Risk Score:</span>
+                  <div className="w-32">
+                    <RiskBar score={caseData.risk_score} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                  <Clock className="h-4 w-4" />
+                  <span>Updated {new Date(caseData.created_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 items-start">
+            <button className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+              <Edit className="h-5 w-5" />
+            </button>
+            <button className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+              <Download className="h-5 w-5" />
+            </button>
+            <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+            <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-medium shadow-sm">
+              <AlertTriangle className="h-4 w-4 text-orange-500" />
+              Escalate
+            </button>
+            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 font-medium">
+              <CheckCircle className="h-4 w-4" />
+              Approve
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs Navigation */}
       <div className="border-b border-slate-200 dark:border-slate-700">
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
           {tabs.map((tab) => (
@@ -91,13 +131,13 @@ export function CaseDetail()  {
                 activeTab === tab.name
                   ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                   : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300',
-                'group inline-flex items-center border-b-2 py-4 px-1 text-sm font-medium'
+                'group inline-flex items-center border-b-2 py-4 px-1 text-sm font-medium transition-colors duration-200'
               )}
             >
               <tab.icon
                 className={cn(
                   activeTab === tab.name ? 'text-blue-500 dark:text-blue-400' : 'text-slate-400 group-hover:text-slate-500 dark:text-slate-500',
-                  'mr-2 h-5 w-5'
+                  'mr-2 h-5 w-5 transition-colors duration-200'
                 )}
                 aria-hidden="true"
               />
@@ -107,70 +147,133 @@ export function CaseDetail()  {
         </nav>
       </div>
 
-      {/* Content */}
-      <div className="mt-6">
-        {activeTab === 'Overview' && (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="rounded-lg bg-white p-6 shadow dark:bg-slate-800">
-              <h3 className="text-lg font-medium leading-6 text-slate-900 dark:text-white">Case Details</h3>
-              <dl className="mt-4 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                <div>
-                  <dt className="text-sm font-medium text-slate-500 dark:text-slate-400">Risk Score</dt>
-                  <dd className="mt-1 text-sm text-slate-900 dark:text-white">85/100</dd>
+      {/* Tab Content */}
+      <div className="min-h-[500px]">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {activeTab === 'Overview' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Main Info */}
+                <div className="lg:col-span-2 space-y-6">
+                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Case Summary</h3>
+                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                      {caseData.description || 'No description available for this case.'}
+                    </p>
+                    
+                    <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Total Alerts</p>
+                        <p className="text-2xl font-bold text-slate-900 dark:text-white">12</p>
+                      </div>
+                      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Evidence</p>
+                        <p className="text-2xl font-bold text-slate-900 dark:text-white">5</p>
+                      </div>
+                      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Linked Entities</p>
+                        <p className="text-2xl font-bold text-slate-900 dark:text-white">8</p>
+                      </div>
+                      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Days Open</p>
+                        <p className="text-2xl font-bold text-slate-900 dark:text-white">3</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Recent Activity</h3>
+                    <Timeline />
+                  </div>
                 </div>
-                <div>
-                  <dt className="text-sm font-medium text-slate-500 dark:text-slate-400">Assigned To</dt>
-                  <dd className="mt-1 text-sm text-slate-900 dark:text-white">Alice Smith</dd>
-                </div>
-                <div className="sm:col-span-2">
-                  <dt className="text-sm font-medium text-slate-500 dark:text-slate-400">Description</dt>
-                  <dd className="mt-1 text-sm text-slate-900 dark:text-white">
-                    Suspicious structuring activity detected across multiple accounts.
-                  </dd>
-                </div>
-              </dl>
-            </div>
-            
-            <div className="rounded-lg bg-white p-6 shadow dark:bg-slate-800">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Case Summary
-              </h3>
-              <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">
-                {caseData.description || 'No description available'}
-              </p>
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-slate-500">Risk Score</p>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">{caseData.risk_score}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Assigned To</p>
-                  <p className="text-sm font-medium text-slate-900 dark:text-white">{caseData.assigned_to}</p>
+
+                {/* Sidebar */}
+                <div className="space-y-6">
+                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider mb-4">Case Details</h3>
+                    <dl className="space-y-4">
+                      <div>
+                        <dt className="text-xs text-slate-500 dark:text-slate-400">Assigned To</dt>
+                        <dd className="text-sm font-medium text-slate-900 dark:text-white mt-1 flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs">
+                            {caseData.assigned_to.charAt(0)}
+                          </div>
+                          {caseData.assigned_to}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-slate-500 dark:text-slate-400">Created Date</dt>
+                        <dd className="text-sm font-medium text-slate-900 dark:text-white mt-1">
+                          {new Date(caseData.created_at).toLocaleDateString()}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-slate-500 dark:text-slate-400">Last Updated</dt>
+                        <dd className="text-sm font-medium text-slate-900 dark:text-white mt-1">
+                          {new Date(caseData.created_at).toLocaleDateString()}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-slate-500 dark:text-slate-400">Priority</dt>
+                        <dd className="mt-1">
+                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300">
+                            High
+                          </span>
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30 p-6">
+                    <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">AI Insight</h3>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
+                      This case shows patterns consistent with structuring. The velocity of transactions has increased by 200% in the last 48 hours.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-        {activeTab === 'Graph Analysis' && (
-          <div className="rounded-lg bg-white p-4 shadow dark:bg-slate-800">
-            <EntityGraph />
-          </div>
-        )}
-        {activeTab === 'Financials' && (
-          <div className="rounded-lg bg-white p-4 shadow dark:bg-slate-800">
-            <FinancialSankey />
-          </div>
-        )}
-        {activeTab === 'Timeline' && (
-           <div className="rounded-lg bg-white p-4 shadow dark:bg-slate-800">
-            <Timeline />
-          </div>
-        )}
-        {activeTab === 'Evidence' && (
-           <div className="rounded-lg bg-white p-6 shadow dark:bg-slate-800 h-96 flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-700">
-            <span className="text-slate-500">Evidence Files Placeholder</span>
-          </div>
-        )}
+            )}
+
+            {activeTab === 'Graph Analysis' && (
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 h-[600px]">
+                <EntityGraph />
+              </div>
+            )}
+
+            {activeTab === 'Financials' && (
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
+                <FinancialSankey />
+              </div>
+            )}
+
+            {activeTab === 'Timeline' && (
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                <Timeline />
+              </div>
+            )}
+
+            {activeTab === 'Evidence' && (
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-12 flex flex-col items-center justify-center text-center border-dashed">
+                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700/50 rounded-full flex items-center justify-center mb-4">
+                  <Shield className="h-8 w-8 text-slate-400" />
+                </div>
+                <h3 className="text-lg font-medium text-slate-900 dark:text-white">Evidence Files</h3>
+                <p className="text-slate-500 dark:text-slate-400 mt-1 max-w-sm">
+                  Upload and manage evidence files related to this case. Drag and drop files here or click to browse.
+                </p>
+                <button className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20">
+                  Upload Evidence
+                </button>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

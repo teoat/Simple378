@@ -17,6 +17,7 @@ const CaseDetail = lazy(() => import('./pages/CaseDetail').then(m => ({ default:
 const Reconciliation = lazy(() => import('./pages/Reconciliation').then(m => ({ default: m.Reconciliation })));
 const Forensics = lazy(() => import('./pages/Forensics').then(m => ({ default: m.Forensics })));
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
+const AdjudicationQueue = lazy(() => import('./pages/AdjudicationQueue').then(m => ({ default: m.AdjudicationQueue })));
 
 // Loading fallback component
 function PageLoader() {
@@ -50,6 +51,7 @@ function App() {
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/cases" element={<CaseList />} />
                   <Route path="/cases/:id" element={<CaseDetail />} />
+                  <Route path="/adjudication" element={<AdjudicationQueue />} />
                   <Route path="/reconciliation" element={<Reconciliation />} />
                   <Route path="/forensics" element={<Forensics />} />
                   <Route path="/settings" element={<Settings />} />

@@ -17,7 +17,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return !!localStorage.getItem('auth_token');
   });
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [isLoading] = useState<boolean>(false);
   const navigate = useNavigate();
 
   const login = async (email: string, password: string) => {
@@ -28,8 +29,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast.success('Login successful!');
       navigate('/dashboard');
     } catch (error) {
-      console.error('Login error:', error);
-      toast.error(`Login failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(error instanceof Error ? error.message : 'Login failed');
+      let errorMessage = 'Login failed';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      // Handle specific ApiError cases if needed
+      // @ts-expect-error - checking for custom property
+      if (error?.name === 'ApiError') {
+         // @ts-expect-error - checking for custom property
+        const status = error?.status;
+        if (status === 400 || status === 401) {
+          errorMessage = 'Invalid email or password';
+        } else if (status === 500) {
+          errorMessage = 'Server error - please try again later';
+        }
+      }
+
+      toast.error(errorMessage);
       throw error;
     }
   };

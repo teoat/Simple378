@@ -8,11 +8,13 @@ interface RequestOptions extends RequestInit {
 class ApiError extends Error {
   status: number;
   data: unknown;
+  statusText: string;
 
-  constructor(message: string, status: number, data: unknown) {
+  constructor(message: string, status: number, statusText: string, data: unknown) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.statusText = statusText;
     this.data = data;
   }
 }
@@ -47,18 +49,38 @@ async function request<T>(
     }
   }
 
-  const url = endpoint.startsWith('http') ? endpoint : `${API_V1}${endpoint}`;
+  const url = `${API_V1}${endpoint}`;
 
-  const response = await fetch(url, {
-    ...fetchOptions,
-    headers,
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      ...fetchOptions,
+      headers,
+    });
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new ApiError('Network error - please check your connection and try again.', 0, 'Network Error', null);
+    }
+    throw new ApiError(
+      'Request failed due to an unknown network error.',
+      0,
+      'Unknown Network Error',
+      null
+    );
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+    console.error('[API] Request failed:', {
+      status: response.status,
+      statusText: response.statusText,
+      data: errorData
+    });
+    
     throw new ApiError(
       errorData.detail || `HTTP ${response.status} error`,
       response.status,
+      response.statusText,
       errorData
     );
   }

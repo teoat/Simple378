@@ -2,13 +2,17 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { StatCard } from '../components/dashboard/StatCard';
 import { RecentActivity } from '../components/dashboard/RecentActivity';
-import { BarChart3, TrendingUp } from 'lucide-react';
+import { RiskDistributionChart } from '../components/dashboard/RiskDistributionChart';
+import { WeeklyActivityChart } from '../components/dashboard/WeeklyActivityChart';
+import { DashboardSkeleton } from '../components/dashboard/DashboardSkeleton';
+import { BarChart3, TrendingUp, Users, AlertCircle, Plus } from 'lucide-react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import toast from 'react-hot-toast';
+import { motion } from 'framer-motion';
 
 export function Dashboard() {
   const queryClient = useQueryClient();
-  const { isLoading: statsLoading } = useQuery({
+  const { data: metrics, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: api.getDashboardMetrics,
   });
@@ -18,7 +22,16 @@ export function Dashboard() {
     onMessage: (message) => {
       if (message.type === 'STATS_UPDATE') {
         queryClient.setQueryData(['dashboard-stats'], message.payload);
-        toast.success('Dashboard updated', { id: 'dashboard-update', duration: 2000 });
+        toast.success('Dashboard updated', { 
+          id: 'dashboard-update', 
+          duration: 2000,
+          icon: '🔄',
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }
+        });
       }
     }
   });
@@ -29,81 +42,80 @@ export function Dashboard() {
   });
 
   if (statsLoading || activityLoading) {
-    return (
-      <div className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-slate-200 rounded w-1/4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-slate-200 rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
-        <div className="flex gap-2">
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+    <div className="min-h-screen bg-slate-50 p-6 dark:bg-slate-900">
+      <div className="mx-auto max-w-7xl space-y-8">
+        {/* Header */}
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+              Dashboard
+            </h1>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Overview of fraud detection system status
+            </p>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition-all hover:shadow-blue-500/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+          >
+            <Plus className="h-5 w-5" />
             New Case
-          </button>
+          </motion.button>
         </div>
-      </div>
 
-      {/* Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard
-          title="Active Cases"
-          value={metrics?.active_cases ?? 0}
-          icon={BarChart3}
-          trend={{ value: 12, isPositive: true }}
-        />
-        <StatCard
-          title="High Risk Subjects"
-          value={metrics?.high_risk_subjects ?? 0}
-          icon={TrendingUp}
-          trend={{ value: 5, isPositive: false }}
-        />
-        <StatCard
-          title="Pending Reviews"
-          value={metrics?.pending_reviews ?? 0}
-          icon={BarChart3}
-        />
-        <StatCard
-          title="System Load"
-          value={`${metrics?.system_load ?? 0}%`}
-          icon={TrendingUp}
-        />
-      </div>
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            title="Active Cases"
+            value={metrics?.active_cases ?? 0}
+            icon={BarChart3}
+            trend={{ value: 12, isPositive: true }}
+            index={0}
+          />
+          <StatCard
+            title="High Risk Subjects"
+            value={metrics?.high_risk_subjects ?? 0}
+            icon={AlertCircle}
+            trend={{ value: 5, isPositive: false }}
+            index={1}
+          />
+          <StatCard
+            title="Pending Reviews"
+            value={metrics?.pending_reviews ?? 0}
+            icon={Users}
+            index={2}
+          />
+          <StatCard
+            title="System Load"
+            value={`${metrics?.system_load ?? 0}%`}
+            icon={TrendingUp}
+            index={3}
+          />
+        </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">
-            Case Risk Distribution
-          </h2>
-          <div className="h-64 flex items-center justify-center text-slate-400">
-            Chart Placeholder
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="h-[400px]">
+            <RiskDistributionChart />
+          </div>
+          <div className="h-[400px]">
+            <WeeklyActivityChart />
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">
-            Weekly Activity
-          </h2>
-          <div className="h-64 flex items-center justify-center text-slate-400">
-            Chart Placeholder
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
-        <RecentActivity activities={activity ?? []} />
+        {/* Recent Activity */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <RecentActivity activities={activity ?? []} />
+        </motion.div>
       </div>
     </div>
   );

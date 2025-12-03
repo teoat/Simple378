@@ -3,6 +3,7 @@ name = "fraud-detection-backend"
 version = "0.1.0"
 description = "AI-Powered Fraud Detection System"
 authors = ["Admin <admin@example.com>"]
+packages = [{include = "app"}]
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -16,6 +17,7 @@ alembic = "^1.13.1"
 python-multipart = "^0.0.9"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+bcrypt = "3.2.2" # Pin bcrypt to <4.0.0 to avoid passlib error
 networkx = "^3.6"
 langchain = "^0.3.0"
 langgraph = "^0.2.20"
@@ -37,7 +39,12 @@ opentelemetry-exporter-otlp = "^1.24.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
 httpx = "^0.26.0"
+pytest-asyncio = "^1.3.0"
+aiosqlite = "^0.21.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
