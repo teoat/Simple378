@@ -1,5 +1,4 @@
-
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Files, 
@@ -22,6 +21,8 @@ const navigation = [
 ];
 
 export function Sidebar() {
+  const location = useLocation();
+
   return (
     <div className="flex h-full w-64 flex-col bg-slate-900 text-white">
       <div className="flex h-16 items-center justify-center border-b border-slate-800">
@@ -29,27 +30,30 @@ export function Sidebar() {
           AntiGravity
         </span>
       </div>
-      <nav className="flex-1 space-y-1 px-2 py-4">
-        {navigation.map((item) => (
-          <NavLink
-            key={item.name}
-            to={item.href}
-            className={({ isActive }) =>
-              cn(
+      <nav className="flex-1 space-y-1 px-2 py-4" role="navigation" aria-label="Main navigation">
+        {navigation.map((item) => {
+          const isActive = location.pathname === item.href;
+          return (
+            <NavLink
+              key={item.name}
+              to={item.href}
+              aria-label={item.name}
+              aria-current={isActive ? 'page' : undefined}
+              className={cn(
                 'group flex items-center rounded-md px-2 py-2 text-sm font-medium transition-colors',
                 isActive
                   ? 'bg-slate-800 text-white'
                   : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-              )
-            }
-          >
-            <item.icon
-              className="mr-3 h-5 w-5 flex-shrink-0"
-              aria-hidden="true"
-            />
-            {item.name}
-          </NavLink>
-        ))}
+              )}
+            >
+              <item.icon
+                className="mr-3 h-5 w-5 flex-shrink-0"
+                aria-hidden="true"
+              />
+              {item.name}
+            </NavLink>
+          );
+        })}
       </nav>
       <div className="border-t border-slate-800 p-4">
         <div className="flex items-center">

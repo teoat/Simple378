@@ -1,14 +1,26 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { StatCard } from '../components/dashboard/StatCard';
 import { RecentActivity } from '../components/dashboard/RecentActivity';
 import { BarChart3, TrendingUp } from 'lucide-react';
+import { useWebSocket } from '../hooks/useWebSocket';
+import toast from 'react-hot-toast';
 
 export function Dashboard() {
-  const { data: metrics, isLoading: metricsLoading } = useQuery({
-    queryKey: ['dashboard', 'metrics'],
-    queryFn: api.getDashboardMetrics,
-    refetchInterval: 30000, // Refetch every 30s
+  const queryClient = useQueryClient();
+  const { isLoading: statsLoading } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: api.getDashboardStats,
+  });
+
+  // Real-time updates
+  useWebSocket('/ws', {
+    onMessage: (message) => {
+      if (message.type === 'STATS_UPDATE') {
+        queryClient.setQueryData(['dashboard-stats'], message.payload);
+        toast.success('Dashboard updated', { id: 'dashboard-update', duration: 2000 });
+      }
+    }
   });
 
   const { data: activity, isLoading: activityLoading } = useQuery({
@@ -16,7 +28,7 @@ export function Dashboard() {
     queryFn: api.getRecentActivity,
   });
 
-  if (metricsLoading || activityLoading) {
+  if (statsLoading || activityLoading) {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">

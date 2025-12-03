@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 const API_V1 = `${API_BASE_URL}/api/v1`;
 
 interface RequestOptions extends RequestInit {
@@ -73,12 +73,20 @@ async function request<T>(
 
 export const api = {
   // Auth
-  login: (email: string, password: string) =>
-    request<{ access_token: string; token_type: string }>('/auth/login', {
+  login: (email: string, password: string) => {
+    const formData = new URLSearchParams();
+    formData.append('username', email);
+    formData.append('password', password);
+
+    return request<{ access_token: string; token_type: string }>('/login/access-token', {
       method: 'POST',
-      body: JSON.stringify({ username: email, password }),
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData,
       requiresAuth: false,
-    }),
+    });
+  },
 
   // Dashboard
   getDashboardMetrics: () =>
