@@ -1,9 +1,10 @@
 """
-Utility modules for Simple378 application.
+Utility module for Simple378 application.
 Contains helper classes and functions for managing codes.
 """
 
 from datetime import datetime
+from config import MAX_DISPLAY_WIDTH, DATE_FORMAT
 
 
 class CodeManager:
@@ -26,7 +27,7 @@ class CodeManager:
             'id': code_id,
             'description': description,
             'status': status,
-            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            'timestamp': datetime.now().strftime(DATE_FORMAT)
         }
         self.codes.append(code_entry)
     
@@ -47,15 +48,15 @@ class CodeManager:
             print("No completed codes to display.")
             return
         
-        print("=" * 70)
+        print("=" * MAX_DISPLAY_WIDTH)
         print(f"{'ID':<12} {'Description':<30} {'Status':<12} {'Timestamp'}")
-        print("=" * 70)
+        print("=" * MAX_DISPLAY_WIDTH)
         
         for code in completed:
             print(f"{code['id']:<12} {code['description']:<30} "
                   f"{code['status']:<12} {code['timestamp']}")
         
-        print("=" * 70)
+        print("=" * MAX_DISPLAY_WIDTH)
 
 
 def display_banner():
