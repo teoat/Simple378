@@ -7,6 +7,8 @@ import os
 # Set environment variable for tests to avoid Jaeger DNS errors
 os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4317"
 os.environ["ENABLE_OTEL"] = "false"
+# Set TESTING flag for config validation bypass
+os.environ["TESTING"] = "true"
 import asyncio
 from typing import AsyncGenerator
 from httpx import AsyncClient
