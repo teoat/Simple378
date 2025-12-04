@@ -6,6 +6,7 @@ A simple application for pulling and displaying completed codes.
 
 import sys
 from utils import CodeManager, display_banner
+from config import STATUS_COMPLETED
 
 
 def main():
@@ -16,11 +17,11 @@ def main():
     manager = CodeManager()
     
     # Add some sample completed codes
-    manager.add_code("CODE001", "User Authentication System", "Completed")
-    manager.add_code("CODE002", "Database Integration", "Completed")
-    manager.add_code("CODE003", "API Endpoints", "Completed")
-    manager.add_code("CODE004", "Frontend UI Components", "Completed")
-    manager.add_code("CODE005", "Testing Suite", "Completed")
+    manager.add_code("CODE001", "User Authentication System", STATUS_COMPLETED)
+    manager.add_code("CODE002", "Database Integration", STATUS_COMPLETED)
+    manager.add_code("CODE003", "API Endpoints", STATUS_COMPLETED)
+    manager.add_code("CODE004", "Frontend UI Components", STATUS_COMPLETED)
+    manager.add_code("CODE005", "Testing Suite", STATUS_COMPLETED)
     
     print("\nPulling completed codes from the system...\n")
     
@@ -29,7 +30,7 @@ def main():
     
     if completed_codes:
         print(f"Total completed codes: {len(completed_codes)}\n")
-        manager.display_codes()
+        manager.display_codes(completed_codes)
     else:
         print("No completed codes found.")
     

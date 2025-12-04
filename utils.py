@@ -4,7 +4,7 @@ Contains helper classes and functions for managing codes.
 """
 
 from datetime import datetime
-from config import MAX_DISPLAY_WIDTH, DATE_FORMAT
+from config import MAX_DISPLAY_WIDTH, DATE_FORMAT, STATUS_COMPLETED
 
 
 class CodeManager:
@@ -38,25 +38,32 @@ class CodeManager:
         Returns:
             list: List of completed code entries
         """
-        return [code for code in self.codes if code['status'] == 'Completed']
+        return [code for code in self.codes if code['status'] == STATUS_COMPLETED]
     
-    def display_codes(self):
-        """Display all codes in a formatted manner."""
-        completed = self.get_completed_codes()
+    def display_codes(self, codes=None):
+        """
+        Display codes in a formatted manner.
         
-        if not completed:
+        Args:
+            codes (list, optional): List of codes to display. If None, displays all completed codes.
+        """
+        if codes is None:
+            codes = self.get_completed_codes()
+        
+        if not codes:
             print("No completed codes to display.")
             return
         
-        print("=" * MAX_DISPLAY_WIDTH)
+        separator = "=" * MAX_DISPLAY_WIDTH
+        print(separator)
         print(f"{'ID':<12} {'Description':<30} {'Status':<12} {'Timestamp'}")
-        print("=" * MAX_DISPLAY_WIDTH)
+        print(separator)
         
-        for code in completed:
+        for code in codes:
             print(f"{code['id']:<12} {code['description']:<30} "
                   f"{code['status']:<12} {code['timestamp']}")
         
-        print("=" * MAX_DISPLAY_WIDTH)
+        print(separator)
 
 
 def display_banner():
