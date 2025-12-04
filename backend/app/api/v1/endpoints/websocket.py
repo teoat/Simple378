@@ -1,9 +1,8 @@
 """
 WebSocket endpoint for real-time updates.
 """
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.core.websocket import manager
-from app.api import deps
 import structlog
 
 logger = structlog.get_logger()

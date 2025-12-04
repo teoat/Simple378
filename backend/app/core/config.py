@@ -1,7 +1,12 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True
+    )
+    
     PROJECT_NAME: str = "Fraud Detection System"
     API_V1_STR: str = "/api/v1"
     
@@ -22,9 +27,5 @@ class Settings(BaseSettings):
     
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
     MAX_UPLOAD_FILE_SIZE_MB: int = 5 # Default to 5 MB
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
 settings = Settings()

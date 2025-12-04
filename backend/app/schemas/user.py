@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from uuid import UUID
 
 # Shared properties
@@ -18,7 +18,6 @@ class UserUpdate(UserBase):
     password: Optional[str] = None
 
 class User(UserBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: UUID
-
-    class Config:
-        from_attributes = True

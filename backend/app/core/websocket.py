@@ -1,11 +1,9 @@
 """
 WebSocket server for real-time updates.
 """
-from fastapi import WebSocket, WebSocketDisconnect, Depends
-from typing import Dict, List, Set
-import json
+from fastapi import WebSocket
+from typing import Dict, Set
 import structlog
-from app.api import deps
 
 logger = structlog.get_logger()
 

@@ -1,6 +1,5 @@
 from typing import List, Dict, Any
 from app.models.mens_rea import AnalysisResult
-import networkx as nx
 
 class ScoringService:
     def __init__(self):
@@ -57,9 +56,10 @@ class ScoringService:
         if not transactions or len(transactions) < 2:
             return 0.0
             
-        # Sort transactions by date
+        # Sort transactions by date for velocity analysis
         # Assuming ISO format strings for simplicity
-        sorted_tx = sorted(transactions, key=lambda x: x["date"])
+        # The actual sorted list is not used in the current mock implementation
+        # as we use len(transactions) for the simple heuristic
         
         # Calculate time differences
         # In a real impl, parse dates. Here we just mock the logic based on list length for the test

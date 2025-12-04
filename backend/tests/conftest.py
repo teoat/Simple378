@@ -17,10 +17,9 @@ from sqlalchemy.pool import StaticPool
 import app.main
 fastapi_app = app.main.app
 # print(f"DEBUG: fastapi_app is {fastapi_app}, type: {type(fastapi_app)}")
-from app.db.session import Base
-from app.core.config import settings
+from app.db.session import Base  # noqa: E402
 # Import models to ensure they are registered with Base
-import app.db.models
+import app.db.models  # noqa: E402, F401
 
 # Test database URL (use in-memory SQLite for tests)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -32,7 +31,7 @@ def event_loop():
     yield loop
     loop.close()
 
-import pytest_asyncio
+import pytest_asyncio  # noqa: E402
 
 @pytest_asyncio.fixture
 async def db() -> AsyncGenerator[AsyncSession, None]:

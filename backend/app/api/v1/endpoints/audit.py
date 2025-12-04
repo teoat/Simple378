@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select

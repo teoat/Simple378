@@ -1,7 +1,5 @@
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp
-import time
 from typing import Callable
 
 

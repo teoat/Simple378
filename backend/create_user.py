@@ -3,7 +3,6 @@ from app.db.session import AsyncSessionLocal
 from app.db.models import User
 from sqlalchemy import select
 from app.core.security import get_password_hash
-from app.models.mens_rea import AnalysisResult # Register AnalysisResult model
 
 async def create_user():
     async with AsyncSessionLocal() as session:
