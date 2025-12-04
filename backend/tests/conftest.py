@@ -21,7 +21,15 @@ fastapi_app = app.main.app
 # print(f"DEBUG: fastapi_app is {fastapi_app}, type: {type(fastapi_app)}")
 from app.db.session import Base  # noqa: E402
 # Import models to ensure they are registered with Base
-import app.db.models  # noqa: E402, F401
+import app.db.models
+from unittest.mock import AsyncMock
+
+# Mock Redis
+import app.core.security
+mock_redis = AsyncMock()
+mock_redis.get.return_value = None
+mock_redis.setex.return_value = True
+app.core.security._redis_client = mock_redis
 
 # Test database URL (use in-memory SQLite for tests)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"

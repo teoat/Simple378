@@ -65,7 +65,7 @@ async def refresh_token(
     try:
         # Decode and validate refresh token
         payload = jwt.decode(
-            refresh_token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
+            refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         token_data = TokenPayload(**payload)
         
@@ -123,7 +123,7 @@ async def logout(
     try:
         # Decode token to get expiration
         payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         
         # Calculate remaining time until expiration

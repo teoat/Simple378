@@ -8,8 +8,6 @@ import uuid
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-ALGORITHM = "HS256"
-
 # Redis client for token blacklist
 _redis_client: Optional[redis.Redis] = None
 
@@ -56,7 +54,7 @@ def create_access_token(
         "type": token_type,
         "jti": str(uuid.uuid4())  # Unique token ID for blacklisting
     }
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 def create_refresh_token(subject: Union[str, Any]) -> str:
