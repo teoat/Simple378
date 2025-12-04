@@ -73,6 +73,40 @@ async def submit_decision(
     
     return analysis
 
+@router.post("/{analysis_id}/revert", response_model=schemas.AnalysisResult)
+async def revert_decision(
+    analysis_id: str,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user = Depends(deps.get_current_user)
+):
+    """
+    Revert an adjudication decision, setting it back to pending.
+    """
+    try:
+        analysis_uuid = uuid.UUID(analysis_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID")
+
+    result = await db.execute(select(models.AnalysisResult).where(models.AnalysisResult.id == analysis_uuid))
+    analysis = result.scalars().first()
+    
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis result not found")
+        
+    analysis.decision = None
+    analysis.reviewer_notes = None
+    analysis.reviewer_id = None
+    analysis.adjudication_status = "pending"
+    
+    db.add(analysis)
+    await db.commit()
+    await db.refresh(analysis)
+    
+    # Emit WebSocket events
+    await emit_queue_updated(str(current_user.id))
+    
+    return analysis
+
 @router.get("/{analysis_id}/report")
 async def download_case_report(
     analysis_id: str,

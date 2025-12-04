@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import ForceGraph2D from 'react-force-graph-2d';
 import { api } from '../../lib/api';
@@ -6,6 +6,13 @@ import { Loader2 } from 'lucide-react';
 
 interface GraphTabProps {
   subjectId: string;
+}
+
+interface GraphNode {
+  id: string;
+  label?: string;
+  type?: string;
+  [key: string]: unknown;
 }
 
 export function GraphTab({ subjectId }: GraphTabProps) {
@@ -63,8 +70,8 @@ export function GraphTab({ subjectId }: GraphTabProps) {
             width={dimensions.width}
             height={dimensions.height}
             graphData={data}
-            nodeLabel={(node: any) => node.label || node.id}
-            nodeColor={(node: any) => node.type === 'subject' ? '#ef4444' : '#3b82f6'}
+            nodeLabel={(node: GraphNode) => node.label || node.id}
+            nodeColor={(node: GraphNode) => node.type === 'subject' ? '#ef4444' : '#3b82f6'}
             linkColor={() => '#64748b'}
             backgroundColor="#0f172a"
           />

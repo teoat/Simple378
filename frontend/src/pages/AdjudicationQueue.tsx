@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useHotkeys } from 'react-hotkeys-hook';
 import { AlertList } from '../components/adjudication/AlertList';
 import { AlertCard } from '../components/adjudication/AlertCard';
 import { api } from '../lib/api';
@@ -52,6 +53,11 @@ function mapAnalysisResultToAlert(result: {
 export function AdjudicationQueue() {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [lastAction, setLastAction] = useState<{
+    id: string;
+    decision: string;
+    notes?: string;
+  } | null>(null);
 
   // Fetch adjudication queue
   const { data: queueData, isLoading, error } = useQuery({
@@ -63,14 +69,10 @@ export function AdjudicationQueue() {
   // Map API data to alerts
   const alerts = queueData?.map(mapAnalysisResultToAlert) || [];
   
-  // Set first alert as selected when data loads
-  useEffect(() => {
-    if (alerts.length > 0 && !selectedId) {
-      setSelectedId(alerts[0].id);
-    }
-  }, [alerts.length, selectedId]);
+  // Auto-select first alert if none selected
+  const effectiveSelectedId = selectedId || (alerts.length > 0 ? alerts[0].id : null);
 
-  const selectedAlert = alerts.find(a => a.id === selectedId) || null;
+  const selectedAlert = alerts.find(a => a.id === effectiveSelectedId) || null;
 
   // WebSocket integration for real-time updates
   useWebSocket('/ws', {
@@ -85,7 +87,8 @@ export function AdjudicationQueue() {
         const resolvedId = message.payload?.analysis_id || message.payload?.id;
         if (resolvedId === selectedId) {
           // Current alert was resolved by another user
-          toast.info('This alert was resolved by another analyst', {
+          toast('This alert was resolved by another analyst', {
+            icon: 'ℹ️',
             duration: 3000,
           });
           // Move to next alert
@@ -105,12 +108,58 @@ export function AdjudicationQueue() {
     },
   });
 
+  // Revert decision mutation
+  const revertDecisionMutation = useMutation({
+    mutationFn: api.revertDecision,
+    onSuccess: () => {
+      toast.success('Decision reverted');
+      setLastAction(null);
+      queryClient.invalidateQueries({ queryKey: ['adjudication-queue'] });
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to revert decision: ${error.message}`);
+    },
+  });
+
+  const handleUndo = (id: string) => {
+    revertDecisionMutation.mutate(id);
+  };
+
+  // Keyboard shortcut for undo
+  useHotkeys('ctrl+z, meta+z', (e) => {
+    e.preventDefault();
+    if (lastAction) {
+      handleUndo(lastAction.id);
+    }
+  }, [lastAction]);
+
   // Submit decision mutation
   const submitDecisionMutation = useMutation({
     mutationFn: ({ analysisId, decision, notes }: { analysisId: string; decision: string; notes?: string }) =>
       api.submitDecision(analysisId, decision, notes),
-    onSuccess: () => {
-      toast.success('Decision submitted successfully');
+    onSuccess: (_, variables) => {
+      // Store last action for undo
+      setLastAction({
+        id: variables.analysisId,
+        decision: variables.decision,
+        notes: variables.notes
+      });
+
+      toast.success((t) => (
+        <span className="flex items-center gap-2">
+          Decision submitted
+          <button 
+            onClick={() => {
+              handleUndo(variables.analysisId);
+              toast.dismiss(t.id);
+            }}
+            className="px-2 py-1 bg-white/20 hover:bg-white/30 rounded text-xs font-medium transition-colors"
+          >
+            Undo
+          </button>
+        </span>
+      ));
+      
       // Invalidate and refetch queue
       queryClient.invalidateQueries({ queryKey: ['adjudication-queue'] });
       
@@ -129,7 +178,7 @@ export function AdjudicationQueue() {
     },
   });
 
-  const handleDecision = (decision: 'approve' | 'reject' | 'escalate', confidence: string, comment?: string) => {
+  const handleDecision = (decision: 'approve' | 'reject' | 'escalate', _confidence: string, comment?: string) => {
     if (!selectedId) return;
 
     // Map frontend decision to backend format
@@ -207,6 +256,7 @@ export function AdjudicationQueue() {
             disabled={submitDecisionMutation.isPending}
           />
         </div>
+      </div>
       </div>
     </PageErrorBoundary>
   );

@@ -23,10 +23,14 @@ async def test_login_valid_credentials(client: AsyncClient, db: AsyncSession):
     await db.commit()
     
     # Attempt login
-    response = await client.post("/api/v1/login", json={
-        "email": "analyst@fraud.com",
-        "password": "securepass123"
-    })
+    response = await client.post(
+        "/api/v1/login/access-token",
+        data={
+            "username": "analyst@fraud.com",
+            "password": "securepass123"
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
     
     assert response.status_code == 200
     data = response.json()
@@ -36,12 +40,16 @@ async def test_login_valid_credentials(client: AsyncClient, db: AsyncSession):
 @pytest.mark.asyncio
 async def test_login_invalid_credentials(client: AsyncClient, db: AsyncSession):
     """Test login with invalid credentials."""
-    response = await client.post("/api/v1/login", json={
-        "email": "nonexistent@fraud.com",
-        "password": "wrongpass"
-    })
+    response = await client.post(
+        "/api/v1/login/access-token",
+        data={
+            "username": "nonexistent@fraud.com",
+            "password": "wrongpass"
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
     
-    assert response.status_code == 401
+    assert response.status_code == 400
 
 @pytest.mark.asyncio
 async def test_rbac_admin_only_endpoint(client: AsyncClient, db: AsyncSession):
@@ -57,10 +65,14 @@ async def test_rbac_admin_only_endpoint(client: AsyncClient, db: AsyncSession):
     await db.commit()
     
     # Login as analyst
-    login_response = await client.post("/api/v1/login", json={
-        "email": "analyst@test.com",
-        "password": "pass"
-    })
+    login_response = await client.post(
+        "/api/v1/login/access-token",
+        data={
+            "username": "analyst@test.com",
+            "password": "pass"
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
     token = login_response.json()["access_token"]
     
     # Try to access admin endpoint (if we had one marked with require_admin)
@@ -86,4 +98,4 @@ async def test_jwt_token_validation(client: AsyncClient, db: AsyncSession):
         "/api/v1/subjects/",
         headers={"Authorization": "Bearer invalid_token"}
     )
-    assert response.status_code == 401
+    assert response.status_code == 403

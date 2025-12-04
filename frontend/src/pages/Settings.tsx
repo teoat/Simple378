@@ -40,6 +40,18 @@ export function Settings() {
     },
   });
 
+  const updatePasswordMutation = useMutation({
+    mutationFn: api.updatePassword,
+    onSuccess: () => {
+      toast.success('Password updated successfully');
+      const form = document.getElementById('password-form') as HTMLFormElement;
+      if (form) form.reset();
+    },
+    onError: (error) => {
+      toast.error(`Password update failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    },
+  });
+
   const handleThemeToggle = () => {
     const isDark = document.documentElement.classList.contains('dark');
     const newTheme = isDark ? 'light' : 'dark';
@@ -102,10 +114,11 @@ export function Settings() {
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="profile-name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Name
                   </label>
                   <input
+                    id="profile-name"
                     type="text"
                     name="name"
                     defaultValue={profile?.name}
@@ -113,10 +126,11 @@ export function Settings() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label htmlFor="profile-email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Email
                   </label>
                   <input
+                    id="profile-email"
                     type="email"
                     name="email"
                     defaultValue={profile?.email}
@@ -156,29 +170,56 @@ export function Settings() {
         {activeTab === 'security' && (
           <div className="space-y-6">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Security Settings</h2>
-            <div className="space-y-4">
+            <form
+              id="password-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const currentPassword = formData.get('current_password') as string;
+                const newPassword = formData.get('new_password') as string;
+                
+                if (!currentPassword || !newPassword) {
+                  toast.error('Please fill in all fields');
+                  return;
+                }
+                
+                updatePasswordMutation.mutate({
+                  current_password: currentPassword,
+                  new_password: newPassword,
+                });
+              }}
+              className="space-y-4"
+            >
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="current-password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Current Password
                 </label>
                 <input
+                  id="current-password"
                   type="password"
+                  name="current_password"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-900 dark:border-slate-700 dark:text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label htmlFor="new-password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   New Password
                 </label>
                 <input
+                  id="new-password"
                   type="password"
+                  name="new_password"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-900 dark:border-slate-700 dark:text-white"
                 />
               </div>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                Update Password
+              <button 
+                type="submit"
+                disabled={updatePasswordMutation.isPending}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {updatePasswordMutation.isPending ? 'Updating...' : 'Update Password'}
               </button>
-            </div>
+            </form>
           </div>
         )}
 

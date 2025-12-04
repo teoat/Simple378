@@ -79,7 +79,7 @@ class OfflineStorageService:
             
         return encrypted_path, key
 
-    async def export_case(self, case_data: Dict[str, Any]) -&gt; bytes:
+    async def export_case(self, case_data: Dict[str, Any]) -> bytes:
         """
         Complete export workflow: create SQLite, encrypt, return encrypted bytes.
         """

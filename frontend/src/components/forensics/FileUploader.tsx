@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { Upload, File, X, CheckCircle, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { ProcessingPipeline, ProcessingStage } from '../ingestion/ProcessingPipeline';
+import { ProcessingPipeline, type ProcessingStage } from '../ingestion/ProcessingPipeline';
 import { useWebSocket } from '../../hooks/useWebSocket';
 
 interface FileUploaderProps {

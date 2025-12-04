@@ -18,12 +18,24 @@ const data: ActivityData[] = [
   { day: 'Sun', cases: 5, reviews: 3 },
 ];
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface TooltipPayload {
+  color: string;
+  name: string;
+  value: number;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-lg border border-white/20 bg-slate-900/90 p-3 shadow-xl backdrop-blur-md">
         <p className="mb-2 text-sm font-medium text-slate-300">{label}</p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry, index) => (
           <div key={index} className="flex items-center gap-2 text-sm">
             <div 
               className="h-2 w-2 rounded-full" 
@@ -40,6 +52,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export function WeeklyActivityChart() {
+  const totalActivity = data.reduce((sum, item) => sum + item.cases + item.reviews, 0);
+  const totalCases = data.reduce((sum, item) => sum + item.cases, 0);
+  const totalReviews = data.reduce((sum, item) => sum + item.reviews, 0);
+  const avgPerDay = (totalActivity / data.length).toFixed(1);
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -51,13 +68,26 @@ export function WeeklyActivityChart() {
         <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
           Weekly Activity
         </h3>
-        <select className="rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-1 text-sm text-slate-300 backdrop-blur-sm focus:border-purple-500 focus:outline-none">
+        <select 
+          className="rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-1 text-sm text-slate-300 backdrop-blur-sm focus:border-purple-500 focus:outline-none"
+          aria-label="Select time range for activity chart"
+        >
           <option>Last 7 Days</option>
           <option>Last 30 Days</option>
         </select>
       </div>
       
-      <div className="h-[300px] w-full">
+      {/* Screen reader summary */}
+      <div className="sr-only" role="region" aria-label="Weekly Activity Summary">
+        <p>
+          Weekly activity chart showing {data.length} days of data. 
+          Total cases: {totalCases}. 
+          Total reviews: {totalReviews}. 
+          Average activity per day: {avgPerDay} items.
+        </p>
+      </div>
+      
+      <div className="h-[300px] w-full" role="img" aria-label={`Area chart showing weekly activity trends over ${data.length} days. Average of ${avgPerDay} items per day, with ${totalCases} cases and ${totalReviews} reviews total.`} aria-live="polite">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>

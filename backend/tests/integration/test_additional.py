@@ -22,10 +22,14 @@ async def test_subject_creation_and_retrieval(client: AsyncClient, db: AsyncSess
     await db.commit()
     
     # Login
-    login_resp = await client.post("/api/v1/login", json={
-        "email": "analyst@test.com",
-        "password": "pass"
-    })
+    login_resp = await client.post(
+        "/api/v1/login/access-token",
+        data={
+            "username": "analyst@test.com",
+            "password": "pass"
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
     token = login_resp.json()["access_token"]
     
     # Get subjects list

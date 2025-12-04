@@ -64,6 +64,8 @@ export function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             onBlur={() => setTouched(prev => ({ ...prev, email: true }))}
             disabled={isLoading}
+            aria-describedby={getEmailError() ? "email-error" : undefined}
+            aria-invalid={!!getEmailError()}
             className={`block w-full rounded-xl border-0 px-4 py-3 text-slate-900 dark:text-white shadow-sm ring-1 ring-inset placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 disabled:opacity-50 transition-all duration-200
               ${getEmailError() 
                 ? 'ring-red-500/50 focus:ring-red-500 bg-red-50/10' 
@@ -82,6 +84,8 @@ export function LoginForm() {
         <AnimatePresence>
           {getEmailError() && (
             <motion.p
+              id="email-error"
+              role="alert"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
@@ -110,6 +114,8 @@ export function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             onBlur={() => setTouched(prev => ({ ...prev, password: true }))}
             disabled={isLoading}
+            aria-describedby={getPasswordError() ? "password-error" : undefined}
+            aria-invalid={!!getPasswordError()}
             className={`block w-full rounded-xl border-0 px-4 py-3 text-slate-900 dark:text-white shadow-sm ring-1 ring-inset placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 disabled:opacity-50 transition-all duration-200 pr-10
               ${getPasswordError() 
                 ? 'ring-red-500/50 focus:ring-red-500 bg-red-50/10' 
@@ -127,6 +133,8 @@ export function LoginForm() {
         <AnimatePresence>
           {getPasswordError() && (
             <motion.p
+              id="password-error"
+              role="alert"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}

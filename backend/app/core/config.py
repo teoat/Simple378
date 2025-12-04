@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     LOG_LEVEL: str = "INFO"
-    OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://jaeger:4317"
+    OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://localhost:4317"
     
     ANTHROPIC_API_KEY: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None

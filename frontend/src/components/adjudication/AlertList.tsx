@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { AlertCircle, Clock } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useHotkeys } from 'react-hotkeys-hook';
 
@@ -21,6 +21,13 @@ interface AlertListProps {
 
 export function AlertList({ alerts, selectedId, onSelect }: AlertListProps) {
   const listRef = useRef<HTMLDivElement>(null);
+
+  const scrollToItem = (id: string) => {
+    const element = document.getElementById(`alert-item-${id}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  };
 
   // Keyboard navigation
   useHotkeys('up', () => {
@@ -47,41 +54,73 @@ export function AlertList({ alerts, selectedId, onSelect }: AlertListProps) {
     }
   });
 
-  const scrollToItem = (id: string) => {
-    const element = document.getElementById(`alert-item-${id}`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  };
-
   return (
-    <div ref={listRef} className="space-y-2 overflow-y-auto max-h-[calc(100vh-200px)] pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-      <AnimatePresence initial={false}>
-        {alerts.map((alert) => (
-          <motion.div
-            key={alert.id}
-            id={`alert-item-${alert.id}`}
-            layoutId={alert.id}
-            onClick={() => onSelect(alert.id)}
-            className={cn(
-              "cursor-pointer rounded-xl p-4 transition-all duration-200 border-l-4 relative overflow-hidden group",
-              "backdrop-blur-md bg-white/5 dark:bg-slate-900/20 hover:bg-white/10 dark:hover:bg-slate-800/30",
-              selectedId === alert.id 
-                ? "bg-white/15 dark:bg-slate-800/40 shadow-lg shadow-purple-500/10 border-l-purple-500 ring-1 ring-white/10" 
-                : "border-l-transparent border-t border-r border-b border-white/5",
+    <div className="space-y-2">
+      <div id="queue-status" className="sr-only" aria-live="polite" aria-atomic="true">
+        {selectedId 
+          ? `Alert ${alerts.findIndex(a => a.id === selectedId) + 1} of ${alerts.length} selected`
+          : `${alerts.length} alerts in queue`}
+      </div>
+
+      <div 
+        ref={listRef} 
+        className="space-y-2 overflow-y-auto max-h-[calc(100vh-200px)] pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+        role="feed"
+        aria-label="Alert Queue"
+        aria-busy="false"
+        aria-describedby="queue-status"
+      >
+        <AnimatePresence initial={false}>
+          {alerts.map((alert, index) => (
+            <motion.div
+              key={alert.id}
+              id={`alert-item-${alert.id}`}
+              layoutId={alert.id}
+              onClick={() => onSelect(alert.id)}
+              className={cn(
+                "cursor-pointer rounded-xl p-4 transition-all duration-200 border-l-4 relative overflow-hidden group",
+                "backdrop-blur-md bg-white/5 dark:bg-slate-900/20 hover:bg-white/10 dark:hover:bg-slate-800/30",
+                selectedId === alert.id 
+                  ? "bg-blue-500/20 dark:bg-blue-500/20 border-l-blue-500 shadow-2xl shadow-blue-500/30 ring-2 ring-blue-500/50 scale-[1.02]" 
+                  : "border-l-transparent border-t border-r border-b border-white/5",
               alert.risk_score > 80 && selectedId !== alert.id ? "border-l-red-500/50" :
               alert.risk_score > 60 && selectedId !== alert.id ? "border-l-orange-500/50" :
               alert.risk_score <= 60 && selectedId !== alert.id ? "border-l-yellow-500/50" : ""
             )}
             initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+            animate={selectedId === alert.id ? {
+              opacity: 1,
+              x: 0,
+              scale: [1, 1.02, 1.02],
+              boxShadow: [
+                "0 0 0 0 rgba(59, 130, 246, 0)",
+                "0 0 20px 5px rgba(59, 130, 246, 0.3)",
+                "0 0 20px 5px rgba(59, 130, 246, 0.3)"
+              ]
+            } : { opacity: 1, x: 0 }}
             exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+            transition={{ duration: 0.3 }}
+            role="article"
+            aria-label={`Alert from ${alert.subject_name}, risk score ${alert.risk_score}, ${alert.triggered_rules.length} triggered rules`}
+            aria-selected={selectedId === alert.id}
+            aria-posinset={index + 1}
+            aria-setsize={alerts.length}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelect(alert.id);
+              }
+            }}
           >
             {/* Selection Indicator */}
             {selectedId === alert.id && (
               <motion.div 
                 layoutId="selection-glow"
-                className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-transparent pointer-events-none"
+                className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/10 to-transparent pointer-events-none"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
               />
             )}
 
@@ -128,7 +167,8 @@ export function AlertList({ alerts, selectedId, onSelect }: AlertListProps) {
             </div>
           </motion.div>
         ))}
-      </AnimatePresence>
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

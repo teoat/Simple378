@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models import Subject, Transaction, User
 from app.core.security import get_password_hash
 import uuid
+from datetime import datetime
 
 @pytest.mark.asyncio
 async def test_gdpr_export_subject_data(client: AsyncClient, db: AsyncSession):
@@ -35,7 +36,7 @@ async def test_gdpr_export_subject_data(client: AsyncClient, db: AsyncSession):
         subject_id=test_subject.id,
         amount="1000.00",
         currency="USD",
-        date="2024-01-01T00:00:00", 
+        date=datetime.utcnow(), 
         source_bank="Test Bank"
     )
     db.add(test_transaction)
@@ -43,10 +44,14 @@ async def test_gdpr_export_subject_data(client: AsyncClient, db: AsyncSession):
     await db.commit()
     
     # Login
-    login_response = await client.post("/api/v1/login", json={
-        "email": "test@example.com",
-        "password": "testpass"
-    })
+    login_response = await client.post(
+        "/api/v1/login/access-token",
+        data={
+            "username": "test@example.com",
+            "password": "testpass"
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
     assert login_response.status_code == 200
     token = login_response.json()["access_token"]
     

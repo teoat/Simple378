@@ -35,7 +35,11 @@ class GraphAnalyzer:
             visited_subjects.add(current_id)
             
             # Fetch Subject
-            result = await db.execute(select(Subject).where(Subject.id == current_id))
+            result = await db.execute(
+                select(Subject)
+                .options(selectinload(Subject.analysis_results))
+                .where(Subject.id == current_id)
+            )
             subject = result.scalars().first()
             
             if not subject:

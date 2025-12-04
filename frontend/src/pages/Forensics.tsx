@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import toast from 'react-hot-toast';
-import { FileUploader } from '../components/forensics/FileUploader';
-import { ProcessingPipeline, ProcessingStage } from '../components/ingestion/ProcessingPipeline';
+import { UploadZone } from '../components/ingestion/UploadZone';
+import { ProcessingPipeline, type ProcessingStage } from '../components/ingestion/ProcessingPipeline';
 import { ForensicResults } from '../components/ingestion/ForensicResults';
 import { CSVWizard } from '../components/ingestion/CSVWizard';
 import { UploadHistory } from '../components/ingestion/UploadHistory';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
 import { ForensicsSkeleton } from '../components/ingestion/ForensicsSkeleton';
-import { FileSpreadsheet, Upload } from 'lucide-react';
+import { FileSpreadsheet } from 'lucide-react';
 
 export function Forensics() {
   const [results, setResults] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -62,10 +62,25 @@ export function Forensics() {
     }
   };
 
-  const handleCSVComplete = (mappedData: unknown[]) => {
-    toast.success(`CSV import ready: ${mappedData.length} rows mapped`);
-    setShowCSVWizard(false);
-    // TODO: Implement actual CSV import
+  const handleCSVComplete = async (mappedData: unknown[]) => {
+    try {
+      // Add placeholder subject_id as required by backend
+      const subjectId = "00000000-0000-0000-0000-000000000000"; 
+      
+      const transactions = (mappedData as Record<string, unknown>[]).map(d => ({
+        ...d,
+        subject_id: subjectId,
+        source_bank: "Manual Import",
+        currency: "USD" // Default currency
+      }));
+
+      await api.batchImportTransactions(transactions);
+      toast.success(`Successfully imported ${mappedData.length} transactions`);
+      setShowCSVWizard(false);
+    } catch (error) {
+      toast.error('Failed to import transactions');
+      console.error(error);
+    }
   };
 
   if (isLoading) {
@@ -107,7 +122,7 @@ export function Forensics() {
 
       {/* File Upload */}
       <div className="backdrop-blur-lg bg-white/10 dark:bg-slate-900/20 rounded-2xl border border-white/20 dark:border-slate-700/30 p-6 shadow-xl">
-        <FileUploader
+        <UploadZone
           onUpload={handleFileUpload}
           showProcessing={uploadMutation.isPending}
           uploadId={uploadId}
@@ -141,10 +156,12 @@ export function Forensics() {
       {/* Upload History */}
       <UploadHistory
         onView={(id) => {
-          toast.info(`Viewing upload ${id}`);
-          // TODO: Implement view functionality
+          toast(`Viewing upload ${id}`, { icon: 'ℹ️' });
+          // View functionality will be implemented with file retrieval API
+          // Future: Fetch file by ID and display/download
         }}
       />
+      </div>
     </PageErrorBoundary>
   );
 }

@@ -2,6 +2,7 @@
 Integration tests for AI Orchestrator.
 """
 import pytest
+import unittest.mock
 from app.services.ai.orchestrator import Orchestrator
 from langchain_core.messages import HumanMessage
 
@@ -10,7 +11,15 @@ async def test_orchestrator_basic_flow():
     """
     Test that orchestrator routes through agents correctly.
     """
-    orchestrator = Orchestrator()
+    with unittest.mock.patch("app.services.ai.orchestrator.LLMService") as MockLLMService:
+        mock_llm = MockLLMService.return_value
+        mock_llm.route_decision = unittest.mock.AsyncMock(side_effect=[
+            {"next_agent": "fraud_analyst", "reasoning": "Test reasoning"},
+            {"next_agent": "FINISH", "reasoning": "Done"}
+        ])
+        mock_llm.analyze_with_context = unittest.mock.AsyncMock(return_value="Test analysis result")
+        
+        orchestrator = Orchestrator()
     
     case_id = "test-case-123"
     initial_message = "Investigate transaction pattern for subject X showing multiple cash deposits under $10,000."
@@ -35,7 +44,11 @@ async def test_supervisor_routing_decision():
     """
     Test that supervisor makes LLM-based routing decisions.
     """
-    orchestrator = Orchestrator()
+    with unittest.mock.patch("app.services.ai.orchestrator.LLMService") as MockLLMService:
+        mock_llm = MockLLMService.return_value
+        mock_llm.route_decision = unittest.mock.AsyncMock(return_value={"next_agent": "fraud_analyst", "reasoning": "Test reasoning"})
+        
+        orchestrator = Orchestrator()
     
     # Initial state - should route to fraud_analyst
     state = {
@@ -59,7 +72,11 @@ async def test_fraud_analyst_node():
     """
     Test fraud analyst node generates analysis.
     """
-    orchestrator = Orchestrator()
+    with unittest.mock.patch("app.services.ai.orchestrator.LLMService") as MockLLMService:
+        mock_llm = MockLLMService.return_value
+        mock_llm.analyze_with_context = unittest.mock.AsyncMock(return_value="Test fraud analysis")
+        
+        orchestrator = Orchestrator()
     
     state = {
         "messages": [HumanMessage(content="Analyze transactions for suspicious patterns")],

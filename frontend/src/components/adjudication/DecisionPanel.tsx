@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { CheckCircle, XCircle, AlertTriangle, Send } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useHotkeys } from 'react-hotkeys-hook';
@@ -15,6 +15,12 @@ export function DecisionPanel({ onDecision, disabled }: DecisionPanelProps) {
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
 
+  const handleDecisionClick = (decision: 'approve' | 'reject' | 'escalate') => {
+    setSelectedDecision(decision);
+    setError('');
+    // Focus comment area if needed?
+  };
+
   // Keyboard shortcuts
   useHotkeys('a', () => !disabled && handleDecisionClick('approve'), { enabled: !selectedDecision });
   useHotkeys('r', () => !disabled && handleDecisionClick('reject'), { enabled: !selectedDecision });
@@ -26,12 +32,6 @@ export function DecisionPanel({ onDecision, disabled }: DecisionPanelProps) {
       setError('');
     }
   }, { enableOnFormTags: true });
-
-  const handleDecisionClick = (decision: 'approve' | 'reject' | 'escalate') => {
-    setSelectedDecision(decision);
-    setError('');
-    // Focus comment area if needed?
-  };
 
   const handleSubmit = () => {
     if (!selectedDecision) return;
@@ -58,13 +58,26 @@ export function DecisionPanel({ onDecision, disabled }: DecisionPanelProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div 
+      className="space-y-4"
+      role="region"
+      aria-label="Decision Panel"
+      aria-describedby="decision-instructions"
+    >
+      <div id="decision-instructions" className="sr-only">
+        Review the alert details and choose an action: 
+        Press A to approve, R to reject, or E to escalate. 
+        You can adjust confidence before submitting.
+      </div>
+
       {!selectedDecision ? (
         <div className="grid grid-cols-3 gap-4">
           <button
             onClick={() => handleDecisionClick('approve')}
             disabled={disabled}
             className="group relative overflow-hidden rounded-xl border border-green-500/30 bg-green-500/10 p-4 hover:bg-green-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-keyshortcuts="a"
+            aria-description="Approve this alert as legitimate. Keyboard shortcut: A"
           >
             <div className="flex flex-col items-center gap-2">
               <CheckCircle className="h-6 w-6 text-green-400 group-hover:scale-110 transition-transform" />
@@ -77,6 +90,8 @@ export function DecisionPanel({ onDecision, disabled }: DecisionPanelProps) {
             onClick={() => handleDecisionClick('reject')}
             disabled={disabled}
             className="group relative overflow-hidden rounded-xl border border-red-500/30 bg-red-500/10 p-4 hover:bg-red-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-keyshortcuts="r"
+            aria-description="Reject this alert as false positive. Keyboard shortcut: R"
           >
             <div className="flex flex-col items-center gap-2">
               <XCircle className="h-6 w-6 text-red-400 group-hover:scale-110 transition-transform" />
@@ -89,6 +104,8 @@ export function DecisionPanel({ onDecision, disabled }: DecisionPanelProps) {
             onClick={() => handleDecisionClick('escalate')}
             disabled={disabled}
             className="group relative overflow-hidden rounded-xl border border-orange-500/30 bg-orange-500/10 p-4 hover:bg-orange-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-keyshortcuts="e"
+            aria-description="Escalate this alert for senior review. Keyboard shortcut: E"
           >
             <div className="flex flex-col items-center gap-2">
               <AlertTriangle className="h-6 w-6 text-orange-400 group-hover:scale-110 transition-transform" />

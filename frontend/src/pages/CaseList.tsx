@@ -1,18 +1,29 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
 import { CaseListSkeleton } from '../components/cases/CaseListSkeleton';
 import toast from 'react-hot-toast';
-import { Plus, MoreVertical, ChevronLeft, ChevronRight, Search, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, MoreVertical, ChevronLeft, ChevronRight, Search, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CaseSearch } from '../components/cases/CaseSearch';
 import { CaseFilters } from '../components/cases/CaseFilters';
 import { RiskBar } from '../components/cases/RiskBar';
 import { StatusBadge } from '../components/cases/StatusBadge';
 import { QuickPreview } from '../components/cases/QuickPreview';
+import { useHotkeys } from 'react-hotkeys-hook';
+import { cn } from '../lib/utils';
+
+const SortIcon = ({ column, sortBy, sortOrder }: { column: string; sortBy: string; sortOrder: 'asc' | 'desc' }) => {
+  if (sortBy !== column) return null;
+  return sortOrder === 'asc' ? (
+    <ArrowUp className="h-3 w-3 inline-block ml-1" />
+  ) : (
+    <ArrowDown className="h-3 w-3 inline-block ml-1" />
+  );
+};
 
 export function CaseList() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,6 +35,27 @@ export function CaseList() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [hoveredCase, setHoveredCase] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const [selectedCases, setSelectedCases] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
+
+  // Keyboard shortcut to focus search
+  useHotkeys('/', (e) => {
+    e.preventDefault();
+    searchInputRef.current?.focus();
+    toast("Press ESC to exit search", { icon: "🔍", duration: 1500 });
+  });
+
+  // Keyboard shortcut to clear search
+  useHotkeys('escape', () => {
+    if (searchQuery) {
+      setSearchQuery('');
+      searchInputRef.current?.blur();
+      toast("Search cleared", { icon: "✨", duration: 1000 });
+    }
+  }, { enableOnFormTags: ['INPUT'] });
+
 
   // Debounce search query
   useEffect(() => {
@@ -36,13 +68,13 @@ export function CaseList() {
   }, [searchQuery]);
 
   // Use Meilisearch when there's a search query, otherwise use regular endpoint
-  const { data: searchData, isLoading: isSearchLoading } = useQuery({
+  const { data: searchData, isLoading: isSearchLoading, error: searchError } = useQuery({
     queryKey: ['cases-search', debouncedSearchQuery],
     queryFn: () => api.searchCases(debouncedSearchQuery),
     enabled: !!debouncedSearchQuery.trim(),
   });
 
-  const { data: regularData, isLoading: isRegularLoading } = useQuery({
+  const { data: regularData, isLoading: isRegularLoading, error: regularError } = useQuery({
     queryKey: ['cases', { status: statusFilter !== 'all' ? statusFilter : undefined, page, limit, sortBy, sortOrder }],
     queryFn: () => api.getCases({ 
       status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -53,6 +85,8 @@ export function CaseList() {
     }),
     enabled: !debouncedSearchQuery.trim(),
   });
+
+  const error = searchError || regularError;
 
   // Use search results when available, otherwise use regular results
   const data = useMemo(() => {
@@ -69,6 +103,38 @@ export function CaseList() {
   const isLoading = isSearchLoading || isRegularLoading;
   const queryClient = useQueryClient();
 
+  const deleteCasesMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      await Promise.all(ids.map(id => api.deleteCase(id)));
+    },
+    onSuccess: () => {
+      toast.success('Selected cases deleted');
+      setSelectedCases(new Set());
+      queryClient.invalidateQueries({ queryKey: ['cases'] });
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete cases: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  });
+
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedCases);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedCases(newSelected);
+  };
+
+  const toggleAll = () => {
+    if (data?.items && selectedCases.size === data.items.length) {
+      setSelectedCases(new Set());
+    } else {
+      setSelectedCases(new Set(data?.items.map(i => i.id) || []));
+    }
+  };
+
   // WebSocket integration for real-time case updates
   useWebSocket('/ws', {
     onMessage: (message) => {
@@ -82,7 +148,8 @@ export function CaseList() {
             duration: 3000,
           });
         } else if (message.type === 'case_updated') {
-          toast.info('Case updated', {
+          toast('Case updated', {
+            icon: 'ℹ️',
             duration: 2000,
           });
         }
@@ -115,14 +182,7 @@ export function CaseList() {
     setPage(1); // Reset to first page on sort
   };
 
-  const SortIcon = ({ column }: { column: string }) => {
-    if (sortBy !== column) return null;
-    return sortOrder === 'asc' ? (
-      <ArrowUp className="h-3 w-3 inline-block ml-1" />
-    ) : (
-      <ArrowDown className="h-3 w-3 inline-block ml-1" />
-    );
-  };
+
 
   if (error) {
     return (
@@ -137,6 +197,19 @@ export function CaseList() {
   return (
     <PageErrorBoundary pageName="Case Management">
       <div className="p-8 space-y-8 min-h-screen bg-slate-50/50 dark:bg-slate-900/50">
+      {/* Skip link for keyboard users */}
+      <a
+        href="#case-table"
+        className={cn(
+          "sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4",
+          "bg-blue-600 text-white px-4 py-2 rounded-lg",
+          "focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+          "z-50 shadow-lg"
+        )}
+      >
+        Skip to case table
+      </a>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -152,6 +225,7 @@ export function CaseList() {
       {/* Controls */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between backdrop-blur-lg bg-white/10 dark:bg-slate-800/20 p-4 rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/30">
         <CaseSearch 
+          ref={searchInputRef}
           value={searchQuery} 
           onChange={(value) => {
             setSearchQuery(value);
@@ -174,39 +248,48 @@ export function CaseList() {
         <div className="backdrop-blur-xl bg-white/10 dark:bg-slate-900/20 rounded-2xl shadow-2xl border border-white/20 dark:border-slate-700/30 overflow-hidden">
           {
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table id="case-table" ref={tableRef} className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-700">
+                    <th className="px-6 py-4 w-12">
+                      <input 
+                        type="checkbox" 
+                        aria-label="Select all cases"
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        checked={!!data?.items?.length && selectedCases.size === data.items.length}
+                        onChange={toggleAll}
+                      />
+                    </th>
                     <th 
                       className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
                       onClick={() => handleSort('id')}
                     >
-                      Case ID <SortIcon column="id" />
+                      Case ID <SortIcon column="id" sortBy={sortBy} sortOrder={sortOrder} />
                     </th>
                     <th 
                       className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
                       onClick={() => handleSort('subject_name')}
                     >
-                      Subject <SortIcon column="subject_name" />
+                      Subject <SortIcon column="subject_name" sortBy={sortBy} sortOrder={sortOrder} />
                     </th>
                     <th 
                       className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-48 cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
                       onClick={() => handleSort('risk_score')}
                     >
-                      Risk Score <SortIcon column="risk_score" />
+                      Risk Score <SortIcon column="risk_score" sortBy={sortBy} sortOrder={sortOrder} />
                     </th>
                     <th 
                       className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
                       onClick={() => handleSort('status')}
                     >
-                      Status <SortIcon column="status" />
+                      Status <SortIcon column="status" sortBy={sortBy} sortOrder={sortOrder} />
                     </th>
                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Assigned To</th>
                     <th 
                       className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
                       onClick={() => handleSort('created_at')}
                     >
-                      Last Updated <SortIcon column="created_at" />
+                      Last Updated <SortIcon column="created_at" sortBy={sortBy} sortOrder={sortOrder} />
                     </th>
                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Actions</th>
                   </tr>
@@ -217,10 +300,28 @@ export function CaseList() {
                       key={case_.id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="group hover:backdrop-blur-sm hover:bg-white/5 dark:hover:bg-slate-800/20 transition-all duration-200 relative"
+                      className="group hover:backdrop-blur-sm hover:bg-white/5 dark:hover:bg-slate-800/20 transition-all duration-200 relative focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 focus-within:bg-blue-50/50 dark:focus-within:bg-blue-900/20 cursor-pointer"
                       onMouseMove={(e) => handleMouseMove(e, case_.id)}
                       onMouseLeave={() => setHoveredCase(null)}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`View details for case ${case_.id.slice(0, 8)}, subject ${case_.subject_name}, risk level ${case_.risk_score}`}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          navigate(`/cases/${case_.id}`);
+                        }
+                      }}
                     >
+                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                        <input 
+                          type="checkbox" 
+                          aria-label={`Select case ${case_.id}`}
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          checked={selectedCases.has(case_.id)}
+                          onChange={() => toggleSelection(case_.id)}
+                        />
+                      </td>
                       <td className="px-6 py-4">
                         <Link 
                           to={`/cases/${case_.id}`} 
@@ -250,7 +351,7 @@ export function CaseList() {
                         {new Date(case_.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                        <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label="Actions">
                           <MoreVertical className="h-4 w-4" />
                         </button>
                       </td>
@@ -269,8 +370,9 @@ export function CaseList() {
                 </div>
               )}
             </div>
-          )}
+          }
         </div>
+      </div>
 
         {/* Pagination */}
         {data && data.items.length > 0 && (
@@ -290,6 +392,7 @@ export function CaseList() {
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={data.page === 1}
                 className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="Previous Page"
               >
                 <ChevronLeft className="h-4 w-4 text-slate-600 dark:text-slate-400" />
               </button>
@@ -297,6 +400,7 @@ export function CaseList() {
                 onClick={() => setPage(p => Math.min(data.pages, p + 1))}
                 disabled={data.page === data.pages}
                 className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="Next Page"
               >
                 <ChevronRight className="h-4 w-4 text-slate-600 dark:text-slate-400" />
               </button>
@@ -314,6 +418,26 @@ export function CaseList() {
           />
         ))}
       </div>
+
+
+      {selectedCases.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-50 animate-in slide-in-from-bottom-4 fade-in">
+          <span className="font-medium">{selectedCases.size} selected</span>
+          <div className="h-4 w-px bg-slate-700" />
+          <button 
+            onClick={() => {
+              if (confirm('Are you sure you want to delete these cases?')) {
+                deleteCasesMutation.mutate(Array.from(selectedCases));
+              }
+            }}
+            className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </button>
+        </div>
+      )}
+
     </PageErrorBoundary>
   );
 }

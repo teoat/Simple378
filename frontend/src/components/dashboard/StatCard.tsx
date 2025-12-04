@@ -1,5 +1,5 @@
 import { type LucideIcon } from 'lucide-react';
-import { motion, useSpring, useTransform } from 'framer-motion';
+import { motion, useSpring, useTransform, useAnimation } from 'framer-motion';
 import { useEffect } from 'react';
 
 interface StatCardProps {
@@ -22,14 +22,29 @@ export function StatCard({ title, value, icon: Icon, trend, index = 0 }: StatCar
     return Math.round(current).toLocaleString() + (typeof value === 'string' && value.includes('%') ? '%' : '');
   });
 
+  const pulseControls = useAnimation();
+
   useEffect(() => {
     springValue.set(numericValue);
-  }, [numericValue, springValue]);
+    
+    // Trigger pulse animation when value changes
+    if (numericValue !== 0) {
+      pulseControls.start({
+        scale: [1, 1.05, 1],
+        boxShadow: [
+          '0 25px 50px -12px rgba(139, 92, 246, 0.1)',
+          '0 25px 50px -12px rgba(139, 92, 246, 0.3)',
+          '0 25px 50px -12px rgba(139, 92, 246, 0.1)',
+        ],
+        transition: { duration: 0.6, ease: 'easeInOut' }
+      });
+    }
+  }, [numericValue, springValue, pulseControls]);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={pulseControls}
       transition={{ duration: 0.4, delay: index * 0.1 }}
       whileHover={{ scale: 1.02 }}
       className="relative overflow-hidden rounded-2xl border border-white/20 bg-white/10 p-6 shadow-2xl shadow-purple-500/10 backdrop-blur-xl transition-all duration-300 hover:border-purple-400/50 hover:shadow-purple-500/20 dark:border-slate-700/30 dark:bg-slate-900/20 dark:shadow-cyan-500/10"

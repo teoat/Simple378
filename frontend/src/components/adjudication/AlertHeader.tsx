@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertTriangle, Clock, Shield } from 'lucide-react';
 
 interface Alert {

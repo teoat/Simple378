@@ -1,4 +1,3 @@
-import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/Tabs';
 import { EvidenceTab } from './EvidenceTab';
 import { GraphTab } from './GraphTab';

@@ -8,3 +8,7 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+// Register service worker for PWA support
+import { registerServiceWorker } from './lib/serviceWorkerRegistration'
+registerServiceWorker()

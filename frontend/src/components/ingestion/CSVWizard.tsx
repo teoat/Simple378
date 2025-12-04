@@ -1,306 +1,169 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, CheckCircle, AlertCircle, FileSpreadsheet } from 'lucide-react';
+import { UploadZone } from './UploadZone';
+import { Check, Table } from 'lucide-react';
 import Papa from 'papaparse';
 
-const parseCSV = (text: string): string[][] => {
-  const result = Papa.parse<string[]>(text, {
-    skipEmptyLines: true,
-    header: false,
-  });
-  
-  if (result.errors.length > 0) {
-    console.warn('CSV parsing errors:', result.errors);
-  }
-  
-  return result.data;
-};
-
 interface CSVWizardProps {
-  onComplete: (mappedData: unknown[]) => void;
+  onComplete: (data: Record<string, unknown>[]) => void;
   onCancel: () => void;
 }
 
-type Step = 1 | 2 | 3 | 4;
-
-const SYSTEM_FIELDS = [
-  'date',
-  'amount',
-  'description',
-  'beneficiary',
-  'transaction_id',
-  'category',
-  'currency',
-];
+type WizardStep = 'upload' | 'mapping' | 'validation' | 'preview';
 
 export function CSVWizard({ onComplete, onCancel }: CSVWizardProps) {
-  const [step, setStep] = useState<Step>(1);
-  const [file, setFile] = useState<File | null>(null);
-  const [csvData, setCsvData] = useState<string[][]>([]);
+  const [step, setStep] = useState<WizardStep>('upload');
+  const [parsedData, setParsedData] = useState<Record<string, unknown>[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
-  const [mapping, setMapping] = useState<Record<string, string>>({});
-  const [errors, setErrors] = useState<string[]>([]);
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
 
-  const handleFileSelect = async (selectedFile: File) => {
-    setFile(selectedFile);
-    try {
-      const text = await selectedFile.text();
-      const data = parseCSV(text);
-      
-      if (data && data.length > 0) {
-        setHeaders(data[0] || []);
-        setCsvData(data.slice(1, 11)); // Preview first 10 rows
-        // Auto-map headers
-        const autoMapping: Record<string, string> = {};
-        data[0].forEach((header) => {
-          const lowerHeader = header.toLowerCase();
-          const matchedField = SYSTEM_FIELDS.find(field => 
-            lowerHeader.includes(field) || field.includes(lowerHeader)
-          );
-          if (matchedField) {
-            autoMapping[header] = matchedField;
-          }
-        });
-        setMapping(autoMapping);
-        setStep(2);
-      } else {
-        setErrors(['CSV file appears to be empty']);
-      }
-    } catch (error) {
-      setErrors([`Failed to parse CSV: ${error instanceof Error ? error.message : 'Unknown error'}`]);
-    }
-  };
+  const SYSTEM_FIELDS = [
+    { id: 'date', label: 'Transaction Date', required: true },
+    { id: 'amount', label: 'Amount', required: true },
+    { id: 'description', label: 'Description', required: true },
+    { id: 'category', label: 'Category', required: false },
+    { id: 'merchant', label: 'Merchant', required: false },
+  ];
 
-  const handleMappingChange = (csvColumn: string, systemField: string) => {
-    setMapping({ ...mapping, [csvColumn]: systemField });
-  };
-
-  const validateMapping = () => {
-    const requiredFields = ['date', 'amount'];
-    const mappedFields = Object.values(mapping);
-    const missing = requiredFields.filter(field => !mappedFields.includes(field));
+  const handleFileUpload = (files: File[]) => {
+    const file = files[0];
     
-    if (missing.length > 0) {
-      setErrors([`Required fields not mapped: ${missing.join(', ')}`]);
-      return false;
-    }
-    setErrors([]);
-    return true;
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        setParsedData(results.data as Record<string, unknown>[]);
+        setHeaders(results.meta.fields || []);
+        
+        // Auto-map columns
+        const mapping: Record<string, string> = {};
+        (results.meta.fields || []).forEach(header => {
+          const lowerHeader = header.toLowerCase();
+          if (lowerHeader.includes('date')) mapping['date'] = header;
+          else if (lowerHeader.includes('amount') || lowerHeader.includes('debit') || lowerHeader.includes('credit')) mapping['amount'] = header;
+          else if (lowerHeader.includes('desc') || lowerHeader.includes('memo')) mapping['description'] = header;
+        });
+        setColumnMapping(mapping);
+        setStep('mapping');
+      },
+      error: (error) => {
+        console.error('CSV Parse Error:', error);
+      }
+    });
   };
 
-  const handleNext = () => {
-    if (step === 2) {
-      if (validateMapping()) {
-        setStep(3);
-      }
-    } else if (step === 3) {
-      setStep(4);
-    }
+  const handleMappingChange = (systemField: string, csvHeader: string) => {
+    setColumnMapping(prev => ({
+      ...prev,
+      [systemField]: csvHeader
+    }));
   };
 
   const handleFinish = () => {
-    // Transform data with mapping
-    const mappedData = csvData.map(row => {
-      const mapped: Record<string, string> = {};
-      headers.forEach((header, index) => {
-        const systemField = mapping[header];
-        if (systemField) {
-          mapped[systemField] = row[index] || '';
-        }
+    // Transform data based on mapping
+    const mappedData = parsedData.map(row => {
+      const newRow: Record<string, unknown> = {};
+      Object.entries(columnMapping).forEach(([sysField, csvHeader]) => {
+        newRow[sysField] = row[csvHeader];
       });
-      return mapped;
+      return newRow;
     });
     onComplete(mappedData);
   };
 
   return (
-    <div className="backdrop-blur-xl bg-white/10 dark:bg-slate-900/20 rounded-2xl border border-white/20 dark:border-slate-700/30 p-6 shadow-2xl max-w-4xl mx-auto">
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">CSV Import Wizard</h2>
-          <button
-            onClick={onCancel}
-            className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-          >
-            ✕
-          </button>
+    <div className="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
+      {/* Header */}
+      <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Import Transactions</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Step {step === 'upload' ? 1 : step === 'mapping' ? 2 : 3} of 3</p>
         </div>
-        
-        {/* Progress Steps */}
-        <div className="flex items-center justify-between">
-          {[1, 2, 3, 4].map((s) => (
-            <div key={s} className="flex items-center flex-1">
-              <div
-                className={`
-                  w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
-                  ${step >= s ? 'bg-blue-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}
-                `}
-              >
-                {step > s ? <CheckCircle className="w-5 h-5" /> : s}
-              </div>
-              {s < 4 && (
-                <div
-                  className={`flex-1 h-0.5 mx-2 ${step > s ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
+        <button onClick={onCancel} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+          Close
+        </button>
       </div>
 
-      <AnimatePresence mode="wait">
-        {step === 1 && (
-          <motion.div
-            key="step1"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-4"
-          >
-            <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-12 text-center">
-              <FileSpreadsheet className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-600 dark:text-slate-400 mb-4">
-                Select a CSV file to import
-              </p>
-              <input
-                type="file"
-                accept=".csv"
-                onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-                className="hidden"
-                id="csv-file-input"
-              />
-              <label
-                htmlFor="csv-file-input"
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
-              >
-                Choose File
-              </label>
-            </div>
-          </motion.div>
-        )}
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-8">
+        <AnimatePresence mode="wait">
+          {step === 'upload' && (
+            <motion.div
+              key="upload"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
+            >
+              <div className="text-center mb-8">
+                <Table className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 dark:text-white">Upload CSV File</h3>
+                <p className="text-slate-500 dark:text-slate-400">Select a CSV file containing transaction data</p>
+              </div>
+              <UploadZone onUpload={handleFileUpload} />
+            </motion.div>
+          )}
 
-        {step === 2 && (
-          <motion.div
-            key="step2"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-4"
-          >
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Map CSV Columns</h3>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {headers.map((header) => (
-                <div key={header} className="flex items-center gap-4 p-3 rounded-lg backdrop-blur-sm bg-white/5 dark:bg-slate-800/10">
-                  <div className="flex-1 font-medium text-slate-900 dark:text-white">{header}</div>
-                  <span className="text-slate-400">→</span>
-                  <select
-                    value={mapping[header] || ''}
-                    onChange={(e) => handleMappingChange(header, e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-lg backdrop-blur-sm bg-white/50 dark:bg-slate-800/50 border border-white/20 dark:border-slate-700/30 text-slate-900 dark:text-white"
-                  >
-                    <option value="">-- Select Field --</option>
-                    {SYSTEM_FIELDS.map((field) => (
-                      <option key={field} value={field}>
-                        {field.charAt(0).toUpperCase() + field.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ))}
-            </div>
-            {errors.length > 0 && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm">
-                {errors.map((err, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4" />
-                    {err}
+          {step === 'mapping' && (
+            <motion.div
+              key="mapping"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
+            >
+              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-4">Map Columns</h3>
+              <div className="grid gap-4">
+                {SYSTEM_FIELDS.map(field => (
+                  <div key={field.id} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                    <div>
+                      <label className="font-medium text-slate-700 dark:text-slate-300">
+                        {field.label}
+                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                      </label>
+                      <p className="text-xs text-slate-500">System Field</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <select
+                        value={columnMapping[field.id] || ''}
+                        onChange={(e) => handleMappingChange(field.id, e.target.value)}
+                        aria-label={`Map ${field.label} to a CSV column`}
+                        className="w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Select Column...</option>
+                        {headers.map(header => (
+                          <option key={header} value={header}>{header}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 ))}
               </div>
-            )}
-          </motion.div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-        {step === 3 && (
-          <motion.div
-            key="step3"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-4"
-          >
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Data Preview</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-white/10 dark:border-slate-700/20">
-                    {Object.keys(mapping).map((header) => (
-                      <th key={header} className="px-4 py-2 text-left text-slate-500 dark:text-slate-400">
-                        {mapping[header]}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {csvData.slice(0, 5).map((row, i) => (
-                    <tr key={i} className="border-b border-white/5 dark:border-slate-700/10">
-                      {headers.map((header, j) => (
-                        <td key={j} className="px-4 py-2 text-slate-900 dark:text-white">
-                          {row[j]}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </motion.div>
-        )}
-
-        {step === 4 && (
-          <motion.div
-            key="step4"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-4 text-center"
-          >
-            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Ready to Import</h3>
-            <p className="text-slate-500 dark:text-slate-400">
-              {csvData.length} rows will be imported
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="flex justify-between mt-6 pt-6 border-t border-white/10 dark:border-slate-700/20">
+      {/* Footer */}
+      <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex justify-between">
         <button
-          onClick={() => step > 1 ? setStep((s) => (s - 1) as Step) : onCancel()}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg backdrop-blur-sm bg-white/10 dark:bg-slate-800/20 hover:bg-white/20 dark:hover:bg-slate-800/30 transition-colors"
+          onClick={onCancel}
+          className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium"
         >
-          <ChevronLeft className="w-4 h-4" />
-          {step === 1 ? 'Cancel' : 'Back'}
+          Cancel
         </button>
-        {step < 4 ? (
-          <button
-            onClick={handleNext}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Next
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        ) : (
+        
+        {step === 'mapping' && (
           <button
             onClick={handleFinish}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            disabled={SYSTEM_FIELDS.filter(f => f.required).some(f => !columnMapping[f.id])}
+            className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <CheckCircle className="w-4 h-4" />
-            Import
+            Import Data
+            <Check className="w-4 h-4" />
           </button>
         )}
       </div>
     </div>
   );
 }
-

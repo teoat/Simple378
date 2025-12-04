@@ -101,7 +101,7 @@ export function Reconciliation() {
       queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
       toast.success('Match created successfully');
       queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
-    } catch (error) {
+    } catch {
       toast.error('Failed to create match');
     }
 
@@ -257,7 +257,7 @@ export function Reconciliation() {
             </div>
           </div>
         </div>
-      )}
+      </div>
     </PageErrorBoundary>
   );
 }

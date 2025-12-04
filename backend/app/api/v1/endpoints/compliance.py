@@ -87,3 +87,78 @@ async def revoke_consent(
     await db.commit()
     
     return None
+
+@router.get("/gdpr/export/{subject_id}")
+async def export_subject_data(
+    subject_id: str,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user = Depends(deps.get_current_user)
+):
+    """
+    Export all data associated with a subject (GDPR Right to Access).
+    """
+    try:
+        sub_uuid = uuid.UUID(subject_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID")
+        
+    # Fetch subject
+    result = await db.execute(select(Subject).where(Subject.id == sub_uuid))
+    subject = result.scalars().first()
+    
+    if not subject:
+        raise HTTPException(status_code=404, detail="Subject not found")
+        
+    # Fetch transactions
+    from app.db.models import Transaction
+    tx_result = await db.execute(select(Transaction).where(Transaction.subject_id == sub_uuid))
+    transactions = tx_result.scalars().all()
+    
+    return {
+        "subject_id": str(subject.id),
+        "data": {
+            "subject": {
+                "id": str(subject.id),
+                "created_at": subject.created_at,
+                # In real app, decrypt PII here
+                "encrypted_pii": subject.encrypted_pii
+            },
+            "transactions": [
+                {
+                    "id": str(tx.id),
+                    "amount": tx.amount,
+                    "currency": tx.currency,
+                    "date": tx.date,
+                    "source_bank": tx.source_bank
+                } for tx in transactions
+            ]
+        }
+    }
+
+@router.post("/gdpr/forget/{subject_id}")
+async def forget_subject(
+    subject_id: str,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user = Depends(deps.get_current_user)
+):
+    """
+    Anonymize or delete subject data (GDPR Right to be Forgotten).
+    """
+    try:
+        sub_uuid = uuid.UUID(subject_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID")
+        
+    # Fetch subject
+    result = await db.execute(select(Subject).where(Subject.id == sub_uuid))
+    subject = result.scalars().first()
+    
+    if not subject:
+        raise HTTPException(status_code=404, detail="Subject not found")
+        
+    # In a real implementation, we would anonymize PII and keep the record,
+    # or delete cascadingly. For MVP, we'll just delete the subject.
+    await db.delete(subject)
+    await db.commit()
+    
+    return {"status": "success", "message": "Subject data deleted"}

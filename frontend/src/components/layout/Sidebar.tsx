@@ -5,7 +5,6 @@ import {
   Scale, 
   Upload, 
   Settings, 
-  Network, 
   Activity 
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -13,10 +12,9 @@ import { cn } from '../../lib/utils';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Cases', href: '/cases', icon: Files },
-  { name: 'Reconciliation', href: '/reconciliation', icon: Scale },
+  { name: 'Adjudication Queue', href: '/adjudication', icon: Scale },
+  { name: 'Reconciliation', href: '/reconciliation', icon: Activity },
   { name: 'Forensics', href: '/forensics', icon: Upload },
-  { name: 'Graph Analysis', href: '/graph', icon: Network },
-  { name: 'Activity', href: '/activity', icon: Activity },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 

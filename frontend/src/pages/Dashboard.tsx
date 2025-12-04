@@ -10,6 +10,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
+import { useMemo } from 'react';
 
 export function Dashboard() {
   const queryClient = useQueryClient();
@@ -17,6 +18,12 @@ export function Dashboard() {
     queryKey: ['dashboard-stats'],
     queryFn: api.getDashboardMetrics,
   });
+
+  // Compute live update message for screen readers (derived from metrics)
+  const liveUpdateMessage = useMemo(() => {
+    if (!metrics) return '';
+    return `Dashboard updated. ${metrics.active_cases || 0} active cases, ${metrics.high_risk_subjects || 0} high risk subjects, ${metrics.pending_reviews || 0} pending reviews.`;
+  }, [metrics]);
 
   // Real-time updates
   useWebSocket('/ws', {
@@ -49,6 +56,16 @@ export function Dashboard() {
   return (
     <PageErrorBoundary pageName="Dashboard">
       <div className="min-h-screen bg-slate-50 p-6 dark:bg-slate-900">
+      {/* Screen reader live announcements */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {liveUpdateMessage}
+      </div>
+      
       <div className="mx-auto max-w-7xl space-y-8">
         {/* Header */}
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">

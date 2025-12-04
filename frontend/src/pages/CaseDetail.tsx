@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useHotkeys } from 'react-hotkeys-hook';
+import toast from 'react-hot-toast';
 import { api } from '../lib/api';
 import { cn } from '../lib/utils';
 import { Clock, FileText, Network, DollarSign, ChevronLeft, Shield, AlertTriangle, CheckCircle, Download, Edit } from 'lucide-react';
@@ -23,6 +25,36 @@ const tabs = [
 export function CaseDetail()  {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState('Overview');
+  const [showHelp, setShowHelp] = useState(false);
+
+  // Keyboard shortcuts for tab navigation
+  useHotkeys('1', () => {
+    setActiveTab('Overview');
+    toast('Switched to Overview', { icon: '📊', duration: 1000 });
+  });
+  
+  useHotkeys('2', () => {
+    setActiveTab('Graph Analysis');
+    toast('Switched to Graph Analysis', { icon: '🔗', duration: 1000 });
+  });
+  
+  useHotkeys('3', () => {
+    setActiveTab('Timeline');
+    toast('Switched to Timeline', { icon: '⏰', duration: 1000 });
+  });
+  
+  useHotkeys('4', () => {
+    setActiveTab('Financials');
+    toast('Switched to Financials', { icon: '💰', duration: 1000 });
+  });
+  
+  useHotkeys('5', () => {
+    setActiveTab('Evidence');
+    toast('Switched to Evidence', { icon: '🔒', duration: 1000 });
+  });
+
+  // Show keyboard shortcuts help
+  useHotkeys('shift+?', () => setShowHelp(prev => !prev));
 
   const { data: caseData, isLoading: caseLoading } = useQuery({
     queryKey: ['case', id],
@@ -277,6 +309,64 @@ export function CaseDetail()  {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* Keyboard Shortcuts Help Overlay */}
+      <AnimatePresence>
+        {showHelp && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowHelp(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-8 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
+                Keyboard Shortcuts
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600 dark:text-slate-400">Switch to Overview</span>
+                  <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium">1</kbd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600 dark:text-slate-400">Switch to Graph</span>
+                  <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium">2</kbd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600 dark:text-slate-400">Switch to Timeline</span>
+                  <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium">3</kbd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600 dark:text-slate-400">Switch to Financials</span>
+                  <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium">4</kbd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600 dark:text-slate-400">Switch to Evidence</span>
+                  <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium">5</kbd>
+                </div>
+                <div className="h-px bg-slate-200 dark:bg-slate-700 my-4"></div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600 dark:text-slate-400">Show/Hide Help</span>
+                  <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium">Shift + ?</kbd>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowHelp(false)}
+                className="mt-6 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Close
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
     </PageErrorBoundary>
   );

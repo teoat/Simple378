@@ -2,6 +2,11 @@
 Pytest configuration and shared fixtures.
 """
 import pytest
+import os
+
+# Set environment variable for tests to avoid Jaeger DNS errors
+os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4317"
+os.environ["ENABLE_OTEL"] = "false"
 import asyncio
 from typing import AsyncGenerator
 from httpx import AsyncClient
@@ -27,7 +32,9 @@ def event_loop():
     yield loop
     loop.close()
 
-@pytest.fixture
+import pytest_asyncio
+
+@pytest_asyncio.fixture
 async def db() -> AsyncGenerator[AsyncSession, None]:
     """
     Create a fresh database for each test.

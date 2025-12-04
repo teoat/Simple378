@@ -1,4 +1,3 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { FileText, Image, File, Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';

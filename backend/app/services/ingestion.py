@@ -43,6 +43,37 @@ class IngestionService:
         return transactions
 
     @staticmethod
+    async def create_transactions_batch(
+        db: AsyncSession,
+        transactions_data: List[Dict[str, Any]],
+        subject_id: UUID,
+        bank_name: str = "Manual Import"
+    ) -> List[Transaction]:
+        """
+        Creates multiple transaction records from a list of dictionaries.
+        """
+        transactions = []
+        for tx_data in transactions_data:
+            # Handle date conversion if it's a string
+            if isinstance(tx_data.get('date'), str):
+                try:
+                    tx_data['date'] = datetime.fromisoformat(tx_data['date'].replace('Z', '+00:00'))
+                except ValueError:
+                    pass 
+
+            transaction = Transaction(
+                subject_id=subject_id,
+                source_bank=bank_name,
+                source_file_id="manual_import",
+                **tx_data
+            )
+            db.add(transaction)
+            transactions.append(transaction)
+        
+        await db.commit()
+        return transactions
+
+    @staticmethod
     def _map_row(row: Dict[str, str], bank_name: str) -> Dict[str, Any]:
         """
         Maps a CSV row to Transaction model fields based on bank_name.
@@ -51,7 +82,6 @@ class IngestionService:
             if bank_name.lower() == "chase":
                 # Example Chase format: Details,Posting Date,Description,Amount,Type,Balance,Check or Slip #
                 # We'll assume a simplified version for MVP or standard columns
-                # Let's try to be flexible or define a standard MVP format
                 
                 # MVP Assumption: We look for standard keys or specific Chase keys
                 date_str = row.get("Posting Date") or row.get("Date")

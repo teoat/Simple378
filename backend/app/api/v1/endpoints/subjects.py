@@ -163,18 +163,31 @@ async def get_subject(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid UUID")
 
-    result = await db.execute(select(Subject).where(Subject.id == sub_uuid))
-    sub = result.scalars().first()
+    query = select(Subject, models.AnalysisResult).outerjoin(
+        models.AnalysisResult, Subject.id == models.AnalysisResult.subject_id
+    ).where(Subject.id == sub_uuid)
     
-    if not sub:
+    result = await db.execute(query)
+    row = result.first()
+    
+    if not row:
         raise HTTPException(status_code=404, detail="Subject not found")
+        
+    sub = row[0]
+    analysis = row[1]
+    
+    # Decrypt PII if available (mock for now)
+    subject_name = f"Subject {str(sub.id)[:8]}"
+    if sub.encrypted_pii and isinstance(sub.encrypted_pii, dict):
+        subject_name = sub.encrypted_pii.get("name", subject_name)
         
     return {
         "id": str(sub.id),
-        "subject_name": f"Subject {str(sub.id)[:8]}",
-        "risk_score": 0,
-        "status": "active",
-        "description": "No description available",
-        "assigned_to": "Unassigned",
+        "subject_name": subject_name,
+        "risk_score": analysis.risk_score if analysis else 0,
+        "status": analysis.adjudication_status if analysis else "new",
+        "description": analysis.explanation if analysis and hasattr(analysis, 'explanation') else "No description available",
+        "assigned_to": "Unassigned", # Placeholder
         "created_at": sub.created_at.isoformat() if sub.created_at else None,
+        "flags": analysis.flags if analysis and hasattr(analysis, 'flags') else {}
     }

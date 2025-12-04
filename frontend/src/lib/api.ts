@@ -259,6 +259,7 @@ export const api = {
       confidence: number;
       created_at: string;
       status: string;
+      created_by?: string;
     }>('/reconciliation/matches', {
       method: 'POST',
       body: JSON.stringify({ expense_id: expenseId, transaction_id: transactionId, confidence }),
@@ -282,6 +283,12 @@ export const api = {
       return res.json();
     });
   },
+
+  batchImportTransactions: (transactions: Array<Record<string, unknown>>) =>
+    request<Array<Record<string, unknown>>>('/ingestion/batch', {
+      method: 'POST',
+      body: JSON.stringify(transactions),
+    }),
 
   // Forensics
   analyzeFile: (file: File) => {
@@ -309,7 +316,7 @@ export const api = {
         actor_id: string;
         action: string;
         resource_id: string;
-        details: any;
+        details: Record<string, unknown>;
       }>;
       total: number;
       page: number;
@@ -340,6 +347,12 @@ export const api = {
     request('/users/preferences', {
       method: 'PATCH',
       body: JSON.stringify(preferences),
+    }),
+
+  updatePassword: (data: { current_password: string; new_password: string }) =>
+    request('/users/password', {
+      method: 'POST',
+      body: JSON.stringify(data),
     }),
 
   // AI Assistant
@@ -386,6 +399,18 @@ export const api = {
     }>(`/adjudication/${analysisId}/decision`, {
       method: 'POST',
       body: JSON.stringify({ decision, notes }),
+    }),
+
+  revertDecision: (analysisId: string) =>
+    request<{
+      id: string;
+      subject_id: string;
+      status: string;
+      risk_score: number;
+      created_at: string;
+      adjudication_status: string;
+    }>(`/adjudication/${analysisId}/revert`, {
+      method: 'POST',
     }),
 
   getAdjudicationHistory: (analysisId: string) =>

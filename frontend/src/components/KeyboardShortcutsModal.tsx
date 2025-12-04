@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Keyboard, MousePointerClick, ArrowRight, ArrowLeft, ArrowUp, ArrowDown } from 'lucide-react';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { cn } from '../lib/utils';
 
 interface KeyboardShortcutsModalProps {
   isOpen: boolean;
