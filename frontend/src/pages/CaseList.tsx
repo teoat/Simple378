@@ -15,6 +15,8 @@ import { StatusBadge } from '../components/cases/StatusBadge';
 import { QuickPreview } from '../components/cases/QuickPreview';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { cn } from '../lib/utils';
+import { NewCaseModal } from '../components/cases/NewCaseModal';
+import { Modal } from '../components/ui/Modal';
 
 const SortIcon = ({ column, sortBy, sortOrder }: { column: string; sortBy: string; sortOrder: 'asc' | 'desc' }) => {
   if (sortBy !== column) return null;
@@ -38,6 +40,8 @@ export function CaseList() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const [selectedCases, setSelectedCases] = useState<Set<string>>(new Set());
+  const [isNewCaseModalOpen, setIsNewCaseModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const navigate = useNavigate();
 
   // Keyboard shortcut to focus search
@@ -216,11 +220,16 @@ export function CaseList() {
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Case Management</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1">Manage and investigate fraud cases</p>
         </div>
-        <button className="flex items-center gap-2 px-5 py-2.5 backdrop-blur-md bg-blue-600/90 dark:bg-blue-500/90 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 font-medium border border-blue-400/20">
+        <button
+          onClick={() => setIsNewCaseModalOpen(true)}
+          className="flex items-center gap-2 px-5 py-2.5 backdrop-blur-md bg-blue-600/90 dark:bg-blue-500/90 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 font-medium border border-blue-400/20"
+        >
           <Plus className="h-5 w-5" />
           New Case
         </button>
       </div>
+
+      <NewCaseModal isOpen={isNewCaseModalOpen} onClose={() => setIsNewCaseModalOpen(false)} />
 
       {/* Controls */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between backdrop-blur-lg bg-white/10 dark:bg-slate-800/20 p-4 rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/30">
@@ -425,11 +434,7 @@ export function CaseList() {
           <span className="font-medium">{selectedCases.size} selected</span>
           <div className="h-4 w-px bg-slate-700" />
           <button 
-            onClick={() => {
-              if (confirm('Are you sure you want to delete these cases?')) {
-                deleteCasesMutation.mutate(Array.from(selectedCases));
-              }
-            }}
+            onClick={() => setIsDeleteModalOpen(true)}
             className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors"
           >
             <Trash2 className="h-4 w-4" />
@@ -437,6 +442,35 @@ export function CaseList() {
           </button>
         </div>
       )}
+
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Delete Cases"
+      >
+        <div className="space-y-4">
+          <p className="text-slate-600 dark:text-slate-300">
+            Are you sure you want to delete {selectedCases.size} selected case{selectedCases.size > 1 ? 's' : ''}? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                deleteCasesMutation.mutate(Array.from(selectedCases));
+                setIsDeleteModalOpen(false);
+              }}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
 
     </PageErrorBoundary>
   );

@@ -14,6 +14,7 @@ const tabs = [
 
 export function Settings() {
   const [activeTab, setActiveTab] = useState('general');
+  const [theme, setTheme] = useState(() => document.documentElement.classList.contains('dark') ? 'dark' : 'light');
   const queryClient = useQueryClient();
 
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -53,10 +54,14 @@ export function Settings() {
   });
 
   const handleThemeToggle = () => {
-    const isDark = document.documentElement.classList.contains('dark');
-    const newTheme = isDark ? 'light' : 'dark';
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
     updatePreferencesMutation.mutate({ theme: newTheme });
-    document.documentElement.classList.toggle('dark');
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   };
 
   return (
@@ -160,7 +165,7 @@ export function Settings() {
                   disabled={updatePreferencesMutation.isPending}
                   className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
                 >
-                  {document.documentElement.classList.contains('dark') ? 'Light Mode' : 'Dark Mode'}
+                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                 </button>
               </div>
             </div>

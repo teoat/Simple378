@@ -10,9 +10,11 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { NewCaseModal } from '../components/cases/NewCaseModal';
 
 export function Dashboard() {
+  const [isNewCaseModalOpen, setIsNewCaseModalOpen] = useState(false);
   const queryClient = useQueryClient();
   const { data: metrics, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats'],
@@ -80,12 +82,15 @@ export function Dashboard() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            onClick={() => setIsNewCaseModalOpen(true)}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition-all hover:shadow-blue-500/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
           >
             <Plus className="h-5 w-5" />
             New Case
           </motion.button>
         </div>
+
+        <NewCaseModal isOpen={isNewCaseModalOpen} onClose={() => setIsNewCaseModalOpen(false)} />
 
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">

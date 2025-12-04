@@ -25,15 +25,7 @@ export function Reconciliation() {
   });
 
   const autoReconcileMutation = useMutation({
-    mutationFn: async () => {
-      const result = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/reconciliation/auto-reconcile`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threshold }),
-      });
-      if (!result.ok) throw new Error('Auto-reconciliation failed');
-      return result.json();
-    },
+    mutationFn: () => api.autoReconcile(threshold),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
       toast.success('Auto-reconciliation completed');
@@ -180,7 +172,7 @@ export function Reconciliation() {
         <FileUploader onUpload={handleFileUpload} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-6">
           {/* Expenses Column */}
           <div className="backdrop-blur-lg bg-white/10 dark:bg-slate-900/20 rounded-xl border border-white/20 dark:border-slate-700/30 shadow-xl p-6">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">

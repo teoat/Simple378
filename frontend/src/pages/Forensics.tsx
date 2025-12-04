@@ -18,6 +18,7 @@ export function Forensics() {
   const [showCSVWizard, setShowCSVWizard] = useState(false);
   const [currentStage, setCurrentStage] = useState<ProcessingStage>('upload');
   const [processingProgress, setProcessingProgress] = useState(0);
+  const [importSubjectId, setImportSubjectId] = useState('');
 
   // Show skeleton during initial load if needed
   const isLoading = false; // Add loading state if needed
@@ -64,12 +65,14 @@ export function Forensics() {
 
   const handleCSVComplete = async (mappedData: unknown[]) => {
     try {
-      // Add placeholder subject_id as required by backend
-      const subjectId = "00000000-0000-0000-0000-000000000000"; 
+      if (!importSubjectId) {
+        toast.error('Please enter a Subject ID before importing');
+        return;
+      }
       
       const transactions = (mappedData as Record<string, unknown>[]).map(d => ({
         ...d,
-        subject_id: subjectId,
+        subject_id: importSubjectId,
         source_bank: "Manual Import",
         currency: "USD" // Default currency
       }));
@@ -101,13 +104,28 @@ export function Forensics() {
             Upload files for metadata extraction, OCR, and forensic analysis
           </p>
         </div>
-        <button
-          onClick={() => setShowCSVWizard(true)}
-          className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-purple-600/90 dark:bg-purple-500/90 text-white rounded-xl hover:bg-purple-700 dark:hover:bg-purple-600 transition-all shadow-lg shadow-purple-500/20 font-medium border border-purple-400/20"
-        >
-          <FileSpreadsheet className="w-5 h-5" />
-          CSV Import
-        </button>
+        <div className="flex gap-3 items-center">
+          <input
+            type="text"
+            value={importSubjectId}
+            onChange={(e) => setImportSubjectId(e.target.value)}
+            placeholder="Subject ID (UUID)"
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+          />
+          <button
+            onClick={() => {
+              if (!importSubjectId) {
+                toast.error('Please enter a Subject ID first');
+                return;
+              }
+              setShowCSVWizard(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-purple-600/90 dark:bg-purple-500/90 text-white rounded-xl hover:bg-purple-700 dark:hover:bg-purple-600 transition-all shadow-lg shadow-purple-500/20 font-medium border border-purple-400/20"
+          >
+            <FileSpreadsheet className="w-5 h-5" />
+            CSV Import
+          </button>
+        </div>
       </div>
 
       {/* CSV Wizard Modal */}
