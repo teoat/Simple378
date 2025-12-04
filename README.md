@@ -61,3 +61,36 @@ npm run dev
 
 See `docs/architecture/` for detailed design documents.
 
+## Documentation
+
+### Quick Links
+- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Complete deployment instructions
+- **[Docker Build Verification](DOCKER_BUILD_VERIFICATION.md)** - Build status and readiness
+- **[Branch Analysis](BRANCH_ANALYSIS.md)** - Repository branch strategy
+- **[Comprehensive Fix Summary](COMPREHENSIVE_FIX_SUMMARY.md)** - Implementation details
+- **[Project Complete](PROJECT_COMPLETE.md)** - Feature completeness overview
+
+### Production Deployment
+
+For production deployment with Docker:
+
+```bash
+# See DEPLOYMENT_GUIDE.md for complete instructions
+docker compose -f docker-compose.prod.yml up --build -d
+```
+
+## Repository Branch Strategy
+
+⚠️ **IMPORTANT**: This repository contains the fraud detection system on the `main` branch. Other branches (`copilot/diagnose-working-build`, `copilot/improve-code-efficiency`, `copilot/pull-completed-codes`) contain different, unrelated projects and should **NOT** be merged to main.
+
+See [BRANCH_ANALYSIS.md](BRANCH_ANALYSIS.md) for detailed branch information.
+
+## Project Status
+
+✅ **Production Ready** - All core features implemented and tested
+- Phase 1: Foundation ✅
+- Phase 2: Core Engine ✅
+- Phase 3: AI Integration ✅
+- Phase 4: Visualization & UX ✅
+- Phase 5: Polish & Deploy ✅
+
