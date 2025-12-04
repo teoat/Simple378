@@ -33,3 +33,9 @@ class AnalysisResult(AnalysisResultBase):
 
     class Config:
         from_attributes = True
+
+class PaginatedAnalysisResult(BaseModel):
+    items: List[AnalysisResult]
+    total: int
+    page: int
+    pages: int

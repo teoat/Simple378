@@ -18,25 +18,43 @@ class AdjudicationDecision(BaseModel):
     decision: str  # confirmed_fraud, false_positive, escalated
     notes: Optional[str] = None
 
-@router.get("/queue", response_model=List[schemas.AnalysisResult])
+@router.get("/queue", response_model=schemas.PaginatedAnalysisResult)
 async def get_adjudication_queue(
+    page: int = 1,
+    limit: int = 100,
     db: AsyncSession = Depends(deps.get_db),
     current_user = Depends(require_analyst)
 ):
     """
     Fetch cases that require adjudication (status='flagged' or 'pending').
-    For MVP, we'll fetch 'completed' ones that have a high risk score but no decision yet.
+    Supports pagination.
     """
-    # Logic: Fetch AnalysisResults where adjudication_status is pending/flagged
-    # OR where status is completed but decision is null
-    
+    # Base query
     query = select(models.AnalysisResult).where(
         models.AnalysisResult.decision == None
-    ).options(selectinload(models.AnalysisResult.indicators))
+    )
+    
+    # Get total count
+    from sqlalchemy import func
+    count_query = select(func.count()).select_from(query.subquery())
+    total_result = await db.execute(count_query)
+    total = total_result.scalar_one()
+    
+    # Apply pagination and fetch items
+    query = query.options(selectinload(models.AnalysisResult.indicators))\
+        .offset((page - 1) * limit)\
+        .limit(limit)
     
     result = await db.execute(query)
     cases = result.scalars().all()
-    return cases
+    
+    import math
+    return {
+        "items": cases,
+        "total": total,
+        "page": page,
+        "pages": math.ceil(total / limit) if limit > 0 else 1
+    }
 
 @router.post("/{analysis_id}/decision", response_model=schemas.AnalysisResult)
 async def submit_decision(

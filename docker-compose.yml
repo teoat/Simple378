@@ -5,10 +5,11 @@ services:
     ports:
       - "8000:8000"
     command: >
-      bash -c "poetry run alembic upgrade head && \
+      bash -c "alembic upgrade head && \
                uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
       - ./backend:/app
+      - /app/.venv
     env_file:
       - .env
     environment:
@@ -16,7 +17,7 @@ services:
       - REDIS_HOST=cache
       - REDIS_PORT=6379
       - REDIS_DB=0
-      - REDIS_URL=${REDIS_URL:-redis://cache:6379/0} # Use variable from .env, with a default
+      - REDIS_URL=redis://cache:6379/0
       - QDRANT_URL=http://vector_db:6333
       - DB_ECHO=${DB_ECHO:-false}
       - CORS_ORIGINS=${CORS_ORIGINS}
@@ -50,13 +51,14 @@ services:
     build: ./frontend
     container_name: fraud_frontend
     ports:
-      - "5173:5173"
+      - "8080:8080"
     volumes:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=http://backend:8000
       - CHOKIDAR_USEPOLLING=true
+    restart: always
     depends_on:
       - backend
     networks:
@@ -91,6 +93,9 @@ services:
     container_name: fraud_redis
     ports:
       - "6380:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
     networks:
       - fraud_net
 
@@ -99,7 +104,7 @@ services:
     container_name: fraud_jaeger
     ports:
       - "16686:16686" # UI
-      - "4317:4317"   # OTLP gRPC
+      - "4317:4317" # OTLP gRPC
     networks:
       - fraud_net
 
@@ -110,3 +115,4 @@ networks:
 volumes:
   postgres_data:
   qdrant_data:
+  redis_data:

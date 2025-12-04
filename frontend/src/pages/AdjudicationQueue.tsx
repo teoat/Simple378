@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { useSearchParams } from 'react-router-dom';
 import { AlertList } from '../components/adjudication/AlertList';
 import { AlertCard } from '../components/adjudication/AlertCard';
 import { api } from '../lib/api';
@@ -52,7 +53,17 @@ function mapAnalysisResultToAlert(result: {
 
 export function AdjudicationQueue() {
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  
+  // Derive page directly from URL
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  
+  // Update URL when page changes
+  const updatePage = (newPage: number) => {
+    setSearchParams({ page: newPage.toString() });
+  };
+  
   const [lastAction, setLastAction] = useState<{
     id: string;
     decision: string;
@@ -61,13 +72,14 @@ export function AdjudicationQueue() {
 
   // Fetch adjudication queue
   const { data: queueData, isLoading, error } = useQuery({
-    queryKey: ['adjudication-queue'],
-    queryFn: api.getAdjudicationQueue,
+    queryKey: ['adjudication-queue', page],
+    queryFn: () => api.getAdjudicationQueue(page, 100), // Fetch 100 items per page
     refetchInterval: 30000, // Refetch every 30 seconds
+    placeholderData: (previousData) => previousData,
   });
 
   // Map API data to alerts
-  const alerts = queueData?.map(mapAnalysisResultToAlert) || [];
+  const alerts = queueData?.items.map(mapAnalysisResultToAlert) || [];
   
   // Auto-select first alert if none selected
   const effectiveSelectedId = selectedId || (alerts.length > 0 ? alerts[0].id : null);
@@ -223,28 +235,57 @@ export function AdjudicationQueue() {
           <div className="mb-4 flex justify-between items-center">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">Queue</h2>
             <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-1 rounded text-xs font-medium">
-              {alerts.length} Pending
+              {queueData?.total || 0} Pending
             </span>
           </div>
           
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden">
             {alerts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center p-6">
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
                 <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                   <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-1">Queue is empty</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">All alerts have been reviewed</p>
+                <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-1">
+                  {page > 1 ? 'Page is empty' : 'Queue is empty'}
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {page > 1 ? 'No alerts on this page' : 'All alerts have been reviewed'}
+                </p>
               </div>
             ) : (
-              <AlertList 
-                alerts={alerts} 
-                selectedId={selectedId} 
-                onSelect={setSelectedId} 
-              />
+              <div className="flex-1 overflow-hidden">
+                <AlertList 
+                  alerts={alerts} 
+                  selectedId={selectedId} 
+                  onSelect={setSelectedId} 
+                />
+              </div>
             )}
+            
+            {/* Pagination Controls - Always visible if we have data or are on a non-first page */}
+            {(queueData?.total || 0) > 0 || page > 1 ? (
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between shrink-0">
+                <button
+                  onClick={() => updatePage(Math.max(1, page - 1))}
+                  disabled={page === 1 || isLoading}
+                  className="px-3 py-1 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Page {page} of {queueData?.pages || 1}
+                </span>
+                <button
+                  onClick={() => updatePage(Math.min(queueData?.pages || 1, page + 1))}
+                  disabled={page === (queueData?.pages || 1) || isLoading}
+                  className="px-3 py-1 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
 

@@ -31,9 +31,15 @@ class RateLimitHeadersMiddleware(BaseHTTPMiddleware):
         
         # Add rate limit headers if available from slowapi
         if hasattr(request.state, "view_rate_limit"):
-            limit = request.state.view_rate_limit
-            response.headers["X-RateLimit-Limit"] = str(limit.limit.amount)
-            response.headers["X-RateLimit-Remaining"] = str(limit.remaining)
-            response.headers["X-RateLimit-Reset"] = str(limit.reset_time)
+            try:
+                limit = request.state.view_rate_limit
+                # Handle case where limit might be a tuple or unexpected type
+                if hasattr(limit, "limit") and hasattr(limit.limit, "amount"):
+                    response.headers["X-RateLimit-Limit"] = str(limit.limit.amount)
+                    response.headers["X-RateLimit-Remaining"] = str(limit.remaining)
+                    response.headers["X-RateLimit-Reset"] = str(limit.reset_time)
+            except Exception:
+                # Fail silently for rate limit headers to avoid breaking the request
+                pass
         
         return response

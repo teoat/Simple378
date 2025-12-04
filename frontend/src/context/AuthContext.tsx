@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { api, setAuthToken, clearAuthToken } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -17,8 +17,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return !!localStorage.getItem('auth_token');
   });
   
-  const [isLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const validateToken = async () => {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        try {
+          await api.getProfile();
+          setIsAuthenticated(true);
+        } catch (error) {
+          console.error('Token validation failed:', error);
+          clearAuthToken();
+          setIsAuthenticated(false);
+        }
+      } else {
+        setIsAuthenticated(false);
+      }
+      setIsLoading(false);
+    };
+
+    validateToken();
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {

@@ -363,9 +363,9 @@ export const api = {
     }),
 
   // Adjudication
-  getAdjudicationQueue: () =>
-    request<
-      Array<{
+  getAdjudicationQueue: (page = 1, limit = 100) =>
+    request<{
+      items: Array<{
         id: string;
         subject_id: string;
         status: string;
@@ -383,8 +383,11 @@ export const api = {
           evidence: Record<string, unknown>;
           created_at: string;
         }>;
-      }>
-    >('/adjudication/queue'),
+      }>;
+      total: number;
+      page: number;
+      pages: number;
+    }>(`/adjudication/queue?page=${page}&limit=${limit}`),
 
   submitDecision: (analysisId: string, decision: string, notes?: string) =>
     request<{

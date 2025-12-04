@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import * as Sentry from "@sentry/react";
 
 interface Props {
   children: ReactNode;
@@ -29,6 +30,14 @@ export class PageErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('PageErrorBoundary caught an error:', error, errorInfo);
+    
+    // Capture error with Sentry
+    Sentry.captureException(error, { 
+      extra: {
+        componentStack: errorInfo.componentStack
+      }
+    });
+    
     this.setState({
       error,
       errorInfo,

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -47,114 +47,127 @@ export function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Email Field */}
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium leading-6 text-slate-900 dark:text-white mb-2">
-          Email address
-        </label>
-        <div className="relative">
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onBlur={() => setTouched(prev => ({ ...prev, email: true }))}
-            disabled={isLoading}
-            aria-describedby={getEmailError() ? "email-error" : undefined}
-            aria-invalid={!!getEmailError()}
-            className={`block w-full rounded-xl border-0 px-4 py-3 text-slate-900 dark:text-white shadow-sm ring-1 ring-inset placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 disabled:opacity-50 transition-all duration-200
-              ${getEmailError() 
-                ? 'ring-red-500/50 focus:ring-red-500 bg-red-50/10' 
-                : 'ring-slate-300/50 dark:ring-slate-600/50 focus:ring-blue-500/50 bg-white/5 backdrop-blur-sm'
-              }`}
-          />
-          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-            {touched.email && !getEmailError() && (
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-            )}
-            {getEmailError() && (
-              <AlertCircle className="h-5 w-5 text-red-500" />
-            )}
+    <div className="w-full max-w-md mx-auto">
+      <div className="text-center mb-8">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-600/10 text-blue-600 mb-4">
+          <Lock className="w-6 h-6" />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Welcome back</h2>
+        <p className="text-slate-500 dark:text-slate-400 mt-2">Sign in to your account to continue</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Email Field */}
+        <div className="space-y-2">
+          <label htmlFor="email" className="text-sm font-medium text-slate-900 dark:text-slate-200">
+            Email address
+          </label>
+          <div className="relative">
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => setTouched(prev => ({ ...prev, email: true }))}
+              disabled={isLoading}
+              aria-describedby={getEmailError() ? "email-error" : undefined}
+              aria-invalid={!!getEmailError()}
+              className={`flex h-10 w-full rounded-md border px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50
+                ${getEmailError() 
+                  ? 'border-red-500 focus-visible:ring-red-500 bg-red-50/10' 
+                  : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus-visible:ring-blue-500'
+                }`}
+              placeholder="name@example.com"
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              {touched.email && !getEmailError() && (
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+              )}
+              {getEmailError() && (
+                <AlertCircle className="h-4 w-4 text-red-500" />
+              )}
+            </div>
           </div>
+          <AnimatePresence>
+            {getEmailError() && (
+              <motion.p
+                id="email-error"
+                role="alert"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="text-xs text-red-500 font-medium flex items-center gap-1"
+              >
+                {getEmailError()}
+              </motion.p>
+            )}
+          </AnimatePresence>
         </div>
-        <AnimatePresence>
-          {getEmailError() && (
-            <motion.p
-              id="email-error"
-              role="alert"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-2 text-sm text-red-500 flex items-center gap-1"
-            >
-              <AlertCircle className="h-3 w-3" />
-              {getEmailError()}
-            </motion.p>
-          )}
-        </AnimatePresence>
-      </div>
 
-      {/* Password Field */}
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium leading-6 text-slate-900 dark:text-white mb-2">
-          Password
-        </label>
-        <div className="relative">
-          <input
-            id="password"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onBlur={() => setTouched(prev => ({ ...prev, password: true }))}
-            disabled={isLoading}
-            aria-describedby={getPasswordError() ? "password-error" : undefined}
-            aria-invalid={!!getPasswordError()}
-            className={`block w-full rounded-xl border-0 px-4 py-3 text-slate-900 dark:text-white shadow-sm ring-1 ring-inset placeholder:text-slate-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 disabled:opacity-50 transition-all duration-200 pr-10
-              ${getPasswordError() 
-                ? 'ring-red-500/50 focus:ring-red-500 bg-red-50/10' 
-                : 'ring-slate-300/50 dark:ring-slate-600/50 focus:ring-blue-500/50 bg-white/5 backdrop-blur-sm'
-              }`}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-200 transition-colors"
-          >
-            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-          </button>
+        {/* Password Field */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="text-sm font-medium text-slate-900 dark:text-slate-200">
+              Password
+            </label>
+            <a href="#" className="text-sm font-medium text-blue-600 hover:text-blue-500">
+              Forgot password?
+            </a>
+          </div>
+          <div className="relative">
+            <input
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onBlur={() => setTouched(prev => ({ ...prev, password: true }))}
+              disabled={isLoading}
+              aria-describedby={getPasswordError() ? "password-error" : undefined}
+              aria-invalid={!!getPasswordError()}
+              className={`flex h-10 w-full rounded-md border px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pr-10
+                ${getPasswordError() 
+                  ? 'border-red-500 focus-visible:ring-red-500 bg-red-50/10' 
+                  : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus-visible:ring-blue-500'
+                }`}
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          <AnimatePresence>
+            {getPasswordError() && (
+              <motion.p
+                id="password-error"
+                role="alert"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="text-xs text-red-500 font-medium flex items-center gap-1"
+              >
+                {getPasswordError()}
+              </motion.p>
+            )}
+          </AnimatePresence>
         </div>
-        <AnimatePresence>
-          {getPasswordError() && (
-            <motion.p
-              id="password-error"
-              role="alert"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-2 text-sm text-red-500 flex items-center gap-1"
-            >
-              <AlertCircle className="h-3 w-3" />
-              {getPasswordError()}
-            </motion.p>
-          )}
-        </AnimatePresence>
-      </div>
 
-      {/* Submit Button */}
-      <div>
+        {/* Submit Button */}
         <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
           type="submit"
           disabled={isLoading}
-          className="flex w-full justify-center rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-3 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-slate-900 text-slate-50 hover:bg-slate-900/90 dark:bg-slate-50 dark:text-slate-900 dark:hover:bg-slate-50/90 h-10 px-4 py-2 w-full"
         >
           {isLoading ? (
             <div className="flex items-center gap-2">
@@ -165,7 +178,7 @@ export function LoginForm() {
             'Sign in'
           )}
         </motion.button>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }

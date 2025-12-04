@@ -5,6 +5,7 @@ from typing import List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models import Transaction
 from uuid import UUID
+import uuid
 from fastapi import HTTPException
 from app.core.config import settings
 from concurrent.futures import ProcessPoolExecutor
@@ -59,18 +60,32 @@ class IngestionService:
             filename
         )
 
-        transactions = []
+        if not parsed_transactions_data:
+            return []
+
+        # Prepare data for bulk insert
+        transactions_to_insert = []
         for tx_data in parsed_transactions_data:
-            transaction = Transaction(
-                subject_id=subject_id,
-                source_bank=bank_name,
-                **tx_data
-            )
-            db.add(transaction)
-            transactions.append(transaction)
-        
+            transactions_to_insert.append({
+                "id": uuid.uuid4(),
+                "subject_id": subject_id,
+                "source_bank": bank_name,
+                **tx_data,
+                "created_at": datetime.now(),
+                "updated_at": datetime.now()
+            })
+
+        # Execute bulk insert
+        from sqlalchemy import insert
+        stmt = insert(Transaction).values(transactions_to_insert)
+        await db.execute(stmt)
         await db.commit()
-        return transactions
+        
+        # Return created objects (re-querying might be needed if we need the ORM objects, 
+        # but for performance we often skip this or return the IDs)
+        # For now, let's return a list of Transaction objects constructed from data to satisfy type hint
+        # Note: These won't be attached to the session in the same way as db.add()
+        return [Transaction(**tx) for tx in transactions_to_insert]
 
     @staticmethod
     async def create_transactions_batch(
