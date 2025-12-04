@@ -4,7 +4,7 @@ Additional integration tests for complete coverage.
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.models import Subject, User
+from app.db.models import User
 from app.core.security import get_password_hash
 import uuid
 

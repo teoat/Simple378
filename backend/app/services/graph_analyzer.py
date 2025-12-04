@@ -2,13 +2,10 @@ import networkx as nx
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from collections import defaultdict, deque
 from typing import List, Dict, Any, Set
 from uuid import UUID
-from datetime import datetime
 
 from app.db.models import Transaction
-from app.models.mens_rea import AnalysisResult
 from app.db.models import Subject
 
 class GraphAnalyzer:
@@ -74,9 +71,6 @@ class GraphAnalyzer:
                 for tx in transactions:
                     # Create a node for the counterparty (derived from description or external_id)
                     # This is a simplification. In reality, we'd do entity resolution.
-                    counterparty_label = tx.description or "Unknown"
-                    counterparty_id = f"ext_{tx.id}" # Unique ID for this specific transaction's counterparty
-                    
                     # Deduplicate external entities by name if possible
                     # For now, let's just make a node for the transaction itself to show flow
                     # Or better, make a node for the "Source Bank" to show concentration

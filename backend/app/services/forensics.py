@@ -1,10 +1,8 @@
 import json
-import subprocess
-import tempfile
 import os
 import logging
 import asyncio
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 # Configure logger
 logger = logging.getLogger(__name__)

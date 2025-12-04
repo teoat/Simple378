@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -31,7 +31,7 @@ async def get_adjudication_queue(
     """
     # Base query
     query = select(models.AnalysisResult).where(
-        models.AnalysisResult.decision == None
+        models.AnalysisResult.decision is None
     )
     
     # Get total count
@@ -213,9 +213,7 @@ async def export_offline_package(
     """
     Export encrypted offline case package for field work.
     """
-    from fastapi.responses import StreamingResponse
     from app.services.offline import OfflineStorageService
-    from io import BytesIO
 
     try:
         analysis_uuid = uuid.UUID(analysis_id)

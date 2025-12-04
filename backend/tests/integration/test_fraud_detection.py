@@ -7,7 +7,7 @@ from app.services.scoring import ScoringService
 from app.services.graph_analyzer import GraphAnalyzer
 from app.db.models import Subject, Transaction
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 @pytest.mark.asyncio
 async def test_scoring_service_velocity_check():
@@ -15,7 +15,7 @@ async def test_scoring_service_velocity_check():
     service = ScoringService()
     
     # Create test transactions (5 transactions in 10 minutes)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     transactions = [
         {
             "amount": "500.00",
@@ -64,7 +64,7 @@ async def test_graph_analyzer_builds_subgraph(db: AsyncSession):
             subject_id=subject.id,
             amount="1000.00",
             currency="USD",
-            date=datetime.utcnow(),
+            date=datetime.now(timezone.utc),
             source_bank=f"Bank_{i}"
         )
         db.add(tx)
