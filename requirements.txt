@@ -1,0 +1,6 @@
+# Simple378 Requirements
+# 
+# This project uses only Python standard library.
+# No external dependencies are required.
+#
+# Minimum Python version: 3.6
