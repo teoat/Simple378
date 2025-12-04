@@ -1,6 +1,7 @@
 # Modularization Strategy & Feature Tiers
 
 ## 1. Project Structure (Monorepo)
+
 We will adopt a **pnpm workspace** structure to modularize the frontend and shared TypeScript logic, while maintaining the FastAPI backend.
 
 ```
@@ -48,10 +49,12 @@ Simple378/
 | Category | Recommended | Why? |
 | :--- | :--- | :--- |
 | **Auth** | **Better Auth** | TypeScript-first, self-hosted, GDPR compliant. |
-| **Notifications** | **Novu** | Multi-channel, self-hosted, template management. |
+| **Frontend** | **React + Vite** | Fast development, TypeScript support, modern tooling. |
+| **Backend** | **FastAPI** | Async Python, auto API docs, high performance. |
+| **Database** | **PostgreSQL** | ACID compliance, JSON support, Timescale extension. |
 | **Vector DB** | **Qdrant** | High performance, local deployment, Rust-based. |
-| **Offline** | **RxDB** | Observable queries, conflict resolution, works with any backend. |
 | **Search** | **Meilisearch** | Typo-tolerance, fast, easy setup. |
+| **Offline** | **RxDB** | Observable queries, conflict resolution, works with any backend. |
 | **Collaboration** | **Liveblocks** | CRDTs, easy React integration. |
 | **Feature Flags** | **Unleash** | A/B testing, gradual rollouts. |
 | **Gateway** | **Kong** | Rate limiting, auth proxy (Phase 5). |

@@ -7,6 +7,7 @@ import uuid
 from app.api import deps
 from app.db.models import Consent, Subject
 from app.schemas.consent import ConsentCreate, ConsentResponse, ConsentRevoke
+from app.core.rbac import require_admin, require_analyst
 
 router = APIRouter()
 
@@ -43,7 +44,7 @@ async def grant_consent(
 async def list_consents(
     subject_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(require_analyst)
 ):
     """
     List all consent records for a subject.
@@ -92,7 +93,7 @@ async def revoke_consent(
 async def export_subject_data(
     subject_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(require_admin)
 ):
     """
     Export all data associated with a subject (GDPR Right to Access).
@@ -139,7 +140,7 @@ async def export_subject_data(
 async def forget_subject(
     subject_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(require_admin)
 ):
     """
     Anonymize or delete subject data (GDPR Right to be Forgotten).

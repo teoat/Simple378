@@ -10,6 +10,7 @@ from app.api import deps
 from app.models import mens_rea as models
 from app.schemas import mens_rea as schemas
 from app.core.websocket import emit_alert_resolved, emit_queue_updated
+from app.core.rbac import require_analyst
 
 router = APIRouter()
 
@@ -20,7 +21,7 @@ class AdjudicationDecision(BaseModel):
 @router.get("/queue", response_model=List[schemas.AnalysisResult])
 async def get_adjudication_queue(
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(require_analyst)
 ):
     """
     Fetch cases that require adjudication (status='flagged' or 'pending').
@@ -42,7 +43,7 @@ async def submit_decision(
     analysis_id: str,
     decision_data: AdjudicationDecision,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(require_analyst)
 ):
     """
     Submit an adjudication decision for a case.
@@ -219,10 +220,12 @@ async def export_offline_package(
     }
 
     offline_service = OfflineStorageService()
-    encrypted_data = await offline_service.export_case(case_data)
+    encrypted_data, encryption_key = await offline_service.export_case(case_data)
     
-    return StreamingResponse(
-        BytesIO(encrypted_data),
-        media_type="application/octet-stream",
-        headers={"Content-Disposition": f"attachment; filename=case_offline_{analysis_id}.enc"}
-    )
+    # Return JSON with key and data (as hex) per security audit requirements
+    return {
+        "encrypted_data": encrypted_data.hex(),
+        "encryption_key": encryption_key.decode('utf-8'),
+        "filename": f"case_offline_{analysis_id}.enc",
+        "warning": "Store this key securely. Without it, the encrypted data cannot be decrypted."
+    }

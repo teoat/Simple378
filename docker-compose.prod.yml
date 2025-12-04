@@ -1,24 +1,24 @@
 services:
   backend:
-    build: ./backend
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: fraud_backend
     ports:
       - "8000:8000"
     command: >
       bash -c "poetry run alembic upgrade head && \
-               uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
-    volumes:
-      - ./backend:/app
+               uvicorn app.main:app --host 0.0.0.0 --port 8000"
     env_file:
-      - .env
+      - .env.production
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - REDIS_HOST=cache
       - REDIS_PORT=6379
       - REDIS_DB=0
-      - REDIS_URL=${REDIS_URL:-redis://cache:6379/0} # Use variable from .env, with a default
+      - REDIS_URL=redis://cache:6379/0
       - QDRANT_URL=http://vector_db:6333
-      - DB_ECHO=${DB_ECHO:-false}
+      - DB_ECHO=false
       - CORS_ORIGINS=${CORS_ORIGINS}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
@@ -27,46 +27,67 @@ services:
       - vector_db
     networks:
       - fraud_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   mcp-server:
-    build: ./mcp-server
+    build: 
+      context: ./mcp-server
+      dockerfile: Dockerfile
     container_name: fraud_mcp_server
     command: "node dist/index.js"
-    volumes:
-      - ./mcp-server:/app
     env_file:
-      - .env
+      - .env.production
     environment:
-      - REDIS_URL=${REDIS_URL:-redis://cache:6379/0}
-      - BACKEND_URL=${BACKEND_URL:-http://backend:8000}
-      - COORDINATION_TTL=${COORDINATION_TTL:-3600}
+      - REDIS_URL=redis://cache:6379/0
+      - BACKEND_URL=http://backend:8000
+      - COORDINATION_TTL=3600
     depends_on:
       - cache
       - backend
     networks:
       - fraud_net
+    restart: unless-stopped
 
   frontend:
-    build: ./frontend
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: fraud_frontend
     ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - "8080:8080"
     environment:
-      - VITE_API_URL=http://localhost:8000
-      - CHOKIDAR_USEPOLLING=true
+      - VITE_API_URL=${API_URL}
     depends_on:
       - backend
     networks:
       - fraud_net
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: fraud_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - fraud_net
+    restart: unless-stopped
 
   db:
     image: postgres:16-alpine
     container_name: fraud_db
-    ports:
-      - "5433:5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -75,24 +96,36 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - fraud_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   vector_db:
     image: qdrant/qdrant:latest
     container_name: fraud_qdrant
-    ports:
-      - "6333:6333"
     volumes:
       - qdrant_data:/qdrant/storage
     networks:
       - fraud_net
+    restart: unless-stopped
 
   cache:
     image: redis:7-alpine
     container_name: fraud_redis
-    ports:
-      - "6380:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
     networks:
       - fraud_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -102,6 +135,7 @@ services:
       - "4317:4317"   # OTLP gRPC
     networks:
       - fraud_net
+    restart: unless-stopped
 
 networks:
   fraud_net:
@@ -110,3 +144,4 @@ networks:
 volumes:
   postgres_data:
   qdrant_data:
+  redis_data:

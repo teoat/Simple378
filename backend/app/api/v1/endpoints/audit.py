@@ -6,6 +6,7 @@ from sqlalchemy import func
 
 from app.api import deps
 from app.db.models import AuditLog
+from app.core.rbac import require_admin
 
 router = APIRouter()
 
@@ -14,7 +15,7 @@ async def get_audit_logs(
     skip: int = 0,
     limit: int = 10,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(require_admin)
 ) -> Any:
     """
     Retrieve audit logs.

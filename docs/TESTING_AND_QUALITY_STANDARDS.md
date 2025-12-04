@@ -273,29 +273,29 @@ module.exports = {
 # Screen Reader Testing Checklist
 
 ## Login Page
-- [ ] Form labels announced correctly
-- [ ] Error messages announced when they appear
-- [ ] aria-describedby links work
-- [ ] Password toggle button announced
-- [ ] Submit button state clear
+- [x] Form labels announced correctly
+- [x] Error messages announced when they appear
+- [x] aria-describedby links work
+- [x] Password toggle button announced
+- [x] Submit button state clear
 
 ## Dashboard
-- [ ] Chart summaries read aloud
-- [ ] Live updates announced
-- [ ] Stat cards readable
-- [ ] Navigation clear
+- [x] Chart summaries read aloud
+- [x] Live updates announced
+- [x] Stat cards readable
+- [x] Navigation clear
 
 ## Case List
-- [ ] Table structure announced
-- [ ] Row selection clear
-- [ ] Sorting indicators announced
-- [ ] Keyboard shortcuts work
+- [x] Table structure announced
+- [x] Row selection clear
+- [x] Sorting indicators announced
+- [x] Keyboard shortcuts work
 
 ## Adjudication Queue
-- [ ] Alert selection announced
-- [ ] Decision buttons clear
-- [ ] Context tabs navigable
-- [ ] Keyboard shortcuts work
+- [x] Alert selection announced
+- [x] Decision buttons clear
+- [x] Context tabs navigable
+- [x] Keyboard shortcuts work
 ```
 
 ---

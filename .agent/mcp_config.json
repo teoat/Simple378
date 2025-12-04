@@ -95,7 +95,7 @@
         "@modelcontextprotocol/server-github"
       ],
       "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_TOKEN_HERE",
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_GITHUB_TOKEN>",
         "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
       }
     },
@@ -104,6 +104,48 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-git"
+      ],
+      "env": {
+        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    },
+    "playwright": {
+      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-playwright"
+      ],
+      "env": {
+        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    },
+    "brave-search": {
+      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-brave-search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "<YOUR_BRAVE_API_KEY>",
+        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    },
+    "filesystem": {
+      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/Arief/Desktop/Simple378"
+      ],
+      "env": {
+        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      }
+    },
+    "copilot-containers": {
+      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "args": [
+        "-y",
+        "@copilotkit/mcp-server-containers"
       ],
       "env": {
         "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"

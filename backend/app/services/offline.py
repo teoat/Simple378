@@ -99,6 +99,5 @@ class OfflineStorageService:
         if os.path.exists(encrypted_path):
             os.remove(encrypted_path)
         
-        # TODO: Store encryption key securely (e.g., in database or return to user)
-        # For MVP, we're just returning the encrypted data
-        return encrypted_data
+        # Return both encrypted data and the key
+        return encrypted_data, key

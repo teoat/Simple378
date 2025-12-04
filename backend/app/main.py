@@ -1,10 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.api import api_router
 from app.core.logging import setup_logging
 from app.core.exceptions import global_exception_handler
+from app.core.middleware import SecurityHeadersMiddleware, RateLimitHeadersMiddleware
+from app.core.rate_limit import limiter
 from prometheus_fastapi_instrumentator import Instrumentator
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 import structlog
 
 # Setup logging
@@ -22,6 +26,10 @@ app = FastAPI(
 # Register global exception handler
 app.add_exception_handler(Exception, global_exception_handler)
 
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Setup Prometheus metrics
 Instrumentator().instrument(app).expose(app)
 
@@ -34,6 +42,10 @@ if os.getenv("ENABLE_OTEL", "true").lower() == "true":
         # Tracing is optional - log error but continue
         logger = structlog.get_logger()
         logger.error("Failed to setup tracing", error=str(e))
+
+# Add security headers middleware
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitHeadersMiddleware)
 
 # Set all CORS enabled origins
 app.add_middleware(

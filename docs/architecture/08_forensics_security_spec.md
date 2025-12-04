@@ -15,12 +15,12 @@ All uploaded files MUST be encrypted before being written to disk.
 
 ### 2.2 Directory Structure
 ```
-/storage
-  /encrypted
-    /{case_id}
-      /{file_hash}.enc  <-- The encrypted blob
-  /metadata
-    /{file_hash}.json   <-- Metadata (uploader, timestamp, original_name)
+ /storage
+   /encrypted
+     /{case_id}
+       /{file_hash}.enc  <-- The encrypted blob
+   /metadata
+     /{file_hash}.json   <-- Metadata (uploader, timestamp, original_name)
 ```
 
 ## 3. Chain of Custody (Audit Trail)

@@ -1,455 +1,262 @@
-# Case Management Page Design Orchestration
+# Case Management Design Orchestration
 
-## Overview
-This document outlines the design orchestration for the Case Management page, the central hub for browsing, searching, and managing investigation cases. The design focuses on efficient data browsing, detailed case views, glassmorphism effects, and seamless integration with backend services.
+## 1. Overview
+This document defines the design and implementation specifications for the case management system in the Simple378 Fraud Detection System, providing comprehensive case investigation and management capabilities.
 
-## Current State Analysis
+## 2. Case List Interface
 
-### Existing Implementation
-- **Location:** `frontend/src/pages/CaseManagement.tsx` (to be created)
-- **Current Features:**
-  - No dedicated case management page exists yet
-  - Case data is available via backend API (`/api/v1/cases`)
-  - Basic case model with ID, subject, risk score, status, timestamps
+### Data Grid Design
+- **Column Configuration:** Customizable column display and ordering
+- **Sorting Capabilities:** Multi-column sorting with visual indicators
+- **Filtering Options:** Advanced filtering with saved filter sets
+- **Pagination:** Efficient large dataset navigation
 
-### Gaps Identified
-- No case list view
-- No case detail view
-- No search/filter functionality
-- No integration with Meilisearch
-- No real-time case updates
-- No case creation/editing UI
+### Risk Visualization
+- **Heat Map Indicators:** Color-coded risk level display
+- **Risk Score Bars:** Visual risk assessment representation
+- **Trend Indicators:** Risk change over time visualization
+- **Priority Badges:** Case priority level indicators
 
-## Design Goals
+### Quick Actions
+- **Bulk Operations:** Multi-case selection and batch actions
+- **Context Menus:** Right-click actions for case management
+- **Keyboard Shortcuts:** Power user keyboard navigation
+- **Drag-and-Drop:** Case assignment and status updates
 
-### 1. Case List View
-- **Data Grid:** Sortable, filterable table with pagination
-- **Visual Hierarchy:** Risk heat bars, status badges, priority indicators
-- **Quick Preview:** Hover cards showing case summary
-- **Bulk Actions:** Select multiple cases for batch operations
+## 3. Case Detail View
 
-### 2. Case Detail View
-- **Comprehensive Overview:** Subject profile, risk score, status, timeline
-- **Tabbed Navigation:** Overview, Graph, Timeline, Files, Notes
-- **Real-time Updates:** WebSocket integration for live case updates
-- **Action Buttons:** Edit, Close, Escalate, Export
+### Header Section
+- **Subject Information:** Profile photo, name, identifiers
+- **Risk Assessment:** Current risk score and trend
+- **Status Indicators:** Case status, priority, assignment
+- **Action Buttons:** Primary case management actions
 
-### 3. Visual Design
-- **Glassmorphism:** Apply to cards, modals, and containers
-- **Premium Aesthetics:** Depth, shadows, gradients, animations
-- **Color Coding:** Risk levels, status types, priority levels
-- **Responsive Design:** Optimized for all screen sizes
+### Tabbed Navigation
+- **Overview Tab:** Case summary and key information
+- **Graph Tab:** Entity relationship visualization
+- **Timeline Tab:** Chronological event display
+- **Financials Tab:** Transaction and financial data
+- **Evidence Tab:** Document and file management
 
-### 4. User Experience
-- **Fast Search:** Integration with Meilisearch for instant results
-- **Smart Filters:** Multi-criteria filtering with saved filter sets
-- **Keyboard Shortcuts:** Quick navigation and actions
-- **Accessibility:** ARIA labels, keyboard navigation, screen reader support
+### Responsive Layout
+- **Desktop Layout:** Multi-column information display
+- **Tablet Layout:** Adaptive column stacking
+- **Mobile Layout:** Single-column optimized display
+- **Progressive Enhancement:** Feature availability based on screen size
 
-## Design Specifications
+## 4. Case Creation and Intake
 
-### 1. Case List View
+### Intake Workflow
+- **Initial Assessment:** Basic case information collection
+- **Subject Identification:** Person/company subject creation
+- **Priority Assignment:** Automated and manual priority setting
+- **Assignment Routing:** Intelligent case assignment logic
 
-#### Layout Structure
-```
-┌─────────────────────────────────────────────────────────┐
-│  [Search Bar]                    [New Case] [Filters]  │
-├─────────────────────────────────────────────────────────┤
-│  ┌───────────────────────────────────────────────────┐ │
-│  │ Case ID │ Subject │ Risk │ Status │ Updated │ ⋮ │ │
-│  ├───────────────────────────────────────────────────┤ │
-│  │ #12345  │ John D. │ ████ │ Active │ 2h ago  │ ⋮ │ │
-│  │ #12346  │ Jane S. │ ██   │ Closed │ 1d ago  │ ⋮ │ │
-│  └───────────────────────────────────────────────────┘ │
-│  [Pagination]                                           │
-└─────────────────────────────────────────────────────────┘
-```
+### Form Design
+- **Progressive Disclosure:** Step-by-step information collection
+- **Validation Feedback:** Real-time form validation and guidance
+- **Auto-save:** Draft case preservation during creation
+- **Template Support:** Case type-specific form templates
 
-#### Data Grid Features
-- **Columns:**
-  - Case ID (clickable link)
-  - Subject Name/Entity
-  - Risk Score (visual heat bar + numeric)
-  - Status (badge with color coding)
-  - Last Updated (relative time)
-  - Actions (dropdown menu)
-- **Sorting:** Click column headers to sort
-- **Filtering:** Multi-select filters for status, risk range, date range
-- **Pagination:** 20/50/100 items per page
+## 5. Case Assignment and Workflow
 
-#### Risk Heat Bar
-- **Visual:** Horizontal bar with gradient fill
-- **Color Scheme:**
-  - Low (0-30): Green gradient
-  - Medium (31-60): Yellow gradient
-  - High (61-80): Orange gradient
-  - Critical (81-100): Red gradient
-- **Styling:** Glassmorphism background with glowing effect
-- **Animation:** Smooth fill animation on load
+### Assignment Logic
+- **Load Balancing:** Even workload distribution across analysts
+- **Skill Matching:** Case assignment based on analyst expertise
+- **Priority Routing:** High-priority case immediate assignment
+- **Workload Monitoring:** Real-time analyst capacity tracking
 
-#### Status Badges
-- **Active:** Blue badge with pulse animation
-- **Under Review:** Yellow badge
-- **Escalated:** Red badge with glow
-- **Closed:** Gray badge
-- **Archived:** Slate badge
+### Workflow States
+- **Draft:** Initial case creation and review
+- **Active:** Active investigation in progress
+- **Pending Review:** Awaiting supervisory review
+- **Resolved:** Case investigation completed
+- **Archived:** Long-term case storage
 
-#### Quick Preview (Hover Card)
-- **Trigger:** Hover over case row for 500ms
-- **Content:**
-  - Subject avatar/icon
-  - Risk score with trend
-  - Recent activity summary
-  - Quick action buttons
-- **Styling:** Glassmorphism card with backdrop blur
-- **Animation:** Fade in with slide up (200ms)
+## 6. Evidence Management
 
-### 2. Case Detail View
+### File Upload Interface
+- **Drag-and-Drop:** Intuitive file upload experience
+- **Batch Upload:** Multiple file simultaneous upload
+- **Progress Tracking:** Real-time upload progress indication
+- **File Validation:** Type, size, and security validation
 
-#### Layout Structure
-```
-┌─────────────────────────────────────────────────────────┐
-│  ← Back to Cases                    [Edit] [Close] [⋮] │
-├─────────────────────────────────────────────────────────┤
-│  ┌─────────────────────────────────────────────────┐   │
-│  │ [Avatar] Subject Name          Risk: 85 ████    │   │
-│  │          Status: Active        Updated: 2h ago  │   │
-│  └─────────────────────────────────────────────────┘   │
-├─────────────────────────────────────────────────────────┤
-│  [Overview] [Graph] [Timeline] [Files] [Notes]         │
-├─────────────────────────────────────────────────────────┤
-│  [Tab Content Area]                                     │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
-```
+### Evidence Organization
+- **Categorization:** Evidence type and relevance classification
+- **Tagging System:** Flexible evidence tagging and search
+- **Version Control:** Evidence modification tracking
+- **Access Controls:** Evidence visibility and permission management
 
-#### Header Section
-- **Subject Profile:**
-  - Avatar with gradient background
-  - Name/Entity identifier
-  - Risk score with visual indicator
-  - Status badge
-  - Last updated timestamp
-- **Action Buttons:**
-  - Edit (pencil icon)
-  - Close Case (check icon)
-  - Escalate (alert icon)
-  - Export (download icon)
-  - More actions (dropdown)
-- **Styling:** Glassmorphism card with enhanced depth
+### Document Viewer
+- **Multi-format Support:** PDF, image, document viewing
+- **Annotation Tools:** Evidence highlighting and notes
+- **Search Functionality:** Full-text evidence search
+- **Export Capabilities:** Evidence package generation
 
-#### Tab Navigation
-- **Overview Tab:**
-  - Key statistics (total alerts, evidence count, timeline events)
-  - AI-generated case summary
-  - Recent alerts and flags
-  - Related entities preview
-- **Graph Tab:**
-  - Full-screen interactive entity graph
-  - Network visualization of connections
-  - Zoom, pan, node selection
-  - Export graph as image
-- **Timeline Tab:**
-  - Vertical timeline of all case events
-  - Filterable by event type
-  - Expandable event details
-  - Real-time updates
-- **Files Tab:**
-  - Grid view of uploaded evidence
-  - Thumbnail previews
-  - File metadata (size, type, upload date)
-  - Download/view actions
-- **Notes Tab:**
-  - Rich text editor for case notes
-  - Markdown support
-  - Collaborative editing (future)
-  - Version history
+## 7. Timeline Visualization
 
-### 3. Search and Filter
+### Event Display
+- **Chronological Layout:** Time-ordered event presentation
+- **Event Types:** Transaction, communication, status change events
+- **Interactive Navigation:** Timeline zoom and pan controls
+- **Event Details:** Expandable event information display
 
-#### Search Bar
-- **Position:** Top of case list
-- **Features:**
-  - Instant search with Meilisearch
-  - Search by case ID, subject name, notes
-  - Autocomplete suggestions
-  - Recent searches
-- **Styling:** Glassmorphism input with search icon
-- **Keyboard:** Focus on `/` key press
+### Timeline Features
+- **Filtering:** Event type and date range filtering
+- **Search:** Timeline event search and highlighting
+- **Export:** Timeline data export capabilities
+- **Integration:** Evidence and case data linking
 
-#### Filter Panel
-- **Trigger:** Filter button or keyboard shortcut
-- **Filters:**
-  - Status (multi-select)
-  - Risk Range (slider)
-  - Date Range (date picker)
-  - Assigned To (user select)
-  - Tags (multi-select)
-- **Saved Filters:** Save and load filter presets
-- **Styling:** Glassmorphism sidebar or modal
-- **Animation:** Slide in from right
+## 8. Financial Data Management
 
-### 4. Glassmorphism Implementation
+### Transaction Display
+- **Data Grid:** Sortable transaction information table
+- **Visualization:** Transaction flow and pattern charts
+- **Filtering:** Date, amount, type transaction filtering
+- **Export:** Transaction data export functionality
 
-#### Case List Container
-```css
-backdrop-blur-lg 
-bg-white/5 dark:bg-slate-800/10
-border border-white/10 dark:border-slate-700/20
-shadow-xl shadow-blue-500/5
-rounded-2xl
-```
+### Reconciliation Interface
+- **Side-by-Side View:** Source vs internal data comparison
+- **Matching Tools:** Automated and manual transaction matching
+- **Variance Analysis:** Transaction discrepancy identification
+- **Audit Trail:** Reconciliation decision tracking
 
-#### Case Card (Detail View Header)
-```css
-backdrop-blur-xl 
-bg-white/10 dark:bg-slate-900/20
-border border-white/20 dark:border-slate-700/30
-shadow-2xl shadow-purple-500/10
-rounded-2xl
-```
+## 9. Entity Graph Integration
 
-#### Data Grid Row (Hover)
-```css
-hover:backdrop-blur-sm
-hover:bg-white/5 dark:hover:bg-slate-800/10
-transition-all duration-200
-```
+### Graph Display
+- **Interactive Visualization:** Node-link diagram exploration
+- **Progressive Loading:** On-demand graph expansion
+- **Filtering Controls:** Graph element filtering and highlighting
+- **Export Options:** Graph image and data export
 
-#### Quick Preview Card
-```css
-backdrop-blur-xl 
-bg-white/15 dark:bg-slate-900/25
-border border-white/30 dark:border-slate-700/40
-shadow-2xl shadow-blue-500/20
-rounded-xl
-```
+### Graph Features
+- **Node Details:** Entity information on selection
+- **Relationship Analysis:** Connection strength and type display
+- **Path Finding:** Entity relationship path exploration
+- **Legend:** Graph element type identification
 
-### 5. Animation Specifications
+## 10. Collaboration Features
 
-#### Page Load
-- **Type:** Staggered fade in
-- **Duration:** 400ms per element
-- **Stagger:** 50ms delay
-- **Easing:** `ease-out`
+### Case Comments
+- **Threaded Discussions:** Hierarchical comment organization
+- **Mention System:** User notification and tagging
+- **File Attachments:** Comment document attachment
+- **Audit Trail:** Comment modification tracking
 
-#### Row Hover
-- **Type:** Background fade + scale
-- **Duration:** 150ms
-- **Easing:** `ease-in-out`
+### Case Sharing
+- **Team Assignment:** Multi-analyst case collaboration
+- **Permission Levels:** Read, write, admin access controls
+- **Activity Feed:** Case activity and change notifications
+- **Version Control:** Case modification conflict resolution
 
-#### Quick Preview
-- **Type:** Fade in + slide up
-- **Duration:** 200ms
-- **Easing:** `ease-out`
+## 11. Search and Filtering
 
-#### Tab Switch
-- **Type:** Fade out/in with slide
-- **Duration:** 300ms
-- **Easing:** `ease-in-out`
+### Advanced Search
+- **Full-text Search:** Case content and evidence search
+- **Field-specific Search:** Targeted field searching
+- **Saved Searches:** Persistent search query storage
+- **Search Suggestions:** Intelligent search term suggestions
 
-#### Risk Bar Fill
-- **Type:** Width animation
-- **Duration:** 600ms
-- **Easing:** `ease-out`
+### Filter System
+- **Dynamic Filters:** Real-time filter application
+- **Filter Combinations:** Complex multi-criteria filtering
+- **Filter Persistence:** User filter preference saving
+- **Filter Sharing:** Team filter template sharing
 
-## Technical Implementation
+## 12. Reporting and Analytics
 
-### Components Structure
+### Case Reports
+- **Summary Reports:** Case overview and status reports
+- **Progress Reports:** Investigation progress tracking
+- **Evidence Reports:** Evidence collection and analysis reports
+- **Compliance Reports:** Regulatory compliance documentation
 
-```
-frontend/src/
-├── components/
-│   └── cases/
-│       ├── CaseList.tsx (new)
-│       ├── CaseCard.tsx (new)
-│       ├── CaseDetail.tsx (new)
-│       ├── CaseHeader.tsx (new)
-│       ├── CaseTabs.tsx (new)
-│       ├── RiskBar.tsx (new)
-│       ├── StatusBadge.tsx (new)
-│       ├── QuickPreview.tsx (new)
-│       ├── CaseSearch.tsx (new)
-│       └── CaseFilters.tsx (new)
-└── pages/
-    └── CaseManagement.tsx (new)
-```
+### Analytics Dashboard
+- **Case Metrics:** Case volume, resolution time, success rates
+- **Performance Analytics:** Analyst productivity and efficiency metrics
+- **Trend Analysis:** Case type and pattern trend identification
+- **Predictive Insights:** Future case load and resource forecasting
 
-### Dependencies
-Required dependencies (most already installed):
-- `framer-motion` - Animations
-- `lucide-react` - Icons
-- `tailwindcss` - Styling
-- `react-query` or `swr` - Data fetching
-- `date-fns` - Date formatting
-- Additional: `@tanstack/react-table` (for advanced data grid)
+## 13. Mobile and Offline Support
 
-### API Integration
+### Mobile Optimization
+- **Responsive Design:** Mobile-first case management interface
+- **Touch Interactions:** Swipe gestures and touch-optimized controls
+- **Offline Capability:** Core case management offline functionality
+- **Sync Management:** Offline change synchronization
 
-#### Endpoints
-- `GET /api/v1/cases` - List cases with pagination/filters
-- `GET /api/v1/cases/{id}` - Get case details
-- `POST /api/v1/cases` - Create new case
-- `PUT /api/v1/cases/{id}` - Update case
-- `DELETE /api/v1/cases/{id}` - Delete/archive case
-- `GET /api/v1/search/cases` - Search via Meilisearch
+### Offline Features
+- **Case Viewing:** Complete case information offline access
+- **Note Taking:** Offline case note and comment creation
+- **Evidence Viewing:** Cached evidence offline viewing
+- **Change Queuing:** Offline modification queuing for sync
 
-#### WebSocket Events
-- `case_updated` - Case data changed
-- `case_created` - New case added
-- `case_deleted` - Case removed
-- `alert_added` - New alert for case
+## 14. Security and Compliance
 
-### State Management
-- **Local State:** Component-level state for UI interactions
-- **Server State:** React Query for API data caching
-- **WebSocket State:** Real-time updates via context
-- **Filter State:** URL params for shareable filter states
+### Access Controls
+- **Role-based Access:** Case access based on user roles and permissions
+- **Field-level Security:** Sensitive information access controls
+- **Audit Logging:** Complete case access and modification tracking
+- **Data Masking:** Sensitive information protection
 
-## Accessibility Requirements
+### Compliance Features
+- **Chain of Custody:** Evidence handling and access tracking
+- **Data Retention:** Configurable case and evidence retention policies
+- **Export Controls:** Secure case data export capabilities
+- **Legal Hold:** Case preservation for legal proceedings
 
-### ARIA Labels
-- All interactive elements must have descriptive labels
-- Data grid must have proper table semantics
-- Status badges must have accessible text
-- Loading states must be announced
+## 15. Performance Optimization
 
-### Keyboard Navigation
-- Tab through case list rows
-- Enter to open case detail
-- Arrow keys for grid navigation
-- Keyboard shortcuts for common actions
-- Focus trap in modals
+### Data Loading
+- **Lazy Loading:** On-demand case data loading
+- **Pagination:** Efficient large case list navigation
+- **Caching:** Case data and evidence caching
+- **Progressive Enhancement:** Core functionality priority loading
 
-### Screen Reader Support
-- Table headers properly announced
-- Row data clearly described
-- Status changes announced
-- Loading/error states communicated
+### User Experience
+- **Loading States:** Skeleton screens and progress indicators
+- **Error Handling:** Graceful error recovery and user feedback
+- **Optimistic Updates:** Immediate UI feedback for user actions
+- **Background Processing:** Non-blocking background operations
 
-### Color Contrast
-- All text meets WCAG 2.1 AA (4.5:1)
-- Risk colors distinguishable
-- Focus indicators clearly visible
+## 16. Integration Capabilities
 
-## Implementation Checklist
+### External Systems
+- **API Integration:** RESTful API for external system integration
+- **Webhook Support:** Real-time case event notifications
+- **Bulk Import/Export:** Case data migration capabilities
+- **Third-party Tools:** External investigation tool integration
 
-### Phase 1: Case List View
-- [ ] Create `CaseList` component with data grid
-- [ ] Implement sorting and pagination
-- [ ] Add risk heat bars
-- [ ] Add status badges
-- [ ] Apply glassmorphism styling
-- [ ] Add hover effects
+### Workflow Automation
+- **Rule Engine:** Automated case routing and assignment
+- **Template System:** Case type-specific workflow templates
+- **Notification System:** Automated stakeholder notifications
+- **Escalation Rules:** Automated case priority escalation
 
-### Phase 2: Search and Filter
-- [ ] Create search bar component
-- [ ] Integrate with Meilisearch
-- [ ] Implement filter panel
-- [ ] Add saved filter functionality
-- [ ] Add keyboard shortcuts
+## 17. Testing and Quality Assurance
 
-### Phase 3: Quick Preview
-- [ ] Create hover card component
-- [ ] Implement hover delay logic
-- [ ] Add preview content
-- [ ] Apply glassmorphism styling
-- [ ] Add animations
+### Automated Testing
+- **Unit Tests:** Individual component and function testing
+- **Integration Tests:** Case workflow and data flow testing
+- **E2E Tests:** Complete case management user scenarios
+- **Performance Tests:** Case loading and search performance testing
 
-### Phase 4: Case Detail View
-- [ ] Create case detail page
-- [ ] Implement header section
-- [ ] Create tab navigation
-- [ ] Implement Overview tab
-- [ ] Implement Graph tab
-- [ ] Implement Timeline tab
-- [ ] Implement Files tab
-- [ ] Implement Notes tab
+### User Acceptance Testing
+- **Workflow Validation:** Real-world case management validation
+- **Usability Testing:** User interface and workflow usability assessment
+- **Accessibility Testing:** WCAG compliance and assistive technology support
+- **Cross-browser Testing:** Browser compatibility validation
 
-### Phase 5: Real-time Updates
-- [ ] Integrate WebSocket for case updates
-- [ ] Add update indicators
-- [ ] Implement optimistic updates
-- [ ] Add error handling
-
-### Phase 6: Actions and Interactions
-- [ ] Implement case creation modal
-- [ ] Add edit functionality
-- [ ] Add close/archive actions
-- [ ] Add export functionality
-- [ ] Add bulk actions
-
-### Phase 7: Accessibility
-- [ ] Add ARIA labels
-- [ ] Implement keyboard navigation
-- [ ] Test with screen readers
-- [ ] Verify color contrast
-- [ ] Add focus indicators
-
-## Testing Considerations
-
-### Functional Testing
-- Test case list loading and pagination
-- Verify search functionality
-- Test filter combinations
-- Verify case detail views
-- Test real-time updates
-- Verify CRUD operations
-
-### Visual Testing
-- Verify glassmorphism effects
-- Test animations and transitions
-- Check responsive layouts
-- Verify color coding
-- Test hover effects
-
-### Performance Testing
-- Test with large datasets (1000+ cases)
-- Verify search performance
-- Check animation performance
-- Test WebSocket update frequency
-
-### Accessibility Testing
-- Test with screen readers
-- Verify keyboard navigation
-- Check ARIA announcements
-- Verify color contrast
-
-## Future Enhancements
-
-### Potential Additions
-- **Kanban View:** Drag-and-drop case board
-- **Bulk Import:** CSV/Excel import for cases
-- **Advanced Search:** Boolean operators, saved searches
-- **Case Templates:** Pre-configured case types
-- **Collaboration:** Multi-user case assignment
-- **Notifications:** Case update alerts
-- **Analytics:** Case metrics dashboard
-- **Export:** PDF/Excel export of case data
+## 18. Future Enhancements
 
 ### Advanced Features
-- **AI Suggestions:** Recommended actions based on case data
-- **Duplicate Detection:** Identify similar cases
-- **Auto-assignment:** Rule-based case routing
-- **SLA Tracking:** Time-based alerts for case resolution
-- **Audit Trail:** Complete history of case changes
+- **AI-Powered Insights:** Machine learning case analysis and recommendations
+- **Predictive Analytics:** Case outcome and duration prediction
+- **Collaborative Investigation:** Real-time multi-user case collaboration
+- **Mobile Applications:** Native mobile case management applications
 
-## References
-
-### Related Documents
-- [UI Design Proposals](./04_ui_design_proposals.md) - General UI design guidelines
-- [Dashboard Design](./12_dashboard_page_design_orchestration.md) - Dashboard patterns
-- [Authentication Design](./11_auth_page_design_orchestration.md) - Auth patterns
-- [System Architecture](./01_system_architecture.md) - Overall system structure
-
-### External Resources
-- [TanStack Table Documentation](https://tanstack.com/table/v8)
-- [Framer Motion Documentation](https://www.framer.com/motion/)
-- [Meilisearch Documentation](https://docs.meilisearch.com/)
-- [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
-
-## Implementation Status
-**Status:** Pending
-**Date:** 2025-12-04
-
-This design orchestration document is ready for implementation.
+### Scalability Improvements
+- **Microservices Architecture:** Case management service decomposition
+- **Database Sharding:** Large-scale case data distribution
+- **Caching Strategies:** Advanced caching for performance optimization
+- **Load Balancing:** Distributed case processing capabilities

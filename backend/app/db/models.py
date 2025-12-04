@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, JSON, Uuid
+from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, JSON, Uuid, Numeric
 # from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
@@ -70,7 +70,7 @@ class Transaction(Base):
     id = Column(Uuid, primary_key=True, default=uuid.uuid4)
     subject_id = Column(Uuid, ForeignKey("subjects.id"), nullable=False)
     
-    amount = Column(String, nullable=False)  # Store as string to avoid float precision issues
+    amount = Column(Numeric(10, 2), nullable=False)  # Store as Numeric for precision
     currency = Column(String, default="USD")
     date = Column(DateTime, nullable=False)
     description = Column(String, nullable=True)

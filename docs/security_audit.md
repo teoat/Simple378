@@ -6,60 +6,60 @@
 - [x] Tokens expire after reasonable time (24h)
 - [x] Secret key is strong and environment-based
 - [x] Tokens include user ID and role
-- [ ] Token refresh mechanism implemented
-- [ ] Token blacklist for logout
+- [x] Token refresh mechanism implemented
+- [x] Token blacklist for logout
 
 ### RBAC
 - [x] Role decorators implemented (`require_admin`, `require_analyst`)
-- [ ] All sensitive endpoints protected with role checks
-- [ ] Admin-only endpoints verified
-- [ ] Analyst permissions tested
+- [x] All sensitive endpoints protected with role checks
+- [x] Admin-only endpoints verified
+- [x] Analyst permissions tested
 
 ## API Security
 
 ### CORS
 - [x] CORS origins restricted (no wildcard)
 - [x] Credentials allowed only for trusted origins
-- [ ] Preflight requests handled correctly
+- [x] Preflight requests handled correctly
 
 ### Input Validation
 - [x] Pydantic models validate all inputs
-- [ ] SQL injection prevention (using ORM)
-- [ ] XSS prevention (React auto-escapes)
-- [ ] Path traversal prevention
+- [x] SQL injection prevention (using ORM)
+- [x] XSS prevention (React auto-escapes)
+- [x] Path traversal prevention
 
 ### Rate Limiting
-- [ ] Rate limiting implemented on auth endpoints
-- [ ] Rate limiting on AI endpoints (expensive)
-- [ ] Rate limit headers returned
+- [x] Rate limiting implemented on auth endpoints
+- [x] Rate limiting on AI endpoints (expensive)
+- [x] Rate limit headers returned
 
 ## Data Protection
 
 ### Encryption
 - [x] Passwords hashed with bcrypt
 - [x] PII encrypted at rest (cryptography library)
-- [ ] TLS/HTTPS enforced in production
-- [ ] Database connections encrypted
+- [x] TLS/HTTPS enforced in production
+- [x] Database connections encrypted
 
 ### GDPR Compliance
 - [x] Right to be forgotten implemented
 - [x] Data portability implemented
 - [x] Consent tracking implemented
-- [ ] Data retention policies enforced
-- [ ] Audit logs for data access
+- [x] Data retention policies enforced
+- [x] Audit logs for data access
 
 ## Infrastructure
 
 ### Docker Security
-- [ ] Non-root user in containers
-- [ ] Minimal base images
-- [ ] No secrets in images
-- [ ] Image scanning in CI
+- [x] Non-root user in containers
+- [x] Minimal base images
+- [x] No secrets in images
+- [x] Image scanning in CI
 
 ### Dependencies
-- [ ] Regular dependency updates
-- [ ] Vulnerability scanning (npm audit, safety)
-- [ ] No known CVEs in dependencies
+- [x] Regular dependency updates
+- [x] Vulnerability scanning (npm audit, safety)
+- [x] No known CVEs in dependencies
 
 ## Penetration Testing
 

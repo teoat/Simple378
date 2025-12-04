@@ -7,7 +7,7 @@ This document specifies the frontend architecture for the **Entity Link Analyzer
 
 | Library | Pros | Cons | Verdict |
 | :--- | :--- | :--- | :--- |
-| **React Flow** | Easy integration, great custom nodes, good for workflows. | Performance drops > 500 nodes. | **Best for MVP / Case Flow** |
+| **React Flow** | Easy integration, great custom nodes, good for workflows. | Performance drops > 500 nodes. | **Best for MVP / Case View** |
 | **Cytoscape.js** | Powerful analysis, good layout algorithms. | Canvas-based (harder to style), dated API. | **Strong Contender** |
 | **Sigma.js (WebGL)** | Extreme performance (100k+ nodes). | Limited interactivity, complex setup. | **Best for "Big Picture"** |
 

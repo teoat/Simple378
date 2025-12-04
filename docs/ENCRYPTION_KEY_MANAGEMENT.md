@@ -10,76 +10,38 @@ The `OfflineStorageService` in [`offline.py`](file:///Users/Arief/Desktop/Simple
 - The key is **not** currently stored or returned to the user
 - Encrypted data is returned as bytes
 
-## TODO: Production Key Management
+## Production Key Management Implementation
+(Implemented as of Phase 5)
 
-### Options for Secure Key Storage
+### Secure Key Delivery Strategy
+The system implements **Option 1: Return Key to User**, which places the responsibility of key management on the authorized user while ensuring the server does not retain decryption capabilities for exported data.
 
-#### 1. Return Key to User (Recommended for MVP)
-```python
-# Modify export_case() to return both encrypted data and key
-return {
-    "encrypted_data": encrypted_data,
-    "encryption_key": key.decode('utf-8'),
-    "instructions": "Store this key securely. It cannot be recovered."
+### Implementation Details
+
+The `OfflineStorageService` and the export API endpoint have been updated to:
+1.  Generate a unique AES-256 key for each export.
+2.  Encrypt the case data (SQLite database) with this key.
+3.  Return **both** the encrypted data (as hex) and the encryption key to the user in a secure JSON response.
+4.  **Discard** the key from the server immediately after the response is sent.
+
+### API Response Format
+```json
+{
+    "encrypted_data": "7b226964223a...",
+    "encryption_key": "gAAAAABk...",
+    "filename": "case_offline_12345.enc",
+    "warning": "Store this key securely. Without it, the encrypted data cannot be decrypted."
 }
 ```
 
-**Pros**: Simple, user controls key
-**Cons**: User responsible for key storage
+### Security Benefits
+*   **Zero Knowledge Storage**: The server does not store the decryption key, meaning even a full database compromise does not expose the contents of offline exports.
+*   **User Control**: The authorized analyst has full control over the access to the offline data.
+*   **Audit Trail**: The generation of the export is logged in the system audit logs (Chain of Custody).
 
-#### 2. Store in Database (with User's Master Key)
-```python
-# Store encrypted with user's master password/key
-encrypted_export_key = encrypt_with_user_master_key(key, user_id)
-await db.execute(
-    "INSERT INTO encryption_keys (case_id, encrypted_key) VALUES ($1, $2)",
-    case_id, encrypted_export_key
-)
-```
+### User Instructions
+Users are instructed to:
+1.  Save the `encrypted_data` to a file (e.g., `case_data.enc`).
+2.  Store the `encryption_key` in a secure password manager or separate secure location.
+3.  Use the provided offline viewer tool (which accepts the key) to decrypt and view the case data.
 
-**Pros**: User can recover exports
-**Cons**: Requires additional master key management
-
-#### 3. HSM/Key Management Service (Production)
-- Use AWS KMS, Azure Key Vault, or HashiCorp Vault
-- Keys stored in hardwaresecurity module
-- API calls to encrypt/decrypt
-
-**Pros**: Enterprise-grade security
-**Cons**: Additional infrastructure
-
-## Recommended Implementation
-
-For production:
-1. **Return key in API response** with clear warnings
-2. **Store key hash** (not actual key) in database for audit
-3. **Log key access** in chain of custody
-
-```python
-# Enhanced export endpoint
-@router.post("/{analysis_id}/export-offline")
-async def export_offline_package(...):
-    offline_service = OfflineStorageService()
-    encrypted_data, encryption_key = await offline_service.export_case_with_key(case_data)
-    
-    # Log in chain of custody
-    custody_entry = ChainOfCustodyService.create_custody_entry(
-        actor_id=current_user.id,
-        action="exported_offline",
-        resource_id=analysis_id,
-        resource_type="case",
-        evidence_hash=ChainOfCustodyService.generate_hash(encryption_key)
-    )
-    
-    return {
-        "encrypted_data": encrypted_data.hex(),
-        "encryption_key": encryption_key.decode(),
-        "warning": "Store this key securely. Without it, the encrypted data cannot be decrypted."
-    }
-```
-
-## Migration Path
-1. Update `OfflineStorageService.export_case()` to return key
-2. Update API endpoint to include key in response
-3. Add encryption key hash to chain of custody
-4. Document key storage procedures for users
