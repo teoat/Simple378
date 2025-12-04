@@ -10,50 +10,50 @@ export default {
     extend: {
       colors: {
         background: {
-          DEFAULT: "hsl(222.2 47.4% 11.2%)", // Approx slate-900
-          light: "hsl(210 40% 98%)", // Off-white, for light theme
+          DEFAULT: "var(--background-primary)", // Approx slate-900
+          light: "var(--background-light)", // Off-white, for light theme
         },
-        foreground: "hsl(210 40% 98%)", // Off-white
-        
+        foreground: "var(--text-primary)", // Off-white
+
         card: {
-          DEFAULT: "hsl(222.2 47.4% 13.5%)", // Slightly lighter than background for cards
-          foreground: "hsl(210 40% 98%)",
+          DEFAULT: "var(--card-background)", // Slightly lighter than background for cards
+          foreground: "var(--text-primary)",
         },
-        border: "hsl(217.2 32.6% 17.5%)", // Slightly lighter border than card
-        
+        border: "var(--card-border)", // Slightly lighter border than card
+
         primary: {
-          DEFAULT: "hsl(221.2 83.2% 53.3%)", // A vibrant blue (approx blue-600)
-          foreground: "hsl(210 40% 98%)",
+          DEFAULT: "var(--button-primary-bg)", // A vibrant blue (approx blue-600)
+          foreground: "var(--button-primary-text)",
         },
         secondary: {
-          DEFAULT: "hsl(217.2 32.6% 25%)", // A darker gray for secondary elements
-          foreground: "hsl(210 40% 98%)",
+          DEFAULT: "var(--button-secondary-bg)", // A darker gray for secondary elements
+          foreground: "var(--button-secondary-text)",
         },
         muted: {
-          DEFAULT: "hsl(215 20.2% 65.1%)", // Lighter gray for muted text
-          foreground: "hsl(215 20.2% 65.1%)",
+          DEFAULT: "var(--text-muted)", // Lighter gray for muted text
+          foreground: "var(--text-muted-foreground)",
         },
         accent: {
-          DEFAULT: "hsl(262.1 83.3% 57.8%)", // A vibrant purple/violet (approx violet-600)
-          foreground: "hsl(210 40% 98%)",
+          DEFAULT: "var(--accent-primary)", // A vibrant purple/violet (approx violet-600)
+          foreground: "var(--accent-foreground)",
         },
-        
+
         // Semantic Colors
         success: {
-          DEFAULT: "hsl(142.1 76.2% 36.3%)", // Green
-          foreground: "hsl(210 40% 98%)",
+          DEFAULT: "var(--success-primary)", // Green
+          foreground: "var(--success-foreground)",
         },
         warning: {
-          DEFAULT: "hsl(48 96% 40%)", // Yellow/Orange
-          foreground: "hsl(222.2 47.4% 11.2%)",
+          DEFAULT: "var(--warning-primary)", // Yellow/Orange
+          foreground: "var(--warning-foreground)",
         },
         danger: {
-          DEFAULT: "hsl(0 84.2% 60.2%)", // Red
-          foreground: "hsl(210 40% 98%)",
+          DEFAULT: "var(--danger-primary)", // Red
+          foreground: "var(--danger-foreground)",
         },
         info: {
-          DEFAULT: "hsl(217.2 91.2% 59.8%)", // Light Blue
-          foreground: "hsl(210 40% 98%)",
+          DEFAULT: "var(--info-primary)", // Light Blue
+          foreground: "var(--info-foreground)",
         },
       },
       fontFamily: {

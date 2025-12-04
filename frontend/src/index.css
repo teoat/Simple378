@@ -1,3 +1,33 @@
+:root {
+  --background-primary: #2e3440;
+  --background-light: #eceff4;
+
+  --card-background: #3b4252;
+  --card-border: #4c566a;
+
+  --button-primary-bg: #5e81ac;
+  --button-primary-text: #d8dee9;
+  --button-secondary-bg: #4c566a;
+  --button-secondary-text: #d8dee9;
+
+  --text-muted: #81a1c1;
+  --text-muted-foreground: #d8dee9;
+
+  --accent-primary: #8fbcbb;
+  --accent-foreground: #d8dee9;
+
+  --success-primary: #a3be8c;
+  --success-foreground: #d8dee9;
+
+  --warning-primary: #ebcb8b;
+  --warning-foreground: #2e3440;
+
+  --danger-primary: #bf616a;
+  --danger-foreground: #d8dee9;
+
+  --info-primary: #88c0d0;
+  --info-foreground: #d8dee9;
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

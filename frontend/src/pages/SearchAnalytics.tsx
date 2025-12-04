@@ -1,9 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, TrendingUp, Users, Search, Clock, Target } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, Search, Clock, Target, RefreshCw } from 'lucide-react';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
+import { normalizeSearchAnalytics, normalizeDashboardData, calculateAnalyticsMetrics } from '../lib/searchAnalyticsTransforms';
+import type { SearchAnalyticsData, SearchDashboardData } from '../types/search';
+import toast from 'react-hot-toast';
+
+const STALE_TIME = 5 * 60 * 1000; // 5 minutes
+const CACHE_TIME = 10 * 60 * 1000; // 10 minutes
+const RETRY_DELAY = 1000;
 
 export function SearchAnalytics() {
-  const { data: analytics, isLoading, error } = useQuery({
+  const { data: analytics, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['search-analytics'],
     queryFn: async () => {
       const response = await fetch('/api/v1/search/analytics', {
@@ -11,9 +18,17 @@ export function SearchAnalytics() {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },
       });
-      if (!response.ok) throw new Error('Failed to fetch analytics');
-      return response.json();
+      if (!response.ok) {
+        if (response.status === 401) throw new Error('Unauthorized');
+        throw new Error('Failed to fetch analytics');
+      }
+      const data = await response.json();
+      return normalizeSearchAnalytics(data) as SearchAnalyticsData;
     },
+    staleTime: STALE_TIME,
+    gcTime: CACHE_TIME,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const { data: dashboardData } = useQuery({
@@ -24,9 +39,17 @@ export function SearchAnalytics() {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },
       });
-      if (!response.ok) throw new Error('Failed to fetch dashboard');
-      return response.json();
+      if (!response.ok) {
+        if (response.status === 401) throw new Error('Unauthorized');
+        throw new Error('Failed to fetch dashboard');
+      }
+      const data = await response.json();
+      return normalizeDashboardData(data) as SearchDashboardData;
     },
+    staleTime: STALE_TIME,
+    gcTime: CACHE_TIME,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   if (isLoading) {
@@ -42,31 +65,50 @@ export function SearchAnalytics() {
 
   if (error) {
     return (
-      <PageErrorBoundary>
-        <div className="text-center py-12">
+      <PageErrorBoundary pageName="Search Analytics">
+        <div className="text-center py-12 space-y-4">
           <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
             Analytics Unavailable
           </h3>
-          <p className="text-gray-600 dark:text-gray-400">
-            Unable to load search analytics at this time.
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            {error instanceof Error ? error.message : 'Unable to load search analytics at this time.'}
           </p>
+          <button
+            onClick={() => {
+              refetch();
+              toast.loading('Retrying...');
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
         </div>
       </PageErrorBoundary>
     );
   }
 
   return (
-    <PageErrorBoundary>
+    <PageErrorBoundary pageName="Search Analytics">
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Search Analytics Dashboard
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Insights into search usage patterns and effectiveness
-          </p>
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Search Analytics Dashboard
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Insights into search usage patterns and effectiveness
+            </p>
+          </div>
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+            title="Refresh analytics"
+          >
+            <RefreshCw className={`w-5 h-5 ${isFetching ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
         {/* Summary Cards */}
@@ -137,7 +179,7 @@ export function SearchAnalytics() {
             </h3>
             {analytics?.popular_queries && analytics.popular_queries.length > 0 ? (
               <div className="space-y-3">
-                {analytics.popular_queries.slice(0, 5).map((query: any, index: number) => (
+                {analytics.popular_queries.slice(0, 5).map((query: { query: string; count: number }, index: number) => (
                   <div key={index} className="flex items-center justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400 truncate flex-1">
                       "{query.query}"

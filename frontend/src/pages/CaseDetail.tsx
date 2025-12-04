@@ -1,19 +1,16 @@
-import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { useHotkeys } from 'react-hotkeys-hook';
-import toast from 'react-hot-toast';
-import { api } from '../lib/api';
 import { cn } from '../lib/utils';
 import { Clock, FileText, Network, DollarSign, ChevronLeft, Shield, AlertTriangle, CheckCircle, Download, Edit } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EntityGraph } from '../components/visualizations/EntityGraph';
-import { Timeline } from '../components/visualizations/Timeline';
-import { FinancialSankey } from '../components/visualizations/FinancialSankey';
 import { RiskBar } from '../components/cases/RiskBar';
 import { StatusBadge } from '../components/cases/StatusBadge';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
-import { AIReasoningTab } from '../components/adjudication/AIReasoningTab'; // Import AIReasoningTab
+import { AIReasoningTab } from '../components/adjudication/AIReasoningTab';
+import { CaseOverview } from '../components/cases/CaseOverview';
+import { CaseTimeline } from '../components/cases/CaseTimeline';
+import { CaseFinancials } from '../components/cases/CaseFinancials';
+import { useCaseDetail } from '../hooks/useCaseDetail';
 
 const tabs = [
   { name: 'Overview', id: 'overview', icon: FileText },
@@ -23,57 +20,9 @@ const tabs = [
   { name: 'Evidence', id: 'evidence', icon: Shield },
 ];
 
-export function CaseDetail()  {
+export function CaseDetail() {
   const { id } = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState('Overview');
-  const [showHelp, setShowHelp] = useState(false);
-
-  // Keyboard shortcuts for tab navigation
-  useHotkeys('1', () => {
-    setActiveTab('Overview');
-    toast('Switched to Overview', { icon: '📊', duration: 1000 });
-  });
-  
-  useHotkeys('2', () => {
-    setActiveTab('Graph Analysis');
-    toast('Switched to Graph Analysis', { icon: '🔗', duration: 1000 });
-  });
-  
-  useHotkeys('3', () => {
-    setActiveTab('Timeline');
-    toast('Switched to Timeline', { icon: '⏰', duration: 1000 });
-  });
-  
-  useHotkeys('4', () => {
-    setActiveTab('Financials');
-    toast('Switched to Financials', { icon: '💰', duration: 1000 });
-  });
-  
-  useHotkeys('5', () => {
-    setActiveTab('Evidence');
-    toast('Switched to Evidence', { icon: '🔒', duration: 1000 });
-  });
-
-  // Show keyboard shortcuts help
-  useHotkeys('shift+?', () => setShowHelp(prev => !prev));
-
-  const { data: caseData, isLoading: caseLoading } = useQuery({
-    queryKey: ['case', id],
-    queryFn: () => api.getCase(id!),
-    enabled: !!id,
-  });
-
-  useQuery({
-    queryKey: ['case', id, 'timeline'],
-    queryFn: () => api.getCaseTimeline(id!),
-    enabled: !!id && activeTab === 'Timeline',
-  });
-
-  useQuery({
-    queryKey: ['graph', caseData?.subject_name],
-    queryFn: () => api.getGraph(caseData!.subject_name),
-    enabled: !!caseData?.subject_name && activeTab === 'Graph Analysis',
-  });
+  const { caseData, caseLoading, activeTab, setActiveTab, showHelp, setShowHelp } = useCaseDetail(id);
 
   if (caseLoading) {
     return (
@@ -188,63 +137,17 @@ export function CaseDetail()  {
               transition={{ duration: 0.2 }}
               className="h-full"
             >
-              {activeTab === 'Overview' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full"> {/* Adjusted internal grid for overview */}
-                  {/* Main Info */}
-                  <div className="space-y-6">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Case Summary</h3>
-                      <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                        {caseData.description || 'No description available for this case.'}
-                      </p>
-                      
-                      <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Total Alerts</p>
-                          <p className="text-2xl font-bold text-slate-900 dark:text-white">12</p>
-                        </div>
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Evidence</p>
-                          <p className="text-2xl font-bold text-slate-900 dark:text-white">5</p>
-                        </div>
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Linked Entities</p>
-                          <p className="text-2xl font-bold text-slate-900 dark:text-white">8</p>
-                        </div>
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Days Open</p>
-                          <p className="text-2xl font-bold text-slate-900 dark:text-white">3</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+               {activeTab === 'Overview' && <CaseOverview caseData={caseData} />}
 
-                  <div className="space-y-6">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 h-full">
-                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Recent Activity</h3>
-                      <Timeline />
-                    </div>
-                  </div>
-                </div>
-              )}
+               {activeTab === 'Graph Analysis' && (
+                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 h-full">
+                   <EntityGraph />
+                 </div>
+               )}
 
-              {activeTab === 'Graph Analysis' && (
-                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 h-full">
-                  <EntityGraph />
-                </div>
-              )}
+               {activeTab === 'Financials' && <CaseFinancials />}
 
-              {activeTab === 'Financials' && (
-                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 h-full">
-                  <FinancialSankey />
-                </div>
-              )}
-
-              {activeTab === 'Timeline' && (
-                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 h-full">
-                  <Timeline />
-                </div>
-              )}
+               {activeTab === 'Timeline' && <CaseTimeline />}
 
               {activeTab === 'Evidence' && (
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-12 flex flex-col items-center justify-center text-center border-dashed h-full">
@@ -282,9 +185,9 @@ export function CaseDetail()  {
           {/* AI Insight / AIReasoningTab */}
           <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/50 p-6 flex-1 flex flex-col">
             <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">AI Insights</h3>
-            {caseData ? (
-              <AIReasoningTab alertId={caseData.id} />
-            ) : (
+             {caseData ? (
+               <AIReasoningTab subjectId={caseData.id} />
+             ) : (
               <div className="flex-1 flex items-center justify-center text-center text-slate-500 dark:text-slate-400">
                 No case data for AI reasoning.
               </div>

@@ -5,13 +5,23 @@ import { RecentActivity } from '../components/dashboard/RecentActivity';
 import { RiskDistributionChart } from '../components/dashboard/RiskDistributionChart';
 import { WeeklyActivityChart } from '../components/dashboard/WeeklyActivityChart';
 import { DashboardSkeleton } from '../components/dashboard/DashboardSkeleton';
-import { DashboardWidget } from '../components/dashboard/DashboardWidget'; // Import DashboardWidget
+import { DashboardWidget } from '../components/dashboard/DashboardWidget';
 import { BarChart3, TrendingUp, Users, AlertCircle, Plus } from 'lucide-react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
 import { useMemo } from 'react';
+
+/**
+ * Dashboard Page
+ * 
+ * Features:
+ * - Real-time metrics display
+ * - Risk distribution and activity charts
+ * - WebSocket integration for live updates
+ * - Responsive layout with animations
+ */
 
 export function Dashboard() {
   const queryClient = useQueryClient();

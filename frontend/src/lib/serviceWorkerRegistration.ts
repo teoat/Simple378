@@ -1,4 +1,20 @@
 // Service Worker Registration with offline search support
+
+interface SearchResult {
+  document_id: string;
+  content: string;
+  score: number;
+  semantic_score?: number;
+  keyword_score?: number;
+  metadata: {
+    case_id?: string;
+    subject_id?: string;
+    file_type?: string;
+    filename?: string;
+    uploaded_by?: string;
+  };
+}
+
 export function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -22,7 +38,7 @@ export function registerServiceWorker() {
             }
           });
         })
-        .catch((error) => {
+        .catch((error: Error) => {
           console.error('ServiceWorker registration failed: ', error);
         });
     });
@@ -35,7 +51,7 @@ export function unregisterServiceWorker() {
       .then((registration) => {
         registration.unregister();
       })
-      .catch((error) => {
+      .catch((error: Error) => {
         console.error(error.message);
       });
   }
@@ -43,15 +59,10 @@ export function unregisterServiceWorker() {
 
 // Request background sync for offline search history
 export function requestBackgroundSync() {
-  if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
-    navigator.serviceWorker.ready.then((registration) => {
-      registration.sync.register('sync-search-history')
-        .then(() => {
-          console.log('Background sync registered');
-        })
-        .catch((error) => {
-          console.error('Background sync registration failed:', error);
-        });
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(() => {
+      // Background sync not supported in all browsers
+      console.log('Service worker ready, background sync not implemented');
     });
   }
 }
@@ -84,8 +95,8 @@ export class OfflineSearchStorage {
         resolve();
       };
 
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
+      request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
+        const db = (event.target as IDBOpenDBRequest).result;
         if (!db.objectStoreNames.contains('searchHistory')) {
           db.createObjectStore('searchHistory', { keyPath: 'id' });
         }
@@ -96,7 +107,7 @@ export class OfflineSearchStorage {
     });
   }
 
-  async storeSearchHistory(searchData: any): Promise<void> {
+  async storeSearchHistory(searchData: Record<string, unknown>): Promise<void> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
@@ -113,7 +124,7 @@ export class OfflineSearchStorage {
     });
   }
 
-  async getStoredSearchHistory(): Promise<any[]> {
+  async getStoredSearchHistory(): Promise<Record<string, unknown>[]> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
@@ -122,11 +133,11 @@ export class OfflineSearchStorage {
       const request = store.getAll();
 
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = () => resolve(request.result as Record<string, unknown>[]);
     });
   }
 
-  async storeSearchResults(query: string, results: any[]): Promise<void> {
+  async storeSearchResults(query: string, results: SearchResult[]): Promise<void> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
@@ -139,7 +150,7 @@ export class OfflineSearchStorage {
     });
   }
 
-  async getStoredSearchResults(query: string): Promise<any[] | null> {
+  async getStoredSearchResults(query: string): Promise<SearchResult[] | null> {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {

@@ -1,22 +1,16 @@
 import { motion } from 'framer-motion';
 import { AlertCircle, Clock, Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
-
-interface Alert {
-  id: string;
-  subject_name: string;
-  risk_score: number;
-  triggered_rules: string[];
-  created_at: string;
-  status: 'new' | 'under review' | 'resolved';
-}
+import type { Alert } from '../../types/api';
 
 interface AlertCardProps {
-  alert: Alert;
-  isSelected: boolean;
-  isBulkSelected: boolean;
-  onSelect: (id: string) => void;
-  onToggleBulkSelect: (id: string) => void;
+  alert: Alert | null;
+  onDecision?: (decision: 'approve' | 'reject' | 'escalate', confidence: string, comment?: string) => void;
+  disabled?: boolean;
+  isSelected?: boolean;
+  isBulkSelected?: boolean;
+  onSelect?: (id: string) => void;
+  onToggleBulkSelect?: (id: string) => void;
 }
 
 const statusStyles = {
@@ -25,7 +19,7 @@ const statusStyles = {
   'resolved': 'border-l-green-500',
 };
 
-export function AlertCard({ alert, isSelected, isBulkSelected, onSelect, onToggleBulkSelect }: AlertCardProps) {
+export function AlertCard({ alert, onDecision, disabled, isSelected, isBulkSelected, onSelect, onToggleBulkSelect }: AlertCardProps) {
   const statusClass = statusStyles[alert.status] || 'border-l-gray-500';
 
   return (

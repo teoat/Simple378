@@ -2,13 +2,7 @@ import { useState, useMemo } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { AlertCard } from './AlertCard';
-// @ts-expect-error -- Component library is not typed
-import { Button } from '../../components/ui/button';
-// @ts-expect-error -- Component library is not typed
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
-// @ts-expect-error -- Component library is not typed
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-// @ts-expect-error -- Component library is not typed
+import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/input';
 
 // Keep the Alert interface in one place, here in the list.
@@ -23,13 +17,20 @@ interface Alert {
 
 interface AlertListProps {
   alerts: Alert[];
+  selectedId?: string | null;
+  onSelect?: (id: string | null) => void;
 }
 
-type SortKey = 'created_at' | 'risk_score';
+type SortKey = 'created_at' | 'risk_score' | 'status';
 type SortDirection = 'asc' | 'desc';
 
-export function AlertList({ alerts: initialAlerts }: AlertListProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+export function AlertList({ alerts: initialAlerts, selectedId: propSelectedId, onSelect }: AlertListProps) {
+  const [selectedId, setSelectedId] = useState<string | null>(propSelectedId || null);
+
+  const handleSelect = (id: string | null) => {
+    setSelectedId(id);
+    onSelect?.(id);
+  };
   const [bulkSelectedIds, setBulkSelectedIds] = useState<Set<string>>(new Set());
 
   // Filtering state
@@ -94,9 +95,9 @@ export function AlertList({ alerts: initialAlerts }: AlertListProps) {
     if (paginatedAlerts.length === 0) return;
     const currentIndex = paginatedAlerts.findIndex(a => a.id === selectedId);
     if (currentIndex > 0) {
-      setSelectedId(paginatedAlerts[currentIndex - 1].id);
+      handleSelect(paginatedAlerts[currentIndex - 1].id);
     } else if (!selectedId && paginatedAlerts.length > 0) {
-      setSelectedId(paginatedAlerts[0].id);
+      handleSelect(paginatedAlerts[0].id);
     }
   }, [paginatedAlerts, selectedId]);
 
@@ -106,7 +107,7 @@ export function AlertList({ alerts: initialAlerts }: AlertListProps) {
     if (currentIndex < paginatedAlerts.length - 1) {
       setSelectedId(paginatedAlerts[currentIndex + 1].id);
     } else if (!selectedId && paginatedAlerts.length > 0) {
-      setSelectedId(paginatedAlerts[0].id);
+      handleSelect(paginatedAlerts[0].id);
     }
   }, [paginatedAlerts, selectedId]);
 
@@ -114,17 +115,12 @@ export function AlertList({ alerts: initialAlerts }: AlertListProps) {
     <div className="flex flex-col h-full">
       {/* Filter and Sort Controls */}
       <div className="p-4 bg-white/5 rounded-t-xl border-b border-white/10 flex items-center gap-4">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="new">New</SelectItem>
-            <SelectItem value="under review">Under Review</SelectItem>
-            <SelectItem value="resolved">Resolved</SelectItem>
-          </SelectContent>
-        </Select>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-[180px] px-3 py-2 border border-slate-300 rounded">
+          <option value="all">All Statuses</option>
+          <option value="new">New</option>
+          <option value="under review">Under Review</option>
+          <option value="resolved">Resolved</option>
+        </select>
         
         <Input
           type="number"
@@ -134,37 +130,25 @@ export function AlertList({ alerts: initialAlerts }: AlertListProps) {
           className="w-[160px]"
         />
 
-        <Select value={`${sortKey}-${sortDirection}`} onValueChange={(value: string) => {
-          const [key, dir] = value.split('-') as [SortKey, SortDirection];
-          setSortKey(key);
-          setSortDirection(dir);
-        }}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="created_at-desc">Newest First</SelectItem>
-            <SelectItem value="created_at-asc">Oldest First</SelectItem>
-            <SelectItem value="risk_score-desc">Risk: High to Low</SelectItem>
-            <SelectItem value="risk_score-asc">Risk: Low to High</SelectItem>
-          </SelectContent>
-        </Select>
+        <select value={`${sortKey}-${sortDirection}`} onChange={(e) => {
+          const [key, direction] = e.target.value.split('-');
+          setSortKey(key as any);
+          setSortDirection(direction as 'asc' | 'desc');
+        }} className="w-[180px] px-3 py-2 border border-slate-300 rounded">
+          <option value="created_at-desc">Newest First</option>
+          <option value="created_at-asc">Oldest First</option>
+          <option value="risk_score-desc">Risk: High to Low</option>
+          <option value="risk_score-asc">Risk: Low to High</option>
+        </select>
       </div>
 
       {/* Bulk Actions Bar */}
       {bulkSelectedIds.size > 0 && (
         <div className="p-2 px-4 bg-blue-500/10 border-b border-blue-500/20 flex items-center justify-between">
           <span className="text-sm font-semibold text-blue-300">{bulkSelectedIds.size} selected</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">Bulk Actions</Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem>Mark as Resolved</DropdownMenuItem>
-              <DropdownMenuItem>Mark as Under Review</DropdownMenuItem>
-              <DropdownMenuItem>Assign to...</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button variant="ghost" size="sm">
+            Actions
+          </Button>
         </div>
       )}
 
@@ -182,7 +166,7 @@ export function AlertList({ alerts: initialAlerts }: AlertListProps) {
                 alert={alert}
                 isSelected={selectedId === alert.id}
                 isBulkSelected={bulkSelectedIds.has(alert.id)}
-                onSelect={setSelectedId}
+                onSelect={handleSelect}
                 onToggleBulkSelect={handleToggleBulkSelect}
               />
             ))

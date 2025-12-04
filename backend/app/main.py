@@ -15,68 +15,101 @@ from slowapi.errors import RateLimitExceeded
 import structlog
 from datetime import datetime
 
+from app.core.correlation_id import CorrelationIDMiddleware
+from app.core.error_handler import validation_error_handler, general_exception_handler, HTTPExceptionHandler
+from fastapi.exceptions import RequestValidationError
+from app.core.correlation_id import CorrelationIDMiddleware
+from app.core.error_handler import validation_error_handler, general_exception_handler, HTTPExceptionHandler
+from fastapi.exceptions import RequestValidationError
 # Setup logging
 setup_logging()
-
-# Run environment validation at startup
-startup_validation()
-
-# Import tracing after app creation to avoid circular imports
-from app.core.tracing import setup_tracing
-
-app = FastAPI(
-    title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    docs_url=f"{settings.API_V1_STR}/docs",
+# Core infrastructure modules
+from app.core.monitoring import MetricsCollector, AlertingRules, HealthCheckCollector, track_request_metrics
+from app.core.rate_limiting import TokenBucketRateLimiter, QuotaManager, DynamicThrottling
+from app.core.validation import DataSanitizer, InputValidator, SecurityRuleValidator
+from app.core.scaling_config import RedisSessionStore, ConnectionPoolConfig, AutoScalingPolicy
+from app.core.deployment import (
+    DeploymentValidator, BlueGreenDeployment, CanaryDeployment,
+    RollingDeployment, DeploymentRollbackManager
 )
 
-# Register global exception handler
-app.add_exception_handler(Exception, global_exception_handler)
+# Initialize monitoring and infrastructure
+metrics_collector = MetricsCollector()
+health_collector = HealthCheckCollector()
 
-# Add rate limiter to app state
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# Initialize rate limiting (requires REDIS_URL)
+try:
+    rate_limiter = TokenBucketRateLimiter(
+        redis_url=settings.REDIS_URL,
+        rate_limit=100,
+        window_seconds=60
+    )
+except Exception as e:
+    logger.warning(f"Rate limiter initialization failed: {e}")
+    rate_limiter = None
 
-# Setup Prometheus metrics
-Instrumentator().instrument(app).expose(app)
+# Initialize deployment managers
+deployment_validator = DeploymentValidator()
+blue_green_deployment = BlueGreenDeployment()
+canary_deployment = CanaryDeployment()
+rollback_manager = DeploymentRollbackManager()
 
-# Setup OpenTelemetry tracing
-import os
-if os.getenv("ENABLE_OTEL", "true").lower() == "true":
-    try:
-        setup_tracing(app, service_name=settings.PROJECT_NAME)
-    except Exception as e:
-        # Tracing is optional - log error but continue
-        logger = structlog.get_logger()
-        logger.error("Failed to setup tracing", error=str(e))
-
-# Add file size limit middleware (before security headers)
-app.add_middleware(FileSizeLimitMiddleware)
-
-# Add security headers middleware
-app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(RateLimitHeadersMiddleware)
-
-# Set all CORS enabled origins
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Include API routers
-app.include_router(api_router, prefix=settings.API_V1_STR)
-app.include_router(health_router)  # Health endpoints at root level
-
-@app.get("/")
-async def root():
-    """Root endpoint - API information"""
+@app.get("/health")
+async def health():
+    """Basic health check."""
     return {
-        "app": settings.PROJECT_NAME,
-        "version": "1.0.0",
-        "status": "running",
+        "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "docs": f"{settings.API_V1_STR}/docs"
     }
+
+@app.get("/health/detailed")
+async def health_detailed():
+    """Detailed health check with component status."""
+    return health_collector.get_overall_status()
+
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics endpoint."""
+    return metrics_collector.get_prometheus_metrics()
+
+@app.middleware("http")
+async def validation_middleware(request, call_next):
+    """Middleware to validate requests for security issues."""
+    
+    # Check for SQL injection in query params
+    for key, value in request.query_params.items():
+        if isinstance(value, str) and DataSanitizer.check_sql_injection(value):
+            logger.warning(f"SQL injection attempt detected in {key}", extra={"request_id": request.headers.get("X-Request-ID")})
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "Invalid request parameters"}
+            )
+    
+    response = await call_next(request)
+    return response
+
+@app.middleware("http")
+async def rate_limit_middleware(request, call_next):
+    """Apply rate limiting based on client identifier."""
+    if rate_limiter:
+        client_id = request.client.host if request.client else "unknown"
+        allowed, info = await rate_limiter.is_allowed(client_id)
+        
+        if not allowed:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too many requests"},
+                headers={
+                    "X-RateLimit-Limit": str(info["limit"]),
+                    "X-RateLimit-Remaining": str(info["remaining"]),
+                    "X-RateLimit-Reset": str(info["reset_at"]),
+                }
+            )
+        
+        response = await call_next(request)
+        response.headers["X-RateLimit-Limit"] = str(info["limit"])
+        response.headers["X-RateLimit-Remaining"] = str(info["remaining"])
+        response.headers["X-RateLimit-Reset"] = str(info["reset_at"])
+        return response
+    
+    return await call_next(request)

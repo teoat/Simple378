@@ -41,6 +41,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     validateToken();
   }, []);
 
+  // Listen for 401 unauthorized logout events
+  useEffect(() => {
+    const handleLogout = () => {
+      setIsAuthenticated(false);
+      toast.error('Your session has expired. Please log in again.');
+      navigate('/login');
+    };
+
+    window.addEventListener('auth:logout', handleLogout);
+    return () => {
+      window.removeEventListener('auth:logout', handleLogout);
+    };
+  }, [navigate]);
+
   const login = async (email: string, password: string) => {
     try {
       const response = await api.login(email, password);
