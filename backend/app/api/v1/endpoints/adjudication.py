@@ -71,7 +71,7 @@ async def submit_decision(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid UUID")
 
-    result = await db.execute(select(models.AnalysisResult).where(models.AnalysisResult.id == analysis_uuid))
+    result = await db.execute(select(models.AnalysisResult).where(models.AnalysisResult.id == analysis_uuid).with_for_update())
     analysis = result.scalars().first()
     
     if not analysis:
