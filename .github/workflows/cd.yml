@@ -24,11 +24,11 @@ jobs:
       with:
         context: ./backend
         push: true
-        tags: user/fraud-detection-backend:latest
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/fraud-detection-backend:latest
         
     - name: Build and push Frontend
       uses: docker/build-push-action@v5
       with:
         context: ./frontend
         push: true
-        tags: user/fraud-detection-frontend:latest
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/fraud-detection-frontend:latest

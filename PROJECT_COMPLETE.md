@@ -118,7 +118,7 @@
    ```
 
 3. **Configure GitHub Secrets** for CD workflow:
-   - `DOCKERHUB_USERNAME`
+   - `DOCKERHUB_USERNAME` (Set to `teoat`)
    - `DOCKERHUB_TOKEN`
 
 4. **Performance Testing**:
