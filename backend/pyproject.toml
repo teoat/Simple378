@@ -14,7 +14,7 @@ asyncpg = "^0.30.0"
 pydantic = "^2.6.1"
 pydantic-settings = "^2.2.1"
 alembic = "^1.13.1"
-python-multipart = "^0.0.9"
+python-multipart = "^0.0.18"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 bcrypt = "3.2.2" # Pin bcrypt to <4.0.0 to avoid passlib error
