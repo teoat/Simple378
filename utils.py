@@ -60,7 +60,9 @@ class CodeManager:
         print(separator)
         
         for code in codes:
-            print(f"{code['id']:<12} {code['description']:<30} "
+            # Truncate description to fit the column width
+            desc = (code['description'][:27] + '...') if len(code['description']) > 30 else code['description']
+            print(f"{code['id']:<12} {desc:<30} "
                   f"{code['status']:<12} {code['timestamp']}")
         
         print(separator)
