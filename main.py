@@ -30,7 +30,7 @@ def main():
     
     if completed_codes:
         print(f"Total completed codes: {len(completed_codes)}\n")
-        manager.display_codes(completed_codes)
+        manager.display_codes(list(completed_codes))
     else:
         print("No completed codes found.")
     
