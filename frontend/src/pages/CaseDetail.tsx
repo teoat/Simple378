@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useHotkeys } from 'react-hotkeys-hook';
 import toast from 'react-hot-toast';
 import { api } from '../lib/api';
@@ -26,6 +26,35 @@ export function CaseDetail()  {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState('Overview');
   const [showHelp, setShowHelp] = useState(false);
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const updateStatusMutation = useMutation({
+    mutationFn: (status: string) => api.updateCase(id!, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['case', id] });
+      toast.success('Case status updated');
+    },
+    onError: (error) => {
+      toast.error(`Failed to update status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    },
+  });
+
+  const uploadEvidenceMutation = useMutation({
+    mutationFn: (file: File) => api.analyzeFile(file),
+    onSuccess: () => {
+      toast.success('Evidence uploaded and sent for analysis');
+    },
+    onError: (error) => {
+      toast.error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    },
+  });
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      uploadEvidenceMutation.mutate(e.target.files[0]);
+    }
+  };
 
   // Keyboard shortcuts for tab navigation
   useHotkeys('1', () => {
@@ -142,13 +171,21 @@ export function CaseDetail()  {
               <Download className="h-5 w-5" />
             </button>
             <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-medium shadow-sm">
+            <button
+              onClick={() => updateStatusMutation.mutate('escalated')}
+              disabled={updateStatusMutation.isPending}
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-medium shadow-sm disabled:opacity-50"
+            >
               <AlertTriangle className="h-4 w-4 text-orange-500" />
               Escalate
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 font-medium">
+            <button
+              onClick={() => updateStatusMutation.mutate('resolved')}
+              disabled={updateStatusMutation.isPending}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 font-medium disabled:opacity-50"
+            >
               <CheckCircle className="h-4 w-4" />
-              Approve
+              Resolve
             </button>
           </div>
         </div>
@@ -301,8 +338,18 @@ export function CaseDetail()  {
                 <p className="text-slate-500 dark:text-slate-400 mt-1 max-w-sm">
                   Upload and manage evidence files related to this case. Drag and drop files here or click to browse.
                 </p>
-                <button className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20">
-                  Upload Evidence
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadEvidenceMutation.isPending}
+                  className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50"
+                >
+                  {uploadEvidenceMutation.isPending ? 'Uploading...' : 'Upload Evidence'}
                 </button>
               </div>
             )}

@@ -246,9 +246,10 @@ export const api = {
       }>
     >('/reconciliation/transactions'),
 
-  autoReconcile: () =>
+  autoReconcile: (threshold?: number) =>
     request<{ matched: number; unmatched: number }>('/reconciliation/auto-match', {
       method: 'POST',
+      body: JSON.stringify({ threshold }),
     }),
 
   createMatch: (expenseId: string, transactionId: string, confidence?: number) =>
