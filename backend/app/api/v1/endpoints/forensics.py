@@ -1,10 +1,14 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
-from typing import Any
+from typing import Any, List
 import shutil
 import os
 import tempfile
+import uuid
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from app.services.forensics import ForensicsService
 from app.api import deps
+from app.models import mens_rea as models
 
 router = APIRouter()
 forensics_service = ForensicsService()
@@ -37,3 +41,62 @@ async def analyze_file(
         # Cleanup
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
+
+@router.get("/evidence/{analysis_id}", response_model=List[dict])
+async def get_evidence_for_analysis(
+    analysis_id: str,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: Any = Depends(deps.get_current_user)
+) -> List[dict]:
+    """
+    Get evidence files associated with an analysis result.
+    """
+    try:
+        analysis_uuid = uuid.UUID(analysis_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID")
+    
+    result = await db.execute(select(models.AnalysisResult).where(models.AnalysisResult.id == analysis_uuid))
+    analysis = result.scalars().first()
+    
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis result not found")
+    
+    # For now, return evidence from indicators
+    # In a full implementation, this would query a separate evidence/files table
+    evidence = []
+    
+    # Get indicators which contain evidence
+    indicators_result = await db.execute(
+        select(models.Indicator).where(models.Indicator.analysis_result_id == analysis_uuid)
+    )
+    indicators = indicators_result.scalars().all()
+    
+    for indicator in indicators:
+        if indicator.evidence and isinstance(indicator.evidence, dict):
+            # Extract file references from evidence
+            if "files" in indicator.evidence:
+                for file_info in indicator.evidence["files"]:
+                    evidence.append({
+                        "id": str(indicator.id),
+                        "filename": file_info.get("filename", "unknown"),
+                        "file_type": file_info.get("type", "unknown"),
+                        "upload_date": indicator.created_at.isoformat() if indicator.created_at else None,
+                        "metadata": file_info
+                    })
+    
+    # If no evidence found in indicators, return empty list or placeholder
+    if not evidence:
+        # Return placeholder evidence based on analysis
+        evidence.append({
+            "id": f"placeholder-{analysis.id}",
+            "filename": f"analysis_{analysis_id}.json",
+            "file_type": "analysis_result",
+            "upload_date": analysis.created_at.isoformat() if analysis.created_at else None,
+            "metadata": {
+                "risk_score": analysis.risk_score,
+                "status": analysis.status
+            }
+        })
+    
+    return evidence

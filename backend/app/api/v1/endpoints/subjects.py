@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 from sqlalchemy.future import select
-from sqlalchemy import func, String
+from sqlalchemy import func, String, desc, asc
 from typing import Optional
 from app.api import deps
 from app.models import mens_rea as models
@@ -57,12 +57,19 @@ async def get_subjects(
     min_risk: Optional[int] = None,
     max_risk: Optional[int] = None,
     search: Optional[str] = None,
+    page: Optional[int] = 1,
+    limit: Optional[int] = 20,
+    sort_by: Optional[str] = "created_at",
+    sort_order: Optional[str] = "desc",
     db: AsyncSession = Depends(deps.get_db),
     current_user = Depends(deps.get_current_user)
 ):
     """
-    List subjects (Cases) with filtering and search.
+    List subjects (Cases) with filtering, search, pagination, and sorting.
     """
+    # Calculate skip from page
+    skip = (page - 1) * limit if page > 0 else 0
+    
     # Base query
     query = select(Subject, models.AnalysisResult).outerjoin(
         models.AnalysisResult, Subject.id == models.AnalysisResult.subject_id
@@ -70,8 +77,6 @@ async def get_subjects(
 
     # Apply filters
     if status:
-        # Map frontend status to backend status if needed, or assume direct match
-        # Assuming AnalysisResult has the status we care about
         query = query.where(models.AnalysisResult.adjudication_status == status)
     
     if min_risk is not None:
@@ -81,18 +86,25 @@ async def get_subjects(
         query = query.where(models.AnalysisResult.risk_score <= max_risk)
 
     if search:
-        # Simple case-insensitive search on subject name
+        # Simple case-insensitive search on subject ID
         # Note: In a real app, use Meilisearch or full-text search
         search_term = f"%{search}%"
-        query = query.where(Subject.id.cast(String).ilike(search_term)) # Subject doesn't have a name field in the model yet? 
-        # Let's check the model definition. If Subject has no name, we might search by ID.
+        query = query.where(Subject.id.cast(String).ilike(search_term))
     
-    # Calculate total (simplified for now, ideally separate count query)
-    # For pagination with complex joins, it's often better to do a separate count query
-    # But for MVP let's just count the results of the main query without limit/offset first?
-    # Or just use a window function. Let's stick to a separate count query for correctness.
+    # Apply sorting
+    valid_sort_fields = {
+        "created_at": Subject.created_at,
+        "risk_score": models.AnalysisResult.risk_score,
+        "status": models.AnalysisResult.adjudication_status,
+    }
     
-    # Count query
+    sort_field = valid_sort_fields.get(sort_by, Subject.created_at)
+    if sort_order.lower() == "asc":
+        query = query.order_by(asc(sort_field))
+    else:
+        query = query.order_by(desc(sort_field))
+    
+    # Count query (before pagination)
     count_query = select(func.count()).select_from(Subject).outerjoin(
         models.AnalysisResult, Subject.id == models.AnalysisResult.subject_id
     )
@@ -133,8 +145,8 @@ async def get_subjects(
     return {
         "items": items,
         "total": total,
-        "page": (skip // limit) + 1,
-        "pages": (total + limit - 1) // limit
+        "page": page,
+        "pages": (total + limit - 1) // limit if limit > 0 else 1
     }
 
 @router.get("/{subject_id}", response_model=dict)

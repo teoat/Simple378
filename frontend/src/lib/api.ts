@@ -131,8 +131,15 @@ export const api = {
     >('/activity/recent'),
 
   // Cases
-  getCases: (params?: { page?: number; limit?: number; search?: string; status?: string }) =>
-    request<{
+  getCases: (params?: { page?: number; limit?: number; search?: string; status?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', params.page.toString());
+    if (params?.limit) searchParams.set('limit', params.limit.toString());
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.sortBy) searchParams.set('sort_by', params.sortBy);
+    if (params?.sortOrder) searchParams.set('sort_order', params.sortOrder);
+    return request<{
       items: Array<{
         id: string;
         subject_name: string;
@@ -144,7 +151,48 @@ export const api = {
       total: number;
       page: number;
       pages: number;
-    }>(`/subjects?${new URLSearchParams(params as Record<string, string>).toString()}`),
+    }>(`/subjects?${searchParams.toString()}`);
+  },
+
+  searchCases: (query: string) =>
+    request<{
+      items: Array<{
+        id: string;
+        subject_name: string;
+        risk_score: number;
+        status: string;
+        created_at: string;
+        assigned_to: string;
+      }>;
+      total: number;
+    }>(`/search/cases?q=${encodeURIComponent(query)}`),
+
+  createCase: (data: { subject_name: string; description?: string }) =>
+    request<{
+      id: string;
+      subject_name: string;
+      status: string;
+      created_at: string;
+    }>('/cases', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateCase: (id: string, data: { status?: string; assigned_to?: string; description?: string }) =>
+    request<{
+      id: string;
+      subject_name: string;
+      status: string;
+      updated_at: string;
+    }>(`/cases/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteCase: (id: string) =>
+    request(`/cases/${id}`, {
+      method: 'DELETE',
+    }),
 
   getCase: (id: string) =>
     request<{
@@ -201,6 +249,19 @@ export const api = {
   autoReconcile: () =>
     request<{ matched: number; unmatched: number }>('/reconciliation/auto-match', {
       method: 'POST',
+    }),
+
+  createMatch: (expenseId: string, transactionId: string, confidence?: number) =>
+    request<{
+      id: string;
+      expense_id: string;
+      transaction_id: string;
+      confidence: number;
+      created_at: string;
+      status: string;
+    }>('/reconciliation/matches', {
+      method: 'POST',
+      body: JSON.stringify({ expense_id: expenseId, transaction_id: transactionId, confidence }),
     }),
 
   // Ingestion
@@ -286,6 +347,78 @@ export const api = {
     request<{ response: string }>('/ai/chat', {
       method: 'POST',
       body: JSON.stringify({ message }),
+    }),
+
+  // Adjudication
+  getAdjudicationQueue: () =>
+    request<
+      Array<{
+        id: string;
+        subject_id: string;
+        status: string;
+        risk_score: number;
+        created_at: string;
+        updated_at?: string;
+        adjudication_status: string;
+        decision?: string;
+        reviewer_notes?: string;
+        reviewer_id?: string;
+        indicators: Array<{
+          id: string;
+          type: string;
+          confidence: number;
+          evidence: Record<string, unknown>;
+          created_at: string;
+        }>;
+      }>
+    >('/adjudication/queue'),
+
+  submitDecision: (analysisId: string, decision: string, notes?: string) =>
+    request<{
+      id: string;
+      subject_id: string;
+      status: string;
+      risk_score: number;
+      created_at: string;
+      decision: string;
+      reviewer_notes?: string;
+      adjudication_status: string;
+    }>(`/adjudication/${analysisId}/decision`, {
+      method: 'POST',
+      body: JSON.stringify({ decision, notes }),
+    }),
+
+  getAdjudicationHistory: (analysisId: string) =>
+    request<
+      Array<{
+        id: string;
+        decision: string;
+        reviewer_notes?: string;
+        reviewer_id: string;
+        created_at: string;
+      }>
+    >(`/adjudication/${analysisId}/history`),
+
+  // Context tabs for adjudication
+  getEvidenceForAnalysis: (analysisId: string) =>
+    request<
+      Array<{
+        id: string;
+        filename: string;
+        file_type: string;
+        upload_date: string;
+        metadata?: Record<string, unknown>;
+      }>
+    >(`/forensics/evidence/${analysisId}`),
+
+  getAIAnalysis: (subjectId: string) =>
+    request<{
+      status: string;
+      findings: Record<string, unknown>;
+      verdict: string;
+    }>(`/ai/investigate/${subjectId}`, {
+      method: 'POST',
+      body: JSON.stringify({}),
     }),
 };
 

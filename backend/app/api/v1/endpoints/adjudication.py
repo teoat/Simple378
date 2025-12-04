@@ -9,6 +9,7 @@ import uuid
 from app.api import deps
 from app.models import mens_rea as models
 from app.schemas import mens_rea as schemas
+from app.core.websocket import emit_alert_resolved, emit_queue_updated
 
 router = APIRouter()
 
@@ -66,6 +67,10 @@ async def submit_decision(
     await db.commit()
     await db.refresh(analysis)
     
+    # Emit WebSocket events
+    await emit_alert_resolved(str(analysis.id), str(current_user.id))
+    await emit_queue_updated(str(current_user.id))
+    
     return analysis
 
 @router.get("/{analysis_id}/report")
@@ -111,6 +116,40 @@ async def download_case_report(
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=case_report_{analysis_id}.pdf"}
     )
+
+@router.get("/{analysis_id}/history", response_model=List[dict])
+async def get_adjudication_history(
+    analysis_id: str,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user = Depends(deps.get_current_user)
+):
+    """
+    Get adjudication history for an analysis result.
+    """
+    try:
+        analysis_uuid = uuid.UUID(analysis_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID")
+
+    result = await db.execute(select(models.AnalysisResult).where(models.AnalysisResult.id == analysis_uuid))
+    analysis = result.scalars().first()
+    
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis result not found")
+    
+    history = []
+    
+    # If there's a decision, add it to history
+    if analysis.decision:
+        history.append({
+            "id": f"{analysis.id}-decision",
+            "decision": analysis.decision,
+            "reviewer_notes": analysis.reviewer_notes,
+            "reviewer_id": str(analysis.reviewer_id) if analysis.reviewer_id else None,
+            "created_at": analysis.updated_at.isoformat() if analysis.updated_at else analysis.created_at.isoformat() if analysis.created_at else None,
+        })
+    
+    return history
 
 @router.post("/{analysis_id}/export-offline")
 async def export_offline_package(

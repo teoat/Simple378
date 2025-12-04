@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import login, mens_rea, adjudication, ingestion, audit, graph, ai, forensics, orchestration, subjects, compliance, dashboard
+from app.api.v1.endpoints import login, mens_rea, adjudication, ingestion, audit, graph, ai, forensics, orchestration, subjects, compliance, dashboard, cases, reconciliation, websocket
 
 api_router = APIRouter()
 
@@ -21,3 +21,6 @@ api_router.include_router(orchestration.router, prefix="/orchestration", tags=["
 api_router.include_router(subjects.router, prefix="/subjects", tags=["subjects"])
 api_router.include_router(compliance.router, prefix="/compliance", tags=["compliance"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
+api_router.include_router(cases.router, prefix="/cases", tags=["cases"])
+api_router.include_router(reconciliation.router, prefix="/reconciliation", tags=["reconciliation"])
+api_router.include_router(websocket.router, tags=["websocket"])

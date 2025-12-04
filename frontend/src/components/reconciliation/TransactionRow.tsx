@@ -15,12 +15,12 @@ export function TransactionRow({ id, date, description, amount, status, type }: 
   return (
     <div
       className={cn(
-        'group flex items-center justify-between rounded-md border p-3 shadow-sm transition-all hover:shadow-md',
+        'group flex items-center justify-between rounded-xl border p-4 backdrop-blur-sm transition-all hover:shadow-lg',
         status === 'matched'
-          ? 'border-green-200 bg-green-50 dark:border-green-900/50 dark:bg-green-900/20'
+          ? 'border-green-500/50 bg-green-500/10 dark:bg-green-500/20 shadow-green-500/10'
           : status === 'flagged'
-          ? 'border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-900/20'
-          : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800'
+          ? 'border-red-500/50 bg-red-500/10 dark:bg-red-500/20 shadow-red-500/10'
+          : 'border-yellow-500/30 bg-yellow-500/5 dark:bg-yellow-500/10 border-dashed shadow-yellow-500/5'
       )}
     >
       <div className="flex items-center gap-3">
@@ -41,9 +41,24 @@ export function TransactionRow({ id, date, description, amount, status, type }: 
           {type === 'expense' ? '-' : '+'}${amount.toFixed(2)}
         </span>
         
-        {status === 'matched' && <CheckCircle className="h-5 w-5 text-green-500" />}
-        {status === 'flagged' && <AlertCircle className="h-5 w-5 text-red-500" />}
-        {status === 'unmatched' && <div className="h-5 w-5 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-600" />}
+        {status === 'matched' && (
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-500" />
+            <span className="text-xs text-green-600 dark:text-green-400 font-medium">Matched</span>
+          </div>
+        )}
+        {status === 'flagged' && (
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-red-500" />
+            <span className="text-xs text-red-600 dark:text-red-400 font-medium">Flagged</span>
+          </div>
+        )}
+        {status === 'unmatched' && (
+          <div className="flex items-center gap-2">
+            <div className="h-5 w-5 rounded-full border-2 border-dashed border-yellow-400 dark:border-yellow-500" />
+            <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">Unmatched</span>
+          </div>
+        )}
       </div>
     </div>
   );

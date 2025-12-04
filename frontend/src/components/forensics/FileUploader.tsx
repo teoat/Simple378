@@ -1,15 +1,41 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Upload, File, X, CheckCircle, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { ProcessingPipeline, ProcessingStage } from '../ingestion/ProcessingPipeline';
+import { useWebSocket } from '../../hooks/useWebSocket';
 
 interface FileUploaderProps {
   onUpload: (files: File[]) => void;
+  showProcessing?: boolean;
+  uploadId?: string;
 }
 
-export function FileUploader({ onUpload }: FileUploaderProps) {
+export function FileUploader({ onUpload, showProcessing = false, uploadId }: FileUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [currentStage, setCurrentStage] = useState<ProcessingStage>('upload');
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string>('');
+
+  // WebSocket integration for processing updates
+  useWebSocket('/ws', {
+    onMessage: (message) => {
+      if (message.type === 'upload_progress' && message.payload?.upload_id === uploadId) {
+        setProgress(message.payload.progress || 0);
+      } else if (message.type === 'processing_stage' && message.payload?.upload_id === uploadId) {
+        setCurrentStage(message.payload.stage || 'upload');
+        setProgress(message.payload.progress || 0);
+      } else if (message.type === 'processing_complete' && message.payload?.upload_id === uploadId) {
+        setCurrentStage('complete');
+        setProgress(100);
+        setUploadStatus('success');
+      } else if (message.type === 'processing_error' && message.payload?.upload_id === uploadId) {
+        setError(message.payload.error || 'Processing failed');
+        setUploadStatus('error');
+      }
+    },
+  });
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -43,26 +69,64 @@ export function FileUploader({ onUpload }: FileUploaderProps) {
     if (files.length === 0) return;
     
     setUploadStatus('uploading');
-    // Simulate upload delay
-    setTimeout(() => {
-      setUploadStatus('success');
-      onUpload(files);
-      setFiles([]);
-      setTimeout(() => setUploadStatus('idle'), 3000);
-    }, 2000);
+    setCurrentStage('upload');
+    setProgress(0);
+    setError('');
+    
+    // Call the onUpload callback - parent component handles actual upload
+    onUpload(files);
+    
+    // Reset after a delay if not using processing pipeline
+    if (!showProcessing) {
+      setTimeout(() => {
+        setUploadStatus('success');
+        setFiles([]);
+        setTimeout(() => setUploadStatus('idle'), 3000);
+      }, 2000);
+    }
   };
+
+  useEffect(() => {
+    if (uploadStatus === 'uploading' && showProcessing) {
+      // Simulate stage progression if no WebSocket updates
+      const stages: ProcessingStage[] = ['upload', 'virus_scan', 'ocr', 'metadata', 'forensics', 'indexing', 'complete'];
+      let stageIndex = 0;
+      
+      const interval = setInterval(() => {
+        if (stageIndex < stages.length - 1) {
+          stageIndex++;
+          setCurrentStage(stages[stageIndex]);
+          setProgress((stageIndex / (stages.length - 1)) * 100);
+        } else {
+          clearInterval(interval);
+        }
+      }, 2000);
+
+      return () => clearInterval(interval);
+    }
+  }, [uploadStatus, showProcessing]);
 
   return (
     <div className="space-y-4">
+      {showProcessing && uploadStatus === 'uploading' && (
+        <ProcessingPipeline
+          currentStage={currentStage}
+          progress={progress}
+          error={error}
+          estimatedTimeRemaining={Math.max(0, Math.round((100 - progress) * 0.5))}
+        />
+      )}
+
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
-          'relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 transition-colors',
+          'relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 transition-colors backdrop-blur-sm',
           isDragging
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-            : 'border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800'
+            ? 'border-purple-500 dark:border-cyan-500 bg-purple-50/50 dark:bg-purple-900/20'
+            : 'border-slate-300 dark:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/50',
+          uploadStatus === 'uploading' && 'opacity-50 pointer-events-none'
         )}
       >
         <Upload className="h-12 w-12 text-slate-400" />

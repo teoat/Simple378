@@ -13,11 +13,13 @@
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
     "@tanstack/react-query": "^5.90.11",
+    "@types/papaparse": "^5.5.1",
     "axios": "^1.6.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.25",
     "lucide-react": "^0.330.0",
+    "papaparse": "^5.5.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-force-graph-2d": "^1.29.0",

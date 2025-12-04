@@ -6,6 +6,7 @@ import { ContextTabs } from './ContextTabs';
 
 interface Alert {
   id: string;
+  subject_id: string;
   subject_name: string;
   risk_score: number;
   triggered_rules: string[];
@@ -16,9 +17,10 @@ interface Alert {
 interface AlertCardProps {
   alert: Alert | null;
   onDecision: (decision: 'approve' | 'reject' | 'escalate', confidence: string, comment?: string) => void;
+  disabled?: boolean;
 }
 
-export function AlertCard({ alert, onDecision }: AlertCardProps) {
+export function AlertCard({ alert, onDecision, disabled }: AlertCardProps) {
   const [activeTab, setActiveTab] = useState('evidence');
 
   if (!alert) {
@@ -45,14 +47,15 @@ export function AlertCard({ alert, onDecision }: AlertCardProps) {
       
       <div className="flex-1 overflow-hidden flex flex-col relative">
         <ContextTabs 
-          alertId={alert.id} 
+          alertId={alert.id}
+          subjectId={alert.subject_id}
           activeTab={activeTab} 
           onTabChange={setActiveTab} 
         />
       </div>
 
       <div className="p-6 border-t border-white/10 dark:border-slate-700/20 bg-black/20 backdrop-blur-md z-10">
-        <DecisionPanel onDecision={onDecision} />
+        <DecisionPanel onDecision={onDecision} disabled={disabled} />
       </div>
     </motion.div>
   );

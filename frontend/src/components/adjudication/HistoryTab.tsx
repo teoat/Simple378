@@ -1,15 +1,49 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../lib/api';
+import { Loader2 } from 'lucide-react';
 
 interface HistoryTabProps {
   alertId: string;
 }
 
 export function HistoryTab({ alertId }: HistoryTabProps) {
-  const history = [
-    { id: 1, action: 'Flagged', user: 'System AI', date: '2024-03-12 10:30 AM', comment: 'Automated flag triggered by velocity rule.' },
-    { id: 2, action: 'Viewed', user: 'Analyst Jane', date: '2024-03-12 11:15 AM', comment: '' },
-    { id: 3, action: 'Note Added', user: 'Analyst Jane', date: '2024-03-12 11:20 AM', comment: 'Investigating connection to Entity A.' },
-  ];
+  const { data: history, isLoading, error } = useQuery({
+    queryKey: ['adjudication-history', alertId],
+    queryFn: () => api.getAdjudicationHistory(alertId),
+    enabled: !!alertId,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto mb-2" />
+          <p className="text-sm text-slate-500 dark:text-slate-400">Loading history...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center text-red-500">
+          <p className="text-sm">Failed to load history</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!history || history.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <p className="text-sm text-slate-500 dark:text-slate-400">No history available</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -19,13 +53,13 @@ export function HistoryTab({ alertId }: HistoryTabProps) {
           <div key={item.id} className="relative pl-6">
             <div className="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-white dark:border-slate-900" />
             <div className="flex justify-between items-start mb-1">
-              <span className="font-medium text-slate-900 dark:text-white">{item.action}</span>
-              <span className="text-xs text-slate-500">{item.date}</span>
+              <span className="font-medium text-slate-900 dark:text-white capitalize">{item.decision?.replace(/_/g, ' ')}</span>
+              <span className="text-xs text-slate-500">{new Date(item.created_at).toLocaleString()}</span>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">by {item.user}</p>
-            {item.comment && (
+            <p className="text-sm text-slate-600 dark:text-slate-400">by {item.reviewer_id.slice(0, 8)}</p>
+            {item.reviewer_notes && (
               <div className="mt-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300">
-                {item.comment}
+                {item.reviewer_notes}
               </div>
             )}
           </div>

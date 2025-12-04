@@ -8,11 +8,12 @@ import { useHotkeys } from 'react-hotkeys-hook';
 
 interface ContextTabsProps {
   alertId: string;
+  subjectId: string;
   activeTab: string;
   onTabChange: (tab: string) => void;
 }
 
-export function ContextTabs({ alertId, activeTab, onTabChange }: ContextTabsProps) {
+export function ContextTabs({ alertId, subjectId, activeTab, onTabChange }: ContextTabsProps) {
   // Tab shortcuts
   useHotkeys('1', () => onTabChange('evidence'));
   useHotkeys('2', () => onTabChange('graph'));
@@ -43,10 +44,10 @@ export function ContextTabs({ alertId, activeTab, onTabChange }: ContextTabsProp
           <EvidenceTab alertId={alertId} />
         </TabsContent>
         <TabsContent value="graph" className="mt-0 h-full focus-visible:outline-none">
-          <GraphTab alertId={alertId} />
+          <GraphTab subjectId={subjectId} />
         </TabsContent>
         <TabsContent value="ai" className="mt-0 h-full focus-visible:outline-none">
-          <AIReasoningTab alertId={alertId} />
+          <AIReasoningTab subjectId={subjectId} />
         </TabsContent>
         <TabsContent value="history" className="mt-0 h-full focus-visible:outline-none">
           <HistoryTab alertId={alertId} />

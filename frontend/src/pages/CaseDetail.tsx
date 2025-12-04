@@ -10,6 +10,7 @@ import { Timeline } from '../components/visualizations/Timeline';
 import { FinancialSankey } from '../components/visualizations/FinancialSankey';
 import { RiskBar } from '../components/cases/RiskBar';
 import { StatusBadge } from '../components/cases/StatusBadge';
+import { PageErrorBoundary } from '../components/PageErrorBoundary';
 
 const tabs = [
   { name: 'Overview', id: 'overview', icon: FileText },
@@ -61,7 +62,8 @@ export function CaseDetail()  {
   }
 
   return (
-    <div className="p-8 space-y-8 min-h-screen bg-slate-50/50 dark:bg-slate-900/50">
+    <PageErrorBoundary pageName="Case Detail">
+      <div className="p-8 space-y-8 min-h-screen bg-slate-50/50 dark:bg-slate-900/50">
       {/* Navigation */}
       <Link 
         to="/cases" 
@@ -276,5 +278,6 @@ export function CaseDetail()  {
         </AnimatePresence>
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

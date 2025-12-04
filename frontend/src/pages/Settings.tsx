@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import toast from 'react-hot-toast';
 import { AuditLogViewer } from '../components/settings/AuditLogViewer';
 import { User, Shield, FileText } from 'lucide-react';
+import { PageErrorBoundary } from '../components/PageErrorBoundary';
 
 const tabs = [
   { id: 'general', name: 'General', icon: User },
@@ -47,7 +48,8 @@ export function Settings() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <PageErrorBoundary pageName="Settings">
+      <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Settings</h1>
 
       {/* Tabs */}
@@ -183,5 +185,6 @@ export function Settings() {
         {activeTab === 'audit' && <AuditLogViewer />}
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }
