@@ -18,6 +18,8 @@ const Reconciliation = lazy(() => import('./pages/Reconciliation').then(m => ({ 
 const Forensics = lazy(() => import('./pages/Forensics').then(m => ({ default: m.Forensics })));
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const AdjudicationQueue = lazy(() => import('./pages/AdjudicationQueue').then(m => ({ default: m.AdjudicationQueue })));
+const SemanticSearch = lazy(() => import('./pages/SemanticSearch').then(m => ({ default: m.SemanticSearch })));
+const SearchAnalytics = lazy(() => import('./pages/SearchAnalytics').then(m => ({ default: m.SearchAnalytics })));
 
 // Loading fallback component
 function PageLoader() {
@@ -54,6 +56,8 @@ function App() {
                   <Route path="/adjudication" element={<AdjudicationQueue />} />
                   <Route path="/reconciliation" element={<Reconciliation />} />
                   <Route path="/forensics" element={<Forensics />} />
+                  <Route path="/search" element={<SemanticSearch />} />
+                  <Route path="/analytics" element={<SearchAnalytics />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
               </Routes>

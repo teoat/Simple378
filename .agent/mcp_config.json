@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "agent-coordination": {
-      "command": "/usr/local/Cellar/node/25.2.1/bin/node",
+      "command": "node",
       "args": [
         "/Users/Arief/Desktop/Simple378/mcp-server/dist/index.js"
       ],
@@ -9,23 +9,21 @@
         "NODE_ENV": "development",
         "REDIS_URL": "redis://localhost:6380/0",
         "COORDINATION_TTL": "3600",
-        "PROJECT_ROOT": "/Users/Arief/Desktop/Simple378",
-        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        "PROJECT_ROOT": "/Users/Arief/Desktop/Simple378"
       }
     },
     "redis": {
-      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "command": "npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-redis"
       ],
       "env": {
-        "REDIS_URL": "redis://localhost:6380/0",
-        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        "REDIS_URL": "redis://localhost:6380/0"
       }
     },
     "prometheus": {
-      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "command": "npx",
       "args": [
         "-y",
         "@wkronmiller/prometheus-mcp-server"
@@ -33,123 +31,102 @@
       "env": {
         "PROMETHEUS_URL": "http://localhost:9090",
         "PROMETHEUS_TIMEOUT": "10000",
-        "PROMETHEUS_RETRIES": "3",
-        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        "PROMETHEUS_RETRIES": "3"
       }
     },
     "postgres": {
-      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "command": "npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-postgres",
         "postgresql://postgres:postgres@localhost:5433/fraud_detection"
       ],
-      "env": {
-        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-      }
+      "env": {}
     },
     "chrome-devtools": {
-      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "command": "npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-puppeteer"
       ],
-      "env": {
-        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-      }
+      "env": {}
     },
     "memory": {
-      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "command": "npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-memory"
       ],
-      "env": {
-        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-      }
+      "env": {}
     },
     "context7": {
-      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "command": "npx",
       "args": [
         "-y",
         "@upstash/context7-mcp"
       ],
-      "env": {
-        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-      }
+      "env": {}
     },
     "sequential-thinking": {
-      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "command": "npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-sequential-thinking"
       ],
-      "env": {
-        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-      }
+      "env": {}
     },
     "github": {
-      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "command": "npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-github"
       ],
       "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_GITHUB_TOKEN>",
-        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_GITHUB_TOKEN>"
       }
     },
     "git": {
-      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "command": "npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-git"
       ],
-      "env": {
-        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-      }
+      "env": {}
     },
     "playwright": {
-      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "command": "npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-playwright"
       ],
-      "env": {
-        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-      }
+      "env": {}
     },
     "brave-search": {
-      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "command": "npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-brave-search"
       ],
       "env": {
-        "BRAVE_API_KEY": "<YOUR_BRAVE_API_KEY>",
-        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        "BRAVE_API_KEY": "<YOUR_BRAVE_API_KEY>"
       }
     },
     "filesystem": {
-      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "command": "npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem",
         "/Users/Arief/Desktop/Simple378"
       ],
-      "env": {
-        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-      }
+      "env": {}
     },
     "copilot-containers": {
-      "command": "/usr/local/Cellar/node/25.2.1/bin/npx",
+      "command": "npx",
       "args": [
         "-y",
         "@copilotkit/mcp-server-containers"
       ],
-      "env": {
-        "PATH": "/usr/local/Cellar/node/25.2.1/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-      }
+      "env": {}
     }
   }
 }

@@ -7,6 +7,7 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.services.forensics import ForensicsService
+from app.services.document_indexing import document_indexing_service
 from app.api import deps
 from app.models import mens_rea as models
 
@@ -16,11 +17,13 @@ forensics_service = ForensicsService()
 @router.post("/analyze", response_model=Any)
 async def analyze_file(
     file: UploadFile = File(...),
+    case_id: str = None,
+    subject_id: str = None,
     current_user: Any = Depends(deps.get_current_user)
 ) -> Any:
     """
-    Upload a file for forensic analysis.
-    Extracts metadata and checks for manipulation.
+    Upload a file for forensic analysis and semantic indexing.
+    Extracts metadata, checks for manipulation, and indexes for search.
     """
     # Create a temporary file to save the upload
     try:
@@ -32,11 +35,20 @@ async def analyze_file(
         raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
 
     try:
-        # Run analysis
-        result = await forensics_service.analyze_document(tmp_path)
+        # Run comprehensive analysis and indexing
+        result = await document_indexing_service.process_and_index_document(
+            file_path=tmp_path,
+            case_id=case_id,
+            subject_id=subject_id,
+            metadata={
+                "filename": file.filename,
+                "uploaded_by": str(current_user.id),
+                "upload_timestamp": str(uuid.uuid4())  # For uniqueness
+            }
+        )
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Analysis and indexing failed: {str(e)}")
     finally:
         # Cleanup
         if os.path.exists(tmp_path):

@@ -85,3 +85,23 @@ class Transaction(Base):
 
     # Relationships
     subject = relationship("Subject", back_populates="transactions")
+
+
+# Authentication Models
+# Import authentication enhancement models for proper schema recognition
+from app.models.mfa import UserMFA, MFABackupCode
+from app.models.webauthn import WebAuthnCredential
+from app.models.oauth import OAuthAccount
+
+# Export all models for alembic autogenerate
+__all__ = [
+    "User",
+    "Subject",
+    "Consent",
+    "AuditLog",
+    "Transaction",
+    "UserMFA",
+    "MFABackupCode",
+    "WebAuthnCredential",
+    "OAuthAccount",
+]

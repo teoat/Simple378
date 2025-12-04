@@ -1,13 +1,16 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Files, 
-  Scale, 
-  Upload, 
-  Settings, 
-  Activity 
+import {
+  LayoutDashboard,
+  Files,
+  Scale,
+  Upload,
+  Settings,
+  Activity,
+  Search,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { Logo } from './Logo';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -15,6 +18,8 @@ const navigation = [
   { name: 'Adjudication Queue', href: '/adjudication', icon: Scale },
   { name: 'Reconciliation', href: '/reconciliation', icon: Activity },
   { name: 'Forensics', href: '/forensics', icon: Upload },
+  { name: 'Semantic Search', href: '/search', icon: Search },
+  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -22,15 +27,13 @@ export function Sidebar() {
   const location = useLocation();
 
   return (
-    <div className="flex h-full w-64 flex-col bg-slate-900 text-white">
-      <div className="flex h-16 items-center justify-center border-b border-slate-800">
-        <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-          AntiGravity
-        </span>
+    <div className="flex h-full w-64 flex-col bg-background text-foreground">
+      <div className="border-b border-border">
+        <Logo />
       </div>
-      <nav className="flex-1 space-y-1 px-2 py-4" role="navigation" aria-label="Main navigation">
+      <nav className="flex-1 space-y-2 px-4 py-4" role="navigation" aria-label="Main navigation">
         {navigation.map((item) => {
-          const isActive = location.pathname === item.href;
+          const isActive = location.pathname.startsWith(item.href);
           return (
             <NavLink
               key={item.name}
@@ -38,10 +41,10 @@ export function Sidebar() {
               aria-label={item.name}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'group flex items-center rounded-md px-2 py-2 text-sm font-medium transition-colors',
+                'group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150',
                 isActive
-                  ? 'bg-slate-800 text-white'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-secondary hover:text-secondary-foreground'
               )}
             >
               <item.icon
@@ -53,12 +56,12 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <div className="border-t border-slate-800 p-4">
+      <div className="border-t border-border p-4">
         <div className="flex items-center">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500" />
+          <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-accent to-primary" />
           <div className="ml-3">
-            <p className="text-sm font-medium text-white">Investigator</p>
-            <p className="text-xs text-slate-400">View Profile</p>
+            <p className="text-sm font-semibold text-foreground">John Doe</p>
+            <p className="text-xs text-muted-foreground">john.doe@example.com</p>
           </div>
         </div>
       </div>

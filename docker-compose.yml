@@ -56,7 +56,6 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - VITE_API_URL=http://backend:8000
       - CHOKIDAR_USEPOLLING=true
     restart: always
     depends_on:
@@ -99,6 +98,33 @@ services:
     networks:
       - fraud_net
 
+  timescale:
+    image: timescale/timescaledb:latest-pg16
+    container_name: fraud_timescale
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}_timeseries
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+    networks:
+      - fraud_net
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.5
+    container_name: fraud_meilisearch
+    ports:
+      - "7700:7700"
+    environment:
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-masterKey123}
+      - MEILI_ENV=production
+    volumes:
+      - meilisearch_data:/meili_data
+    networks:
+      - fraud_net
+
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: fraud_jaeger
@@ -116,3 +142,5 @@ volumes:
   postgres_data:
   qdrant_data:
   redis_data:
+  timescale_data:
+  meilisearch_data:

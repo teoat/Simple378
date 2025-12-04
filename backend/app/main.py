@@ -2,17 +2,24 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.api import api_router
+from app.api.health import router as health_router
 from app.core.logging import setup_logging
 from app.core.exceptions import global_exception_handler
 from app.core.middleware import SecurityHeadersMiddleware, RateLimitHeadersMiddleware
+from app.core.file_limits import FileSizeLimitMiddleware
 from app.core.rate_limit import limiter
+from app.core.env_validator import startup_validation
 from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 import structlog
+from datetime import datetime
 
 # Setup logging
 setup_logging()
+
+# Run environment validation at startup
+startup_validation()
 
 # Import tracing after app creation to avoid circular imports
 from app.core.tracing import setup_tracing
@@ -43,6 +50,9 @@ if os.getenv("ENABLE_OTEL", "true").lower() == "true":
         logger = structlog.get_logger()
         logger.error("Failed to setup tracing", error=str(e))
 
+# Add file size limit middleware (before security headers)
+app.add_middleware(FileSizeLimitMiddleware)
+
 # Add security headers middleware
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimitHeadersMiddleware)
@@ -56,9 +66,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include API routers
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(health_router)  # Health endpoints at root level
 
-@app.get("/health")
-async def health_check():
-    # Health check endpoint
-    return {"status": "healthy"}
+@app.get("/")
+async def root():
+    """Root endpoint - API information"""
+    return {
+        "app": settings.PROJECT_NAME,
+        "version": "1.0.0",
+        "status": "running",
+        "timestamp": datetime.utcnow().isoformat(),
+        "docs": f"{settings.API_V1_STR}/docs"
+    }

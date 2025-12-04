@@ -10,9 +10,10 @@ import { UploadHistory } from '../components/ingestion/UploadHistory';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
 import { ForensicsSkeleton } from '../components/ingestion/ForensicsSkeleton';
 import { FileSpreadsheet } from 'lucide-react';
+import { type ForensicResult } from '../types/api';
 
 export function Forensics() {
-  const [results, setResults] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const [results, setResults] = useState<ForensicResult | null>(null);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [uploadId, setUploadId] = useState<string>('');
   const [showCSVWizard, setShowCSVWizard] = useState(false);

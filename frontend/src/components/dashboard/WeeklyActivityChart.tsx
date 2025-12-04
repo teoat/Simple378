@@ -38,8 +38,9 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
         {payload.map((entry, index) => (
           <div key={index} className="flex items-center gap-2 text-sm">
             <div 
-              className="h-2 w-2 rounded-full" 
+              className="h-2 w-2 rounded-full"
               style={{ backgroundColor: entry.color }}
+              aria-hidden="true"
             />
             <span className="text-slate-400">{entry.name}:</span>
             <span className="font-bold text-white">{entry.value}</span>

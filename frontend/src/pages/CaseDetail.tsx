@@ -13,6 +13,7 @@ import { FinancialSankey } from '../components/visualizations/FinancialSankey';
 import { RiskBar } from '../components/cases/RiskBar';
 import { StatusBadge } from '../components/cases/StatusBadge';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
+import { AIReasoningTab } from '../components/adjudication/AIReasoningTab'; // Import AIReasoningTab
 
 const tabs = [
   { name: 'Overview', id: 'overview', icon: FileText },
@@ -142,14 +143,7 @@ export function CaseDetail()  {
               <Download className="h-5 w-5" />
             </button>
             <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-medium shadow-sm">
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
-              Escalate
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 font-medium">
-              <CheckCircle className="h-4 w-4" />
-              Approve
-            </button>
+            {/* Decision buttons moved to right column */}
           </div>
         </div>
       </div>
@@ -181,133 +175,122 @@ export function CaseDetail()  {
         </nav>
       </div>
 
-      {/* Tab Content */}
-      <div className="min-h-[500px]">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            {activeTab === 'Overview' && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Info */}
-                <div className="lg:col-span-2 space-y-6">
-                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Case Summary</h3>
-                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                      {caseData.description || 'No description available for this case.'}
-                    </p>
-                    
-                    <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Total Alerts</p>
-                        <p className="text-2xl font-bold text-slate-900 dark:text-white">12</p>
-                      </div>
-                      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Evidence</p>
-                        <p className="text-2xl font-bold text-slate-900 dark:text-white">5</p>
-                      </div>
-                      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Linked Entities</p>
-                        <p className="text-2xl font-bold text-slate-900 dark:text-white">8</p>
-                      </div>
-                      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
-                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Days Open</p>
-                        <p className="text-2xl font-bold text-slate-900 dark:text-white">3</p>
+      {/* NEW GRID FOR TAB CONTENT AND RIGHT PANEL */}
+      <div className="grid grid-cols-12 gap-6 h-full">
+        {/* Center Column: Tab Content (col-span-9) */}
+        <div className="col-span-9 h-full min-h-[500px]"> {/* min-h for consistent sizing */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="h-full"
+            >
+              {activeTab === 'Overview' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full"> {/* Adjusted internal grid for overview */}
+                  {/* Main Info */}
+                  <div className="space-y-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Case Summary</h3>
+                      <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {caseData.description || 'No description available for this case.'}
+                      </p>
+                      
+                      <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Total Alerts</p>
+                          <p className="text-2xl font-bold text-slate-900 dark:text-white">12</p>
+                        </div>
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Evidence</p>
+                          <p className="text-2xl font-bold text-slate-900 dark:text-white">5</p>
+                        </div>
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Linked Entities</p>
+                          <p className="text-2xl font-bold text-slate-900 dark:text-white">8</p>
+                        </div>
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Days Open</p>
+                          <p className="text-2xl font-bold text-slate-900 dark:text-white">3</p>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Recent Activity</h3>
-                    <Timeline />
+                  <div className="space-y-6">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 h-full">
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Recent Activity</h3>
+                      <Timeline />
+                    </div>
                   </div>
                 </div>
+              )}
 
-                {/* Sidebar */}
-                <div className="space-y-6">
-                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider mb-4">Case Details</h3>
-                    <dl className="space-y-4">
-                      <div>
-                        <dt className="text-xs text-slate-500 dark:text-slate-400">Assigned To</dt>
-                        <dd className="text-sm font-medium text-slate-900 dark:text-white mt-1 flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs">
-                            {caseData.assigned_to.charAt(0)}
-                          </div>
-                          {caseData.assigned_to}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-slate-500 dark:text-slate-400">Created Date</dt>
-                        <dd className="text-sm font-medium text-slate-900 dark:text-white mt-1">
-                          {new Date(caseData.created_at).toLocaleDateString()}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-slate-500 dark:text-slate-400">Last Updated</dt>
-                        <dd className="text-sm font-medium text-slate-900 dark:text-white mt-1">
-                          {new Date(caseData.created_at).toLocaleDateString()}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-xs text-slate-500 dark:text-slate-400">Priority</dt>
-                        <dd className="mt-1">
-                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300">
-                            High
-                          </span>
-                        </dd>
-                      </div>
-                    </dl>
-                  </div>
-
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30 p-6">
-                    <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">AI Insight</h3>
-                    <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
-                      This case shows patterns consistent with structuring. The velocity of transactions has increased by 200% in the last 48 hours.
-                    </p>
-                  </div>
+              {activeTab === 'Graph Analysis' && (
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 h-full">
+                  <EntityGraph />
                 </div>
-              </div>
-            )}
+              )}
 
-            {activeTab === 'Graph Analysis' && (
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 h-[600px]">
-                <EntityGraph />
-              </div>
-            )}
-
-            {activeTab === 'Financials' && (
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
-                <FinancialSankey />
-              </div>
-            )}
-
-            {activeTab === 'Timeline' && (
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-                <Timeline />
-              </div>
-            )}
-
-            {activeTab === 'Evidence' && (
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-12 flex flex-col items-center justify-center text-center border-dashed">
-                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700/50 rounded-full flex items-center justify-center mb-4">
-                  <Shield className="h-8 w-8 text-slate-400" />
+              {activeTab === 'Financials' && (
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 h-full">
+                  <FinancialSankey />
                 </div>
-                <h3 className="text-lg font-medium text-slate-900 dark:text-white">Evidence Files</h3>
-                <p className="text-slate-500 dark:text-slate-400 mt-1 max-w-sm">
-                  Upload and manage evidence files related to this case. Drag and drop files here or click to browse.
-                </p>
-                <button className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20">
-                  Upload Evidence
-                </button>
+              )}
+
+              {activeTab === 'Timeline' && (
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 h-full">
+                  <Timeline />
+                </div>
+              )}
+
+              {activeTab === 'Evidence' && (
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-12 flex flex-col items-center justify-center text-center border-dashed h-full">
+                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700/50 rounded-full flex items-center justify-center mb-4">
+                    <Shield className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900 dark:text-white">Evidence Files</h3>
+                  <p className="text-slate-500 dark:text-slate-400 mt-1 max-w-sm">
+                    Upload and manage evidence files related to this case. Drag and drop files here or click to browse.
+                  </p>
+                  <button className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20">
+                    Upload Evidence
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Right Column: Case Actions & Insights (col-span-3) */}
+        <div className="col-span-3 flex flex-col h-full space-y-6">
+          {/* Decision Buttons */}
+          <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/50 p-6">
+            <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">Actions</h3>
+            <button className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-medium shadow-sm w-full mb-3">
+              <AlertTriangle className="h-4 w-4 text-orange-500" />
+              Escalate Case
+            </button>
+            <button className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 font-medium w-full">
+              <CheckCircle className="h-4 w-4" />
+              Approve Case
+            </button>
+          </div>
+
+          {/* AI Insight / AIReasoningTab */}
+          <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/50 p-6 flex-1 flex flex-col">
+            <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">AI Insights</h3>
+            {caseData ? (
+              <AIReasoningTab alertId={caseData.id} />
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-center text-slate-500 dark:text-slate-400">
+                No case data for AI reasoning.
               </div>
             )}
-          </motion.div>
-        </AnimatePresence>
+          </div>
+        </div>
       </div>
 
       {/* Keyboard Shortcuts Help Overlay */}

@@ -1,75 +1,103 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { AlertHeader } from './AlertHeader';
-import { DecisionPanel } from './DecisionPanel';
-import { ContextTabs } from './ContextTabs';
+import { AlertCircle, Clock, Check } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 interface Alert {
   id: string;
-  subject_id: string;
   subject_name: string;
   risk_score: number;
   triggered_rules: string[];
   created_at: string;
-  status: 'pending' | 'flagged' | 'resolved';
+  status: 'new' | 'under review' | 'resolved';
 }
 
 interface AlertCardProps {
-  alert: Alert | null;
-  onDecision: (decision: 'approve' | 'reject' | 'escalate', confidence: string, comment?: string) => void;
-  disabled?: boolean;
+  alert: Alert;
+  isSelected: boolean;
+  isBulkSelected: boolean;
+  onSelect: (id: string) => void;
+  onToggleBulkSelect: (id: string) => void;
 }
 
-export function AlertCard({ alert, onDecision, disabled }: AlertCardProps) {
-  const [activeTab, setActiveTab] = useState('evidence');
+const statusStyles = {
+  'new': 'border-l-blue-500',
+  'under review': 'border-l-yellow-500',
+  'resolved': 'border-l-green-500',
+};
 
-  if (!alert) {
-    return (
-      <div 
-        className="flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-sm"
-        role="status"
-        aria-label="No alert selected"
-      >
-        <div className="text-center">
-          <p className="text-slate-500 font-medium">No alert selected</p>
-          <p className="text-slate-400 text-sm mt-1">Select an item from the queue to start reviewing</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Enhanced ARIA description
-  const ariaDescription = `Alert from ${alert.subject_name}, risk score ${alert.risk_score}, triggered ${alert.triggered_rules.length} rules, status ${alert.status}, created ${new Date(alert.created_at).toLocaleDateString()}`;
+export function AlertCard({ alert, isSelected, isBulkSelected, onSelect, onToggleBulkSelect }: AlertCardProps) {
+  const statusClass = statusStyles[alert.status] || 'border-l-gray-500';
 
   return (
     <motion.div
-      key={alert.id}
-      initial={{ opacity: 0, scale: 0.98, x: 20 }}
-      animate={{ opacity: 1, scale: 1, x: 0 }}
-      exit={{ opacity: 0, scale: 0.98, x: -20 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-      className="flex flex-col h-full rounded-2xl border border-white/20 dark:border-slate-700/30 bg-white/10 dark:bg-slate-900/40 backdrop-blur-xl shadow-2xl shadow-purple-500/5 overflow-hidden"
-      role="article"
-      aria-label={`Alert ${alert.id}`}
-      aria-describedby={`alert-desc-${alert.id}`}
+      layoutId={alert.id}
+      onClick={() => onSelect(alert.id)}
+      className={cn(
+        "cursor-pointer rounded-xl p-4 transition-all duration-200 border-l-4 relative overflow-hidden group",
+        "backdrop-blur-md bg-white/5 dark:bg-slate-900/20 hover:bg-white/10 dark:hover:bg-slate-800/30",
+        isSelected
+          ? "bg-blue-500/20 dark:bg-blue-500/20 border-l-blue-500 shadow-2xl shadow-blue-500/30 ring-2 ring-blue-500/50 scale-[1.02]"
+          : "border-t border-r border-b border-white/5",
+        !isSelected && statusClass
+      )}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+      transition={{ duration: 0.3 }}
+      role="listitem"
+      aria-label={`Alert from ${alert.subject_name}, risk score ${alert.risk_score}`}
+      aria-selected={isSelected}
     >
-      {/* Screen reader description */}
-      <div id={`alert-desc-${alert.id}`} className="sr-only">
-        {ariaDescription}
-      </div>
-      <AlertHeader alert={alert} />
-      
-      <div className="flex-1 overflow-hidden flex flex-col relative">
-        <ContextTabs 
-          alertId={alert.id}
-          subjectId={alert.subject_id}
-          activeTab={activeTab} 
-          onTabChange={setActiveTab} 
-        />
-      </div>
+      <div className="flex items-start gap-3">
+        <div className="flex items-center h-full pt-1" onClick={(e) => { e.stopPropagation(); onToggleBulkSelect(alert.id); }}>
+          <div className={cn("w-5 h-5 rounded border-2 flex items-center justify-center transition-all", isBulkSelected ? "bg-blue-500 border-blue-400" : "border-gray-500 group-hover:border-gray-400")}>
+            {isBulkSelected && <Check className="w-4 h-4 text-white" />}
+          </div>
+        </div>
+        <div className="flex-grow">
+          <div className="flex justify-between items-start mb-1">
+            <span className="text-[10px] text-slate-500 font-mono tracking-wider">#{alert.id.slice(0, 8)}</span>
+            <span className="text-[10px] text-slate-400 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
 
-      <div className="p-6 border-t border-white/10 dark:border-slate-700/20 bg-black/20 backdrop-blur-md z-10">
-        <DecisionPanel onDecision={onDecision} disabled={disabled} />
+          <h3 className={cn(
+            "font-semibold text-sm mb-2 transition-colors",
+            isSelected ? "text-white" : "text-slate-200 group-hover:text-white"
+          )}>
+            {alert.subject_name}
+          </h3>
+
+          <div className="flex items-center gap-2 mb-3">
+            <div className={cn(
+              "text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1",
+              alert.risk_score > 80 ? "bg-red-500/20 text-red-400 border border-red-500/20" :
+                alert.risk_score > 60 ? "bg-orange-500/20 text-orange-400 border border-orange-500/20" :
+                  "bg-yellow-500/20 text-yellow-400 border border-yellow-500/20"
+            )}>
+              <AlertCircle className="w-3 h-3" />
+              Risk: {alert.risk_score}
+            </div>
+            <span className="text-[10px] px-1.5 py-0.5 bg-gray-500/20 text-gray-300 rounded capitalize">
+              {alert.status}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-1.5">
+            {alert.triggered_rules.slice(0, 3).map((rule, i) => (
+              <span key={i} className="text-[10px] px-1.5 py-0.5 bg-white/5 dark:bg-slate-800/50 rounded text-slate-400 border border-white/5">
+                {rule}
+              </span>
+            ))}
+            {alert.triggered_rules.length > 3 && (
+              <span className="text-[10px] px-1.5 py-0.5 bg-white/5 dark:bg-slate-800/50 rounded text-slate-400 border border-white/5">
+                +{alert.triggered_rules.length - 3}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
     </motion.div>
   );

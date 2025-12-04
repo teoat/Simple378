@@ -1,174 +1,227 @@
-import { useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, Clock } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { useState, useMemo } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { AlertCard } from './AlertCard';
+// @ts-expect-error -- Component library is not typed
+import { Button } from '../../components/ui/button';
+// @ts-expect-error -- Component library is not typed
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../components/ui/dropdown-menu';
+// @ts-expect-error -- Component library is not typed
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+// @ts-expect-error -- Component library is not typed
+import { Input } from '../../components/ui/input';
 
+// Keep the Alert interface in one place, here in the list.
 interface Alert {
   id: string;
   subject_name: string;
   risk_score: number;
   triggered_rules: string[];
   created_at: string;
-  status: 'pending' | 'flagged' | 'resolved';
+  status: 'new' | 'under review' | 'resolved';
 }
 
 interface AlertListProps {
   alerts: Alert[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
 }
 
-export function AlertList({ alerts, selectedId, onSelect }: AlertListProps) {
-  const listRef = useRef<HTMLDivElement>(null);
+type SortKey = 'created_at' | 'risk_score';
+type SortDirection = 'asc' | 'desc';
 
-  const scrollToItem = (id: string) => {
-    const element = document.getElementById(`alert-item-${id}`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
+export function AlertList({ alerts: initialAlerts }: AlertListProps) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [bulkSelectedIds, setBulkSelectedIds] = useState<Set<string>>(new Set());
+
+  // Filtering state
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [riskFilter, setRiskFilter] = useState<string>('');
+  
+  // Sorting state
+  const [sortKey, setSortKey] = useState<SortKey>('created_at');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ALERTS_PER_PAGE = 15;
+
+  const handleToggleBulkSelect = (id: string) => {
+    setBulkSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
   };
 
-  // Keyboard navigation
+  const handleSelectAll = () => {
+    if (bulkSelectedIds.size === filteredAlerts.length) {
+      setBulkSelectedIds(new Set());
+    } else {
+      setBulkSelectedIds(new Set(filteredAlerts.map(a => a.id)));
+    }
+  };
+  
+  const filteredAlerts = initialAlerts
+    .filter(alert => {
+      const statusMatch = statusFilter === 'all' || alert.status === statusFilter;
+      const riskMatch = riskFilter === '' || alert.risk_score >= parseInt(riskFilter);
+      return statusMatch && riskMatch;
+    });
+
+  const sortedAlerts = useMemo(() => {
+    return [...filteredAlerts].sort((a, b) => {
+      const valA = a[sortKey];
+      const valB = b[sortKey];
+      
+      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredAlerts, sortKey, sortDirection]);
+  
+  const paginatedAlerts = useMemo(() => {
+    const startIndex = (currentPage - 1) * ALERTS_PER_PAGE;
+    return sortedAlerts.slice(startIndex, startIndex + ALERTS_PER_PAGE);
+  }, [sortedAlerts, currentPage]);
+
+  const totalPages = Math.ceil(sortedAlerts.length / ALERTS_PER_PAGE);
+
+  // Keyboard navigation for main selection
   useHotkeys('up', () => {
-    if (!selectedId && alerts.length > 0) {
-      onSelect(alerts[0].id);
-      return;
-    }
-    const currentIndex = alerts.findIndex(a => a.id === selectedId);
+    if (paginatedAlerts.length === 0) return;
+    const currentIndex = paginatedAlerts.findIndex(a => a.id === selectedId);
     if (currentIndex > 0) {
-      onSelect(alerts[currentIndex - 1].id);
-      scrollToItem(alerts[currentIndex - 1].id);
+      setSelectedId(paginatedAlerts[currentIndex - 1].id);
+    } else if (!selectedId && paginatedAlerts.length > 0) {
+      setSelectedId(paginatedAlerts[0].id);
     }
-  });
+  }, [paginatedAlerts, selectedId]);
 
   useHotkeys('down', () => {
-    if (!selectedId && alerts.length > 0) {
-      onSelect(alerts[0].id);
-      return;
+    if (paginatedAlerts.length === 0) return;
+    const currentIndex = paginatedAlerts.findIndex(a => a.id === selectedId);
+    if (currentIndex < paginatedAlerts.length - 1) {
+      setSelectedId(paginatedAlerts[currentIndex + 1].id);
+    } else if (!selectedId && paginatedAlerts.length > 0) {
+      setSelectedId(paginatedAlerts[0].id);
     }
-    const currentIndex = alerts.findIndex(a => a.id === selectedId);
-    if (currentIndex < alerts.length - 1) {
-      onSelect(alerts[currentIndex + 1].id);
-      scrollToItem(alerts[currentIndex + 1].id);
-    }
-  });
+  }, [paginatedAlerts, selectedId]);
 
   return (
-    <div className="space-y-2">
-      <div id="queue-status" className="sr-only" aria-live="polite" aria-atomic="true">
-        {selectedId 
-          ? `Alert ${alerts.findIndex(a => a.id === selectedId) + 1} of ${alerts.length} selected`
-          : `${alerts.length} alerts in queue`}
+    <div className="flex flex-col h-full">
+      {/* Filter and Sort Controls */}
+      <div className="p-4 bg-white/5 rounded-t-xl border-b border-white/10 flex items-center gap-4">
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="new">New</SelectItem>
+            <SelectItem value="under review">Under Review</SelectItem>
+            <SelectItem value="resolved">Resolved</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Input
+          type="number"
+          placeholder="Min Risk Score"
+          value={riskFilter}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRiskFilter(e.target.value)}
+          className="w-[160px]"
+        />
+
+        <Select value={`${sortKey}-${sortDirection}`} onValueChange={(value: string) => {
+          const [key, dir] = value.split('-') as [SortKey, SortDirection];
+          setSortKey(key);
+          setSortDirection(dir);
+        }}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="created_at-desc">Newest First</SelectItem>
+            <SelectItem value="created_at-asc">Oldest First</SelectItem>
+            <SelectItem value="risk_score-desc">Risk: High to Low</SelectItem>
+            <SelectItem value="risk_score-asc">Risk: Low to High</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div 
-        ref={listRef} 
-        className="space-y-2 overflow-y-auto max-h-[calc(100vh-200px)] pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
-        role="feed"
+      {/* Bulk Actions Bar */}
+      {bulkSelectedIds.size > 0 && (
+        <div className="p-2 px-4 bg-blue-500/10 border-b border-blue-500/20 flex items-center justify-between">
+          <span className="text-sm font-semibold text-blue-300">{bulkSelectedIds.size} selected</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">Bulk Actions</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem>Mark as Resolved</DropdownMenuItem>
+              <DropdownMenuItem>Mark as Under Review</DropdownMenuItem>
+              <DropdownMenuItem>Assign to...</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+
+      {/* Alert List */}
+      <div
+        className="flex-grow space-y-2 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+        role="list"
         aria-label="Alert Queue"
-        aria-busy="false"
-        aria-describedby="queue-status"
       >
-        <AnimatePresence initial={false}>
-          {alerts.map((alert, index) => (
-            <motion.div
-              key={alert.id}
-              id={`alert-item-${alert.id}`}
-              layoutId={alert.id}
-              onClick={() => onSelect(alert.id)}
-              className={cn(
-                "cursor-pointer rounded-xl p-4 transition-all duration-200 border-l-4 relative overflow-hidden group",
-                "backdrop-blur-md bg-white/5 dark:bg-slate-900/20 hover:bg-white/10 dark:hover:bg-slate-800/30",
-                selectedId === alert.id 
-                  ? "bg-blue-500/20 dark:bg-blue-500/20 border-l-blue-500 shadow-2xl shadow-blue-500/30 ring-2 ring-blue-500/50 scale-[1.02]" 
-                  : "border-l-transparent border-t border-r border-b border-white/5",
-              alert.risk_score > 80 && selectedId !== alert.id ? "border-l-red-500/50" :
-              alert.risk_score > 60 && selectedId !== alert.id ? "border-l-orange-500/50" :
-              alert.risk_score <= 60 && selectedId !== alert.id ? "border-l-yellow-500/50" : ""
-            )}
-            initial={{ opacity: 0, x: -20 }}
-            animate={selectedId === alert.id ? {
-              opacity: 1,
-              x: 0,
-              scale: [1, 1.02, 1.02],
-              boxShadow: [
-                "0 0 0 0 rgba(59, 130, 246, 0)",
-                "0 0 20px 5px rgba(59, 130, 246, 0.3)",
-                "0 0 20px 5px rgba(59, 130, 246, 0.3)"
-              ]
-            } : { opacity: 1, x: 0 }}
-            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-            transition={{ duration: 0.3 }}
-            role="article"
-            aria-label={`Alert from ${alert.subject_name}, risk score ${alert.risk_score}, ${alert.triggered_rules.length} triggered rules`}
-            aria-selected={selectedId === alert.id}
-            aria-posinset={index + 1}
-            aria-setsize={alerts.length}
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onSelect(alert.id);
-              }
-            }}
-          >
-            {/* Selection Indicator */}
-            {selectedId === alert.id && (
-              <motion.div 
-                layoutId="selection-glow"
-                className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/10 to-transparent pointer-events-none"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+        <AnimatePresence>
+          {paginatedAlerts.length > 0 ? (
+            paginatedAlerts.map((alert) => (
+              <AlertCard
+                key={alert.id}
+                alert={alert}
+                isSelected={selectedId === alert.id}
+                isBulkSelected={bulkSelectedIds.has(alert.id)}
+                onSelect={setSelectedId}
+                onToggleBulkSelect={handleToggleBulkSelect}
               />
-            )}
-
-            <div className="relative z-10">
-              <div className="flex justify-between items-start mb-1">
-                <span className="text-[10px] text-slate-500 font-mono tracking-wider">#{alert.id.slice(0, 8)}</span>
-                <span className="text-[10px] text-slate-400 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-              
-              <h3 className={cn(
-                "font-semibold text-sm mb-2 transition-colors",
-                selectedId === alert.id ? "text-white" : "text-slate-200 group-hover:text-white"
-              )}>
-                {alert.subject_name}
-              </h3>
-              
-              <div className="flex items-center gap-2 mb-3">
-                <div className={cn(
-                  "text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1",
-                  alert.risk_score > 80 ? "bg-red-500/20 text-red-400 border border-red-500/20" :
-                  alert.risk_score > 60 ? "bg-orange-500/20 text-orange-400 border border-orange-500/20" :
-                  "bg-yellow-500/20 text-yellow-400 border border-yellow-500/20"
-                )}>
-                  <AlertCircle className="w-3 h-3" />
-                  Risk: {alert.risk_score}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-1.5">
-                {alert.triggered_rules.slice(0, 2).map((rule, i) => (
-                  <span key={i} className="text-[10px] px-1.5 py-0.5 bg-white/5 dark:bg-slate-800/50 rounded text-slate-400 border border-white/5">
-                    {rule}
-                  </span>
-                ))}
-                {alert.triggered_rules.length > 2 && (
-                  <span className="text-[10px] px-1.5 py-0.5 bg-white/5 dark:bg-slate-800/50 rounded text-slate-400 border border-white/5">
-                    +{alert.triggered_rules.length - 2}
-                  </span>
-                )}
-              </div>
+            ))
+          ) : (
+            <div className="text-center py-16 text-slate-500">
+              <h3 className="text-lg font-semibold">No Alerts Found</h3>
+              <p>Try adjusting your filters.</p>
             </div>
-          </motion.div>
-        ))}
+          )}
         </AnimatePresence>
       </div>
+      
+      {/* Pagination and Select All */}
+      {totalPages > 1 && (
+        <div className="p-2 border-t border-white/10 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="select-all-checkbox"
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              checked={bulkSelectedIds.size === filteredAlerts.length && filteredAlerts.length > 0}
+              onChange={handleSelectAll}
+              aria-label="Select all alerts"
+            />
+            <label htmlFor="select-all-checkbox" className="text-sm text-slate-400">Select All</label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+              Previous
+            </Button>
+            <span className="text-sm text-slate-400">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

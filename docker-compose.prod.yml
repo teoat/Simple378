@@ -57,12 +57,14 @@ services:
   frontend:
     build: 
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.prod
+      args:
+        - VITE_API_URL=${API_URL:-/api}
+        - VITE_APP_VERSION=${VERSION:-1.0.0}
+        - VITE_SENTRY_DSN=${FRONTEND_SENTRY_DSN}
     container_name: fraud_frontend
     ports:
       - "8080:8080"
-    environment:
-      - VITE_API_URL=${API_URL}
     depends_on:
       - backend
     networks:
@@ -115,14 +117,14 @@ services:
   cache:
     image: redis:7-alpine
     container_name: fraud_redis
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD:-changeme}
     volumes:
       - redis_data:/data
     networks:
       - fraud_net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5

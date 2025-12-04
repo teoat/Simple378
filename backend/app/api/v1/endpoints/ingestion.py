@@ -6,6 +6,7 @@ from uuid import UUID
 from app.api import deps
 from app.services.ingestion import IngestionService
 from app.schemas import transaction as schemas
+from app.core.permissions import Permission, require_permission
 
 router = APIRouter()
 
@@ -15,7 +16,7 @@ async def upload_transactions(
     bank_name: str = Form(...),
     file: UploadFile = File(...),
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(require_permission(Permission.INGESTION_UPLOAD))
 ):
     """
     Upload a CSV file of transactions for a specific subject and bank.

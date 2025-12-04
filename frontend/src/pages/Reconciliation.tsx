@@ -26,7 +26,7 @@ export function Reconciliation() {
 
   const autoReconcileMutation = useMutation({
     mutationFn: async () => {
-      const result = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/v1/reconciliation/auto-reconcile`, {
+      const result = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/api/v1/reconciliation/auto-reconcile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ threshold }),

@@ -5,6 +5,7 @@ import { RecentActivity } from '../components/dashboard/RecentActivity';
 import { RiskDistributionChart } from '../components/dashboard/RiskDistributionChart';
 import { WeeklyActivityChart } from '../components/dashboard/WeeklyActivityChart';
 import { DashboardSkeleton } from '../components/dashboard/DashboardSkeleton';
+import { DashboardWidget } from '../components/dashboard/DashboardWidget'; // Import DashboardWidget
 import { BarChart3, TrendingUp, Users, AlertCircle, Plus } from 'lucide-react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import toast from 'react-hot-toast';
@@ -87,53 +88,59 @@ export function Dashboard() {
           </motion.button>
         </div>
 
-        {/* Metrics Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            title="Active Cases"
-            value={metrics?.active_cases ?? 0}
-            icon={BarChart3}
-            trend={{ value: 12, isPositive: true }}
-            index={0}
-          />
-          <StatCard
-            title="High Risk Subjects"
-            value={metrics?.high_risk_subjects ?? 0}
-            icon={AlertCircle}
-            trend={{ value: 5, isPositive: false }}
-            index={1}
-          />
-          <StatCard
-            title="Pending Reviews"
-            value={metrics?.pending_reviews ?? 0}
-            icon={Users}
-            index={2}
-          />
-          <StatCard
-            title="System Load"
-            value={`${metrics?.system_load ?? 0}%`}
-            icon={TrendingUp}
-            index={3}
-          />
-        </div>
-
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="h-[400px]">
-            <RiskDistributionChart />
+        {/* Key Metrics Widget */}
+        <DashboardWidget title="Key Metrics">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+            <StatCard
+              title="Active Cases"
+              value={metrics?.active_cases ?? 0}
+              icon={BarChart3}
+              trend={{ value: 12, isPositive: true }}
+              index={0}
+            />
+            <StatCard
+              title="High Risk Subjects"
+              value={metrics?.high_risk_subjects ?? 0}
+              icon={AlertCircle}
+              trend={{ value: 5, isPositive: false }}
+              index={1}
+            />
+            <StatCard
+              title="Pending Reviews"
+              value={metrics?.pending_reviews ?? 0}
+              icon={Users}
+              index={2}
+            />
+            <StatCard
+              title="System Load"
+              value={`${metrics?.system_load ?? 0}%`}
+              icon={TrendingUp}
+              index={3}
+            />
           </div>
-          <div className="h-[400px]">
-            <WeeklyActivityChart />
-          </div>
-        </div>
+        </DashboardWidget>
 
-        {/* Recent Activity */}
+        {/* Charts Section Widget */}
+        <DashboardWidget title="Risk & Activity Over Time">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="h-[400px]">
+              <RiskDistributionChart />
+            </div>
+            <div className="h-[400px]">
+              <WeeklyActivityChart />
+            </div>
+          </div>
+        </DashboardWidget>
+
+        {/* Recent Activity Widget */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
-          <RecentActivity activities={activity ?? []} />
+          <DashboardWidget title="Recent Activities">
+            <RecentActivity activities={activity ?? []} />
+          </DashboardWidget>
         </motion.div>
       </div>
     </div>

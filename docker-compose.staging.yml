@@ -1,0 +1,194 @@
+# Docker Compose configuration for STAGING environment
+# This mirrors production setup for final validation before production deployment
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    image: ghcr.io/${GITHUB_REPOSITORY}/backend:${IMAGE_TAG:-staging}
+    container_name: fraud_backend_staging
+    ports:
+      - "8000:8000"
+    command: >
+      bash -c "alembic upgrade head && \
+               python scripts/seed_staging.py && \
+               uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4"
+    env_file:
+      - .env.staging
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - REDIS_HOST=cache
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - REDIS_URL=redis://cache:6379/0
+      - QDRANT_URL=http://vector_db:6333
+      - DB_ECHO=false
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - ENVIRONMENT=staging
+      - SENTRY_DSN=${SENTRY_DSN}
+      - SENTRY_ENVIRONMENT=staging
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+      vector_db:
+        condition: service_started
+    networks:
+      - fraud_net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 512M
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        - VITE_API_URL=http://backend:8000
+        - VITE_APP_VERSION=${VERSION:-1.0.0}
+        - VITE_SENTRY_DSN=${FRONTEND_SENTRY_DSN}
+        - VITE_ENABLE_AI_ASSISTANT=true
+        - VITE_ENABLE_OFFLINE_MODE=true
+    image: ghcr.io/${GITHUB_REPOSITORY}/frontend:${IMAGE_TAG:-staging}
+    container_name: fraud_frontend_staging
+    ports:
+      - "8080:8080"
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=8080
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - fraud_net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 128M
+
+  db:
+    image: postgres:16-alpine
+    container_name: fraud_db_staging
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    networks:
+      - fraud_net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  vector_db:
+    image: qdrant/qdrant:latest
+    container_name: fraud_qdrant_staging
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - fraud_net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  cache:
+    image: redis:7-alpine
+    container_name: fraud_redis_staging
+    ports:
+      - "6380:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme}
+    volumes:
+      - redis_data:/data
+    networks:
+      - fraud_net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: fraud_jaeger_staging
+    ports:
+      - "16686:16686" # UI
+      - "4317:4317" # OTLP gRPC
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - fraud_net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+networks:
+  fraud_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  qdrant_data:
+    driver: local
+  redis_data:
+    driver: local

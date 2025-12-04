@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { WebSocketHeartbeat } from './useWebSocketHeartbeat';
 
 interface WebSocketMessage {
   type: string;
@@ -18,6 +19,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const heartbeatRef = useRef<WebSocketHeartbeat | null>(null);
   const reconnectCountRef = useRef(0);
   const { 
     onMessage, 
@@ -33,24 +35,54 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
     if (!isAuthenticated || !token) return;
 
     try {
-      // Append token to URL for WebSocket authentication
-      // Assuming the backend expects token in query param or we use a different auth mechanism for WS
-      // For now, just connecting. If auth is needed via header, WS API doesn't support headers in browser.
-      // Often passed as query param: ?token=...
-      // const wsUrl = new URL(url, window.location.origin);
-      // wsUrl.searchParams.set('token', token); 
-      // Keeping original URL logic for now as I don't know backend WS auth requirement.
-      // But checking token existence is good.
+
+      // Construct proper WebSocket URL with authentication token
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
       
-      const ws = new WebSocket(url);
+      // Handle both absolute and relative URLs
+      let wsUrl: URL;
+      if (url.startsWith('ws://') || url.startsWith('wss://')) {
+        // Absolute WebSocket URL
+        wsUrl = new URL(url);
+      } else {
+        // Relative URL - construct full WebSocket URL
+        const path = url.startsWith('/') ? url : `/${url}`;
+        wsUrl = new URL(`${protocol}//${host}${path}`);
+      }
+      
+      // Append authentication token as query parameter
+      wsUrl.searchParams.set('token', token);
+      
+      const ws = new WebSocket(wsUrl.toString());
 
       ws.onopen = () => {
         setIsConnected(true);
         reconnectCountRef.current = 0;
+        
+        // Start heartbeat mechanism
+        heartbeatRef.current = new WebSocketHeartbeat(ws, {
+          interval: 30000,  // 30 seconds
+          timeout: 5000,    // 5 seconds
+          onTimeout: () => {
+            console.warn('WebSocket heartbeat timeout - triggering reconnection');
+            ws.close();
+          },
+          onRestored: () => {
+            console.log('WebSocket connection health restored');
+          }
+        });
+        heartbeatRef.current.start();
       };
 
       ws.onclose = () => {
         setIsConnected(false);
+        
+        // Stop heartbeat
+        if (heartbeatRef.current) {
+          heartbeatRef.current.stop();
+          heartbeatRef.current = null;
+        }
         
         // Attempt reconnect
         if (reconnectCountRef.current < reconnectAttempts) {
@@ -66,6 +98,13 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          
+          // Handle pong messages for heartbeat
+          if (data.type === 'pong' && heartbeatRef.current) {
+            heartbeatRef.current.receivePong(data.payload?.timestamp);
+            return; // Don't pass pong messages to application
+          }
+          
           setLastMessage(data);
           if (onMessage) {
             onMessage(data);

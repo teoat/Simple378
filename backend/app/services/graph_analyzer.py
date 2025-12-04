@@ -17,10 +17,23 @@ class GraphAnalyzer:
     """
     
     @staticmethod
-    async def build_subgraph(db: AsyncSession, subject_id: UUID, depth: int = 2) -> Dict[str, Any]:
+    async def build_subgraph(
+        db: AsyncSession, 
+        subject_id: UUID, 
+        depth: int = 2,
+        limit: int = 1000,
+        offset: int = 0
+    ) -> Dict[str, Any]:
         """
         Builds a subgraph centered around a subject, including related transactions and entities.
         Returns a JSON-serializable dictionary of nodes and edges.
+        
+        Args:
+            db: Database session
+            subject_id: Root subject ID
+            depth: Maximum graph traversal depth
+            limit: Maximum number of transactions to fetch per subject
+            offset: Number of transactions to skip (for pagination)
         """
         graph = nx.Graph()
         visited_subjects: Set[UUID] = set()
@@ -58,17 +71,13 @@ class GraphAnalyzer:
             graph.add_node(str(subject.id), label=subject_name, type="subject", risk_score=risk_score)
             
             if current_depth < depth:
-                # Fetch Transactions (Outgoing and Incoming)
-                # Note: For MVP, we assume transactions link subjects if we had a counterparty_id.
-                # Since our Transaction model currently only has subject_id (one-sided), 
-                # we can only link subjects if they share attributes (PII) or if we infer links.
-                # For this MVP, let's assume we link subjects that share the SAME PII (e.g. email).
-                
-                # Fetch PII for this subject
-                # Assuming PII is in subject.encrypted_pii (needs decryption in real app, using raw for now if accessible or mock)
-                # For MVP, let's just fetch ALL transactions for this subject to show edges to "External" entities
-                
-                tx_result = await db.execute(select(Transaction).where(Transaction.subject_id == current_id))
+                # Fetch Transactions with pagination
+                tx_result = await db.execute(
+                    select(Transaction)
+                    .where(Transaction.subject_id == current_id)
+                    .limit(limit)
+                    .offset(offset)
+                )
                 transactions = tx_result.scalars().all()
                 
                 for tx in transactions:

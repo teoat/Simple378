@@ -1,0 +1,25 @@
+# Authentication Enhancement Dependencies
+
+# Multi-Factor Authentication (MFA)
+pyotp==2.9.0              # TOTP (Time-based One-Time Password)
+qrcode==7.4.2             # QR code generation for TOTP setup
+pillow==10.1.0            # Image processing for QR codes
+
+# WebAuthn / Passkeys
+webauthn==2.0.0           # WebAuthn protocol implementation
+cryptography==42.0.0      # Cryptographic operations (aligned with main requirements)
+
+# OAuth / SSO
+httpx==0.25.2             # Async HTTP client for OAuth providers
+authlib==1.3.0            # OAuth client library (alternative)
+
+# SMS Service (Twilio)
+twilio==8.11.0            # SMS OTP delivery
+
+# Email Service
+fastapi-mail==1.4.1       # Email sending for FastAPI
+aiosmtplib==3.0.1         # Async SMTP client
+
+# Security
+python-jose[cryptography]==3.3.0  # JWT handling (already in main requirements)
+passlib[bcrypt]==1.7.4            # Password hashing (already in main requirements)

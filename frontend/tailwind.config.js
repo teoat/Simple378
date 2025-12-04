@@ -9,29 +9,52 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "#09090b", // Zinc 950
-        foreground: "#fafafa", // Zinc 50
+        background: {
+          DEFAULT: "hsl(222.2 47.4% 11.2%)", // Approx slate-900
+          light: "hsl(210 40% 98%)", // Off-white, for light theme
+        },
+        foreground: "hsl(210 40% 98%)", // Off-white
+        
+        card: {
+          DEFAULT: "hsl(222.2 47.4% 13.5%)", // Slightly lighter than background for cards
+          foreground: "hsl(210 40% 98%)",
+        },
+        border: "hsl(217.2 32.6% 17.5%)", // Slightly lighter border than card
+        
         primary: {
-          DEFAULT: "#3b82f6", // Blue 500
-          foreground: "#ffffff",
+          DEFAULT: "hsl(221.2 83.2% 53.3%)", // A vibrant blue (approx blue-600)
+          foreground: "hsl(210 40% 98%)",
         },
         secondary: {
-          DEFAULT: "#27272a", // Zinc 800
-          foreground: "#fafafa",
-        },
-        accent: {
-          DEFAULT: "#f43f5e", // Rose 500
-          foreground: "#ffffff",
+          DEFAULT: "hsl(217.2 32.6% 25%)", // A darker gray for secondary elements
+          foreground: "hsl(210 40% 98%)",
         },
         muted: {
-          DEFAULT: "#27272a", // Zinc 800
-          foreground: "#a1a1aa", // Zinc 400
+          DEFAULT: "hsl(215 20.2% 65.1%)", // Lighter gray for muted text
+          foreground: "hsl(215 20.2% 65.1%)",
         },
-        card: {
-          DEFAULT: "#18181b", // Zinc 900
-          foreground: "#fafafa",
+        accent: {
+          DEFAULT: "hsl(262.1 83.3% 57.8%)", // A vibrant purple/violet (approx violet-600)
+          foreground: "hsl(210 40% 98%)",
         },
-        border: "#27272a", // Zinc 800
+        
+        // Semantic Colors
+        success: {
+          DEFAULT: "hsl(142.1 76.2% 36.3%)", // Green
+          foreground: "hsl(210 40% 98%)",
+        },
+        warning: {
+          DEFAULT: "hsl(48 96% 40%)", // Yellow/Orange
+          foreground: "hsl(222.2 47.4% 11.2%)",
+        },
+        danger: {
+          DEFAULT: "hsl(0 84.2% 60.2%)", // Red
+          foreground: "hsl(210 40% 98%)",
+        },
+        info: {
+          DEFAULT: "hsl(217.2 91.2% 59.8%)", // Light Blue
+          foreground: "hsl(210 40% 98%)",
+        },
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],

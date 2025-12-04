@@ -8,26 +8,12 @@ import { api } from '../lib/api';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
 import { AdjudicationQueueSkeleton } from '../components/adjudication/AdjudicationQueueSkeleton';
+import { AIReasoningTab } from '../components/adjudication/AIReasoningTab'; // Import AIReasoningTab
 import toast from 'react-hot-toast';
+import type { AnalysisResult, Alert } from '../types/api';
 
-// Map AnalysisResult from API to Alert interface
-function mapAnalysisResultToAlert(result: {
-  id: string;
-  subject_id: string;
-  status: string;
-  risk_score: number;
-  created_at: string;
-  adjudication_status: string;
-  indicators: Array<{ type: string; confidence: number }>;
-}): {
-  id: string;
-  subject_id: string;
-  subject_name: string;
-  risk_score: number;
-  triggered_rules: string[];
-  created_at: string;
-  status: 'pending' | 'flagged' | 'resolved';
-} {
+// Map AnalysisResult from API to Alert interface for UI display
+function mapAnalysisResultToAlert(result: AnalysisResult): Alert {
   // Extract triggered rules from indicators
   const triggered_rules = result.indicators
     .filter(ind => ind.confidence > 0.5)
@@ -228,76 +214,88 @@ export function AdjudicationQueue() {
 
   return (
     <PageErrorBoundary pageName="Adjudication Queue">
-      <div className="h-[calc(100vh-4rem)] p-6 bg-slate-50 dark:bg-slate-950 overflow-hidden">
-      <div className="grid grid-cols-12 gap-6 h-full">
-        {/* Left Sidebar: Queue */}
-        <div className="col-span-3 flex flex-col h-full">
-          <div className="mb-4 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Queue</h2>
-            <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-1 rounded text-xs font-medium">
-              {queueData?.total || 0} Pending
-            </span>
-          </div>
-          
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {alerts.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
-                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                  <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+      <div className="h-full p-6 bg-slate-50 dark:bg-slate-950 overflow-hidden">
+        <div className="grid grid-cols-12 gap-6 h-full">
+          {/* Left Column: Alert List (col-span-3) */}
+          <div className="col-span-3 flex flex-col h-full">
+            <div className="mb-4 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Queue</h2>
+              <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-1 rounded text-xs font-medium">
+                {queueData?.total || 0} Pending
+              </span>
+            </div>
+            
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {alerts.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
+                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-1">
+                    {page > 1 ? 'Page is empty' : 'Queue is empty'}
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {page > 1 ? 'No alerts on this page' : 'All alerts have been reviewed'}
+                  </p>
                 </div>
-                <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-1">
-                  {page > 1 ? 'Page is empty' : 'Queue is empty'}
-                </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {page > 1 ? 'No alerts on this page' : 'All alerts have been reviewed'}
-                </p>
-              </div>
+              ) : (
+                <div className="flex-1 overflow-hidden">
+                  <AlertList 
+                    alerts={alerts} 
+                    selectedId={selectedId} 
+                    onSelect={setSelectedId} 
+                  />
+                </div>
+              )}
+              
+              {/* Pagination Controls - Always visible if we have data or are on a non-first page */}
+              {(queueData?.total || 0) > 0 || page > 1 ? (
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between shrink-0">
+                  <button
+                    onClick={() => updatePage(Math.max(1, page - 1))}
+                    disabled={page === 1 || isLoading}
+                    className="px-3 py-1 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    Page {page} of {queueData?.pages || 1}
+                  </span>
+                  <button
+                    onClick={() => updatePage(Math.min(queueData?.pages || 1, page + 1))}
+                    disabled={page === (queueData?.pages || 1) || isLoading}
+                    className="px-3 py-1 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Center Column: Alert Details (col-span-6) */}
+          <div className="col-span-6 h-full">
+            <AlertCard 
+              alert={selectedAlert} 
+              onDecision={handleDecision}
+              disabled={submitDecisionMutation.isPending}
+            />
+          </div>
+
+          {/* Right Column: AI Assistant / Additional Info (col-span-3) */}
+          <div className="col-span-3 flex flex-col h-full bg-white/10 dark:bg-slate-900/40 rounded-2xl border border-white/20 dark:border-slate-700/30 backdrop-blur-xl shadow-2xl shadow-purple-500/5 overflow-hidden p-6">
+            <h3 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">AI Assistant</h3>
+            {selectedAlert ? (
+              <AIReasoningTab alertId={selectedAlert.id} />
             ) : (
-              <div className="flex-1 overflow-hidden">
-                <AlertList 
-                  alerts={alerts} 
-                  selectedId={selectedId} 
-                  onSelect={setSelectedId} 
-                />
+              <div className="flex-1 flex items-center justify-center text-center text-slate-500 dark:text-slate-400">
+                Select an alert to see AI reasoning.
               </div>
             )}
-            
-            {/* Pagination Controls - Always visible if we have data or are on a non-first page */}
-            {(queueData?.total || 0) > 0 || page > 1 ? (
-              <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between shrink-0">
-                <button
-                  onClick={() => updatePage(Math.max(1, page - 1))}
-                  disabled={page === 1 || isLoading}
-                  className="px-3 py-1 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                <span className="text-xs text-slate-500 dark:text-slate-400">
-                  Page {page} of {queueData?.pages || 1}
-                </span>
-                <button
-                  onClick={() => updatePage(Math.min(queueData?.pages || 1, page + 1))}
-                  disabled={page === (queueData?.pages || 1) || isLoading}
-                  className="px-3 py-1 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </div>
-            ) : null}
           </div>
         </div>
-
-        {/* Main Content: Alert Details */}
-        <div className="col-span-9 h-full">
-          <AlertCard 
-            alert={selectedAlert} 
-            onDecision={handleDecision}
-            disabled={submitDecisionMutation.isPending}
-          />
-        </div>
-      </div>
       </div>
     </PageErrorBoundary>
   );
