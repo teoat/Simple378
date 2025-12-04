@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.api import api_router
@@ -15,7 +15,7 @@ import structlog
 setup_logging()
 
 # Import tracing after app creation to avoid circular imports
-from app.core.tracing import setup_tracing
+from app.core.tracing import setup_tracing  # noqa: E402
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -34,7 +34,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 Instrumentator().instrument(app).expose(app)
 
 # Setup OpenTelemetry tracing
-import os
+import os  # noqa: E402
 if os.getenv("ENABLE_OTEL", "true").lower() == "true":
     try:
         setup_tracing(app, service_name=settings.PROJECT_NAME)
@@ -52,8 +52,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)

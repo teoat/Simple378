@@ -32,7 +32,8 @@ async def create_match(
     Create a match between an expense and a bank transaction.
     """
     try:
-        expense_uuid = uuid.UUID(match_data.expense_id)
+        # Validate UUIDs
+        uuid.UUID(match_data.expense_id)
         transaction_uuid = uuid.UUID(match_data.transaction_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid UUID")

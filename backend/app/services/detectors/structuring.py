@@ -1,5 +1,4 @@
 from typing import List, Dict, Any
-from app.models.mens_rea import Indicator
 
 class StructuringDetector:
     """

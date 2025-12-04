@@ -7,6 +7,8 @@ import os
 # Set environment variable for tests to avoid Jaeger DNS errors
 os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "http://localhost:4317"
 os.environ["ENABLE_OTEL"] = "false"
+# Set TESTING flag for config validation bypass
+os.environ["TESTING"] = "true"
 import asyncio
 from typing import AsyncGenerator
 from httpx import AsyncClient
@@ -17,8 +19,7 @@ from sqlalchemy.pool import StaticPool
 import app.main
 fastapi_app = app.main.app
 # print(f"DEBUG: fastapi_app is {fastapi_app}, type: {type(fastapi_app)}")
-from app.db.session import Base
-from app.core.config import settings
+from app.db.session import Base  # noqa: E402
 # Import models to ensure they are registered with Base
 import app.db.models
 from unittest.mock import AsyncMock
@@ -40,7 +41,7 @@ def event_loop():
     yield loop
     loop.close()
 
-import pytest_asyncio
+import pytest_asyncio  # noqa: E402
 
 @pytest_asyncio.fixture
 async def db() -> AsyncGenerator[AsyncSession, None]:

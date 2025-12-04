@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
@@ -11,11 +11,10 @@ class IndicatorCreate(IndicatorBase):
     pass
 
 class Indicator(IndicatorBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: str
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 class AnalysisResultBase(BaseModel):
     subject_id: str
@@ -26,13 +25,12 @@ class AnalysisResultCreate(AnalysisResultBase):
     pass
 
 class AnalysisResult(AnalysisResultBase):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: str
     created_at: datetime
     updated_at: Optional[datetime] = None
     indicators: List[Indicator] = []
-
-    class Config:
-        from_attributes = True
 
 class PaginatedAnalysisResult(BaseModel):
     items: List[AnalysisResult]

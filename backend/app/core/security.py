@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Union, Optional
 from jose import jwt
 from passlib.context import CryptContext
@@ -39,12 +39,12 @@ def create_access_token(
 ) -> str:
     """Create access or refresh token"""
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
         if token_type == "refresh":
-            expire = datetime.utcnow() + timedelta(days=7)  # 7 days for refresh tokens
+            expire = datetime.now(timezone.utc) + timedelta(days=7)  # 7 days for refresh tokens
         else:
-            expire = datetime.utcnow() + timedelta(
+            expire = datetime.now(timezone.utc) + timedelta(
                 minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
             )
     

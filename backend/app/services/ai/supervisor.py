@@ -1,14 +1,13 @@
-import os
+import logging
 from typing import TypedDict, Annotated, List, Dict, Any, Optional
-from uuid import UUID
 import operator
 
 from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import BaseMessage, SystemMessage
 from langgraph.graph import StateGraph, END
-from langgraph.prebuilt import ToolNode
 
-from app.services.ai.tools import get_recent_transactions, get_entity_graph, flag_transaction
+
+logger = logging.getLogger(__name__)
 
 # Define State
 class InvestigationState(TypedDict):
@@ -19,19 +18,25 @@ class InvestigationState(TypedDict):
     final_verdict: Optional[str]
 
 # Initialize LLM
-from app.core.config import settings
+from app.core.config import settings  # noqa: E402
 
-llm = ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=settings.ANTHROPIC_API_KEY)
+# Constants
+TEST_API_KEY_PLACEHOLDER = "test-key-not-real"
+
+# Only initialize LLM if API key is available and not a test placeholder
+llm = None
+if settings.ANTHROPIC_API_KEY and settings.ANTHROPIC_API_KEY != TEST_API_KEY_PLACEHOLDER:
+    try:
+        llm = ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=settings.ANTHROPIC_API_KEY)
+    except Exception as e:
+        logger.warning(f"Failed to initialize ChatAnthropic: {e}")
 
 # Define Nodes
 def supervisor_node(state: InvestigationState):
-    messages = state["messages"]
     # Simple router logic for MVP:
     # If no findings, ask Financial Analyst.
     # If financial findings but no graph, ask Graph Investigator.
     # If both, conclude.
-    
-    last_message = messages[-1] if messages else None
     
     if not state.get("findings"):
         return {"next_step": "Financial_Analyst"}
