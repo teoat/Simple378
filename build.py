@@ -5,14 +5,18 @@ import subprocess
 import os
 
 
-def run_command(cmd, description):
+def run_command(cmd, description, timeout=300):
     """Run a command and report results."""
     print(f"\n{'='*70}")
     print(f"Running: {description}")
     print(f"Command: {' '.join(cmd)}")
     print('='*70)
     
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        print(f"\n❌ Command timed out after {timeout} seconds")
+        return False
     
     if result.stdout:
         print(result.stdout)

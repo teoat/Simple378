@@ -70,11 +70,16 @@ def check_entry_point():
     print("4. Entry Point Check")
     print("="*70)
     
-    result = subprocess.run(
-        [sys.executable, "-m", "simple378.main"],
-        capture_output=True,
-        text=True
-    )
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "simple378.main"],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+    except subprocess.TimeoutExpired:
+        print("❌ Entry point timed out after 30 seconds")
+        return False
     
     if result.returncode == 0:
         print("✅ Entry point works correctly")
