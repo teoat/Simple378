@@ -21,7 +21,13 @@ class InvestigationState(TypedDict):
 # Initialize LLM
 from app.core.config import settings
 
-llm = ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=settings.ANTHROPIC_API_KEY)
+# Only initialize LLM if API key is available
+llm = None
+if settings.ANTHROPIC_API_KEY and settings.ANTHROPIC_API_KEY != "test-key-not-real":
+    try:
+        llm = ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=settings.ANTHROPIC_API_KEY)
+    except Exception as e:
+        print(f"Warning: Failed to initialize ChatAnthropic: {e}")
 
 # Define Nodes
 def supervisor_node(state: InvestigationState):
