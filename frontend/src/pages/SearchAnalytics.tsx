@@ -1,13 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, TrendingUp, Users, Search, Clock, Target, RefreshCw } from 'lucide-react';
+import { BarChart3, Search, Clock, Target, RefreshCw, Users, TrendingUp } from 'lucide-react';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
-import { normalizeSearchAnalytics, normalizeDashboardData, calculateAnalyticsMetrics } from '../lib/searchAnalyticsTransforms';
+import { normalizeSearchAnalytics, normalizeDashboardData } from '../lib/searchAnalyticsTransforms';
 import type { SearchAnalyticsData, SearchDashboardData } from '../types/search';
 import toast from 'react-hot-toast';
 
 const STALE_TIME = 5 * 60 * 1000; // 5 minutes
 const CACHE_TIME = 10 * 60 * 1000; // 10 minutes
-const RETRY_DELAY = 1000;
 
 export function SearchAnalytics() {
   const { data: analytics, isLoading, error, refetch, isFetching } = useQuery({

@@ -579,6 +579,26 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({}),
     }),
+
+  // 2FA Setup and Verification
+  setup2FA: (method: 'totp' | 'sms') =>
+    request<{
+      qr_code?: string;
+      secret?: string;
+      message: string;
+    }>('/auth/2fa/setup', {
+      method: 'POST',
+      body: JSON.stringify({ method }),
+    }),
+
+  verify2FA: (data: { code: string; method: 'totp' | 'sms' }) =>
+    request<{
+      backup_codes?: string[];
+      message: string;
+    }>('/auth/2fa/verify', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 export { ApiError };

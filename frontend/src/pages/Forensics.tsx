@@ -3,7 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import toast from 'react-hot-toast';
 import { UploadZone } from '../components/ingestion/UploadZone';
-import { ProcessingPipeline, type ProcessingStage } from '../components/ingestion/ProcessingPipeline';
+import { ProcessingPipeline } from '../components/ingestion/ProcessingPipeline';
 import { ForensicResults } from '../components/ingestion/ForensicResults';
 import { CSVWizard } from '../components/ingestion/CSVWizard';
 import { UploadHistory } from '../components/ingestion/UploadHistory';

@@ -1,4 +1,4 @@
-import { SearchAnalyticsData, SearchDashboardData } from '../types/search';
+import type { SearchAnalyticsData, SearchDashboardData } from '../types/search';
 
 /**
  * Transform raw API response to normalized SearchAnalyticsData
@@ -41,10 +41,11 @@ export function normalizeDashboardData(data: unknown): SearchDashboardData {
     recommendations: Array.isArray(raw.recommendations)
       ? (raw.recommendations as string[])
       : [],
-    trending_queries: Array.isArray(raw.trending_queries)
-      ? (raw.trending_queries as Array<Record<string, unknown>>).map(q => ({
-          query: String(q.query || ''),
-          growth: Number(q.growth || 0),
+    trends: Array.isArray(raw.trends)
+      ? (raw.trends as Array<Record<string, unknown>>).map(t => ({
+          period: String(t.period || ''),
+          trend: (t.trend as 'up' | 'down' | 'stable') || 'stable',
+          percentage: Number(t.percentage || 0),
         }))
       : [],
   };
@@ -54,8 +55,6 @@ export function normalizeDashboardData(data: unknown): SearchDashboardData {
  * Calculate derived metrics from analytics
  */
 export function calculateAnalyticsMetrics(data: SearchAnalyticsData) {
-  const totalSearches = data.total_searches || 1; // Avoid division by zero
-  
   return {
     avgSearchesPerUser: data.unique_users > 0 
       ? (data.total_searches / data.unique_users).toFixed(2)

@@ -24,8 +24,8 @@ export function TwoFactorSetup({ onComplete }: TwoFactorSetupProps) {
     },
     onSuccess: (data) => {
       if (method === 'totp') {
-        setQrCode(data.qr_code);
-        setSecret(data.secret);
+        setQrCode(data.qr_code || null);
+        setSecret(data.secret || null);
       }
       setStep('verify');
     },
