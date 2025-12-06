@@ -1,9 +1,107 @@
+import { useState, useEffect, useRef } from 'react';
+import { Search, X, Filter, Clock, Bookmark } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../../lib/api';
 
-// ... inside component ...
+interface SearchResult {
+  id: string;
+  name: string;
+  type: string;
+  _index: string;
+  risk_score?: number;
+  amount?: number;
+  date?: string;
+  description?: string;
+  _formatted?: any;
+}
+
+interface SearchResponse {
+  hits: SearchResult[];
+  facets: Record<string, Record<string, number>>;
+}
+
+interface SearchComponentProps {
+  onResultClick?: (result: SearchResult) => void;
+  placeholder?: string;
+  className?: string;
+  showFacets?: boolean;
+}
+
+export function GlobalSearch({
+  onResultClick,
+  placeholder = "Search cases, transactions, evidence...",
+  className = "",
+  showFacets = true
+}: SearchComponentProps) {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [query, setQuery] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [showPresets, setShowPresets] = useState(false);
+  const [presetName, setPresetName] = useState('');
+  const searchRef = useRef<HTMLDivElement>(null);
 
-// ... inside handleResultClick ...
+  // Search query
+  const { data: searchResults, isLoading } = useQuery<SearchResponse>({
+    queryKey: ['search', query, selectedFilters],
+    queryFn: async () => {
+      const response = await api.post<SearchResponse>('/search/advanced-search', {
+        query,
+        index: 'all',
+        limit: 10,
+        filters: selectedFilters.length > 0 ? {
+          type: selectedFilters
+        } : null
+      });
+      return response;
+    },
+    enabled: query.length > 2,
+    staleTime: 30000 // 30 seconds
+  });
+
+  // Search suggestions
+  const { data: suggestions } = useQuery<string[]>({
+    queryKey: ['search-suggestions', query],
+    queryFn: async () => {
+      const response = await api.get<{ suggestions: string[] }>(`/search/suggestions?q=${encodeURIComponent(query)}`);
+      return (response as any)?.suggestions || []; 
+    },
+    enabled: query.length > 1 && query.length < 3,
+    staleTime: 60000 // 1 minute
+  });
+
+  // Search presets
+  const { data: presets } = useQuery({
+    queryKey: ['search-presets'],
+    queryFn: () => api.get<any[]>('/search/presets'),
+    staleTime: 300000 // 5 minutes
+  });
+
+  // Save preset mutation
+  const savePresetMutation = useMutation({
+    mutationFn: (preset: any) => api.post('/search/presets', preset),
+    onSuccess: () => {
+      setPresetName('');
+      setShowPresets(false);
+      // Invalidate presets query
+      queryClient.invalidateQueries({ queryKey: ['search-presets'] });
+    }
+  });
+
+  // Close search when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleResultClick = (result: SearchResult) => {
     if (onResultClick) {
       onResultClick(result);
@@ -13,7 +111,6 @@ import { useNavigate } from 'react-router-dom';
         navigate(`/cases/${result.id}`);
       } else if (result._index === 'transactions') {
         // Navigate to case that contains this transaction
-        // This would need additional logic to find the case ID
         console.log('Transaction clicked:', result);
       }
     }
@@ -83,7 +180,7 @@ import { useNavigate } from 'react-router-dom';
       </div>
 
       {/* Search Results Dropdown */}
-      {isOpen && (query.length > 0 || suggestions?.length > 0) && (
+      {isOpen && (query.length > 0 || (suggestions && suggestions.length > 0)) && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
           {/* Filters and Facets */}
           {query.length > 2 && (
@@ -184,7 +281,7 @@ import { useNavigate } from 'react-router-dom';
           )}
 
           {/* Suggestions */}
-          {!isLoading && !searchResults?.hits?.length && suggestions?.length > 0 && (
+          {!isLoading && !searchResults?.hits?.length && suggestions && suggestions.length > 0 && (
             <div className="max-h-80 overflow-y-auto">
               <div className="p-3 border-b border-slate-200 dark:border-slate-700">
                 <div className="text-sm text-slate-600 dark:text-slate-400">Suggestions:</div>

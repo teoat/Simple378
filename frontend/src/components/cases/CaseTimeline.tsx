@@ -252,6 +252,7 @@ export function CaseTimeline({
                       dateRange: { ...defaultFilters.dateRange, start: e.target.value }
                     })}
                     className="w-full px-2 py-1 text-sm border border-slate-200 dark:border-slate-700 rounded"
+                    aria-label="Start Date"
                   />
                   <input
                     type="date"
@@ -261,6 +262,7 @@ export function CaseTimeline({
                       dateRange: { ...defaultFilters.dateRange, end: e.target.value }
                     })}
                     className="w-full px-2 py-1 text-sm border border-slate-200 dark:border-slate-700 rounded"
+                    aria-label="End Date"
                   />
                 </div>
               </div>
