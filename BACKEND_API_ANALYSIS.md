@@ -440,11 +440,21 @@ def detect_mirroring(accounts):
 #### **offline.py** - Offline mode support
 
 ---
+def create_access_token(data: dict) -> str:
+    if not SECRET_KEY:
+        raise RuntimeError("JWT SECRET_KEY is not configured")
+    if settings.ALGORITHM not in {"HS256", "RS256"}:
+        raise RuntimeError(f"Unsupported JWT algorithm: {settings.ALGORITHM}")
 
-## Core Infrastructure
-
-### 1. Security (`core/security.py`)
-```python
+    now = datetime.utcnow()
+    to_encode = data.copy()
+    expire = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE)
+    to_encode.update({
+        "exp": expire,
+        "iat": now,
+        "jti": uuid.uuid4().hex
+    })
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=settings.ALGORITHM)
 # JWT encoding/decoding
 def create_access_token(data: dict):
     to_encode = data.copy()
