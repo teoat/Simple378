@@ -360,14 +360,18 @@ GET /api/v1/graph/subgraph       # Get subgraph
 
 #### **orchestrator.py**
 ```python
+import asyncio
+
 class AIOrchestrator:
-    def analyze_case(self, case_id):
+    async def analyze_case(self, case_id):
         # Coordinate multiple AI agents
         graph_agent = self.create_graph_agent()
         fraud_agent = self.create_fraud_agent()
         
-        graph_result = await graph_agent.run(case_id)
-        fraud_result = await fraud_agent.run(case_id)
+        graph_result, fraud_result = await asyncio.gather(
+            graph_agent.run(case_id),
+            fraud_agent.run(case_id)
+        )
         
         return self.synthesize(graph_result, fraud_result)
 ```
