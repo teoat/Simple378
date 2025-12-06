@@ -120,7 +120,7 @@ export function Forensics() {
               }
               setShowCSVWizard(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-purple-600/90 dark:bg-purple-500/90 text-white rounded-xl hover:bg-purple-700 dark:hover:bg-purple-600 transition-all shadow-lg shadow-purple-500/20 font-medium border border-purple-400/20"
+            className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all font-medium border border-purple-400/20"
           >
             <FileSpreadsheet className="w-5 h-5" />
             CSV Import

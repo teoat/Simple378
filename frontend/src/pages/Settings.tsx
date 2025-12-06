@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import toast from 'react-hot-toast';
 import { AuditLogViewer } from '../components/settings/AuditLogViewer';
-import { User, Shield, FileText } from 'lucide-react';
+import { User, Shield, FileText, Moon, Sun } from 'lucide-react';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
+import { Badge } from '../components/ui/Badge';
 
 const tabs = [
   { id: 'general', name: 'General', icon: User },
@@ -66,12 +67,17 @@ export function Settings() {
 
   return (
     <PageErrorBoundary pageName="Settings">
-      <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Settings</h1>
+      <div className="p-6 space-y-6 min-h-screen bg-slate-50/50 dark:bg-slate-900/50">
+      <div>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Settings</h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Manage your account and application preferences
+        </p>
+      </div>
 
       {/* Tabs */}
-      <div className="border-b border-slate-200 dark:border-slate-700">
-        <nav className="-mb-px flex space-x-8">
+      <div className="backdrop-blur-lg bg-white/10 dark:bg-slate-900/20 rounded-2xl border border-white/20 dark:border-slate-700/30 shadow-xl">
+        <nav className="flex space-x-1 p-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -79,11 +85,11 @@ export function Settings() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`
-                  flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors
+                  flex items-center gap-2 py-3 px-4 rounded-xl font-medium text-sm transition-all flex-1
                   ${
                     activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300'
+                      ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/20'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800/50'
                   }
                 `}
               >
@@ -155,17 +161,32 @@ export function Settings() {
             <div className="pt-6 border-t border-slate-200 dark:border-slate-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-medium text-slate-900 dark:text-white">Theme</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <h3 className="text-sm font-medium text-slate-900 dark:text-white flex items-center gap-2">
+                    Theme
+                    <Badge variant={theme === 'dark' ? 'info' : 'warning'} size="sm">
+                      {theme === 'dark' ? 'Dark' : 'Light'}
+                    </Badge>
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                     Toggle between light and dark mode
                   </p>
                 </div>
                 <button
                   onClick={handleThemeToggle}
                   disabled={updatePreferencesMutation.isPending}
-                  className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 text-slate-900 dark:text-white rounded-xl hover:shadow-lg transition-all font-medium border border-slate-200 dark:border-slate-600"
                 >
-                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                  {theme === 'dark' ? (
+                    <>
+                      <Sun className="h-4 w-4" />
+                      Light Mode
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="h-4 w-4" />
+                      Dark Mode
+                    </>
+                  )}
                 </button>
               </div>
             </div>
