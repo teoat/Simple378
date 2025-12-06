@@ -256,27 +256,25 @@ cd frontend && npm install && npm run dev
 
 ## Documentation Index
 
-### User Documentation
-1. [Login Page](./01_LOGIN.md)
-2. [Case List](./02_CASE_LIST.md)
-3. [Case Detail](./03_CASE_DETAIL.md)
-4. [Document Ingestion](./04_INGESTION.md)
-5. [Transaction Categorization](./05_TRANSACTION_CATEGORIZATION.md)
-6. [Reconciliation](./06_RECONCILIATION.md)
-7. [Adjudication](./07_ADJUDICATION.md)
-8. [Dashboard](./08_DASHBOARD.md)
-9. [Visualization](./09_VISUALIZATION.md)
-10. [Settings](./SETTINGS.md)
-11. [Error Pages](./ERROR_PAGES.md)
-12. [Search & Analytics](./SEARCH_ANALYTICS.md)
-13. [Semantic Search](./SEMANTIC_SEARCH.md)
+### Frontend Pages Documentation
+See [docs/frontend/pages/README.md](./frontend/pages/README.md) for complete index:
+
+1. [Login Page](./frontend/pages/LOGIN.md)
+2. [Dashboard](./frontend/pages/DASHBOARD.md)
+3. [Case List](./frontend/pages/CASE_LIST.md)
+4. [Case Detail](./frontend/pages/CASE_DETAIL.md)
+5. [Adjudication Queue](./frontend/pages/ADJUDICATION_QUEUE.md)
+6. [Reconciliation](./frontend/pages/RECONCILIATION.md)
+7. [Forensics & Ingestion](./frontend/pages/FORENSICS.md)
+8. [Transaction Categorization](./frontend/pages/TRANSACTION_CATEGORIZATION.md)
+9. [Visualization Features](./frontend/pages/VISUALIZATION.md)
+10. [Settings](./frontend/pages/SETTINGS.md)
 
 ### Developer Documentation
-- [Architecture Overview](./docs/architecture/01_system_architecture.md)
-- [Frontend Guidelines](./docs/frontend/FRONTEND_DEVELOPMENT_GUIDELINES.md)
-- [CI/CD Setup](./docs/ci_cd/CI_CD_QUICK_START.md)
-- [Contributing](./CONTRIBUTING.md)
-- [Copilot Agent Instructions](./docs/copilot/copilot_instructions.md)
+- [Architecture Overview](./architecture/01_system_architecture.md)
+- [Frontend Guidelines](./frontend/FRONTEND_DEVELOPMENT_GUIDELINES.md)
+- [CI/CD Setup](./ci_cd/CI_CD_QUICK_START.md)
+- [Contributing](../CONTRIBUTING.md)
 
 ---
 

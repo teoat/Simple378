@@ -23,5 +23,6 @@ api_router.include_router(compliance.router, prefix="/compliance", tags=["compli
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_router.include_router(cases.router, prefix="/cases", tags=["cases"])
 api_router.include_router(reconciliation.router, prefix="/reconciliation", tags=["reconciliation"])
+api_router.include_router(evidence.router, prefix="/evidence", tags=["evidence"])  # Generic evidence access
 api_router.include_router(websocket.router, tags=["websocket"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
