@@ -207,12 +207,14 @@ async def test_list_cases_with_pagination(client: AsyncClient, auth_headers):
 ### 2. Performance Optimization
 
 #### **2.1 Frontend Bundle Optimization** (Est: 2 days, Impact: Medium)
-**Current Bundle Sizes:**
+**Current Bundle Sizes (as of December 6, 2025):**
 ```
 viz-vendor: 364.81 kB (108.65 kB gzip)  ← Largest
 index: 420.18 kB (138.66 kB gzip)
 react-vendor: 164.48 kB (53.98 kB gzip)
 AdjudicationQueue: 167.17 kB (52.40 kB gzip)
+
+Note: These are baseline measurements. Track changes over time.
 ```
 
 **Optimization Strategies:**
