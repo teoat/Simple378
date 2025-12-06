@@ -99,7 +99,6 @@ export function ConfirmDialog({
               }}
               ref={(node) => {
                 if (node) {
-                  // Move focus to the first focusable element when the dialog mounts
                   const first = node.querySelector<HTMLElement>(
                     'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
                   );
@@ -107,6 +106,22 @@ export function ConfirmDialog({
                 }
               }}
             >
+              {/* Header */}
+              <div className="p-6 pb-4">
+                <div className="flex items-start gap-4">
+                  <div className={cn('p-3 rounded-full bg-slate-100 dark:bg-slate-900/50', iconColors[variant])}>
+                    <Icon className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 id="confirm-dialog-title" className="text-lg font-semibold text-slate-900 dark:text-white">
+                      {title}
+                    </h3>
+                    <p id="confirm-dialog-description" className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                      {description}
+                    </p>
+                  </div>
+                </div>
+              </div>
               {/* Header */}
               <div className="p-6 pb-4">
                 <div className="flex items-start gap-4">
