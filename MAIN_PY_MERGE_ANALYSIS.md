@@ -1,3 +1,68 @@
+# Backend main.py Merge Analysis
+
+## Current Version Features (64 lines)
+- ✅ SlowAPI rate limiting with `limiter` state
+- ✅ Prometheus-fastapi-instrumentator (automatic instrumentation)
+- ✅ OpenTelemetry tracing (`setup_tracing`)
+- ✅ Global exception handler (`global_exception_handler`)
+- ✅ SecurityHeadersMiddleware (from core.middleware)
+- ✅ RateLimitHeadersMiddleware (from core.middleware)
+- ✅ Basic health check endpoint
+- ✅ API router inclusion with settings.API_V1_STR
+
+## Commit Version Features (263 lines)
+- ✅ GZip compression middleware
+- ✅ Manual Prometheus metrics (Counter, Histogram)
+- ✅ Custom prometheus_middleware with timing
+- ✅ Inline security headers middleware
+- ✅ Cache service initialization (startup/shutdown events)
+- ✅ Enhanced health endpoints (/health, /health/ready, /health/live)
+- ✅ Manual /metrics endpoint
+- ✅ Root endpoint with API info
+- ✅ 500 error handler
+- ✅ Uvicorn main block
+- ✅ Production-aware docs URLs
+
+## Analysis
+
+### Lost Features in Commit Version
+1. **SlowAPI rate limiting** - Current uses slowapi limiter, commit version doesn't
+2. **Prometheus-fastapi-instrumentator** - Current uses auto-instrumentation, commit has manual
+3. **OpenTelemetry tracing** - Current has full tracing, commit doesn't
+4. **Core middleware classes** - Current imports SecurityHeadersMiddleware, commit has inline
+
+### New Features in Commit Version
+1. **GZip compression** - Improves response size
+2. **Cache service lifecycle** - Connects/disconnects Redis cache
+3. **Enhanced health checks** - Kubernetes-ready endpoints
+4. **Manual metrics** - More control over Prometheus metrics
+5. **Production documentation hiding** - Docs disabled in production
+
+## Merge Strategy: Hybrid Approach
+
+### Keep from Current Version
+- SlowAPI rate limiting infrastructure
+- OpenTelemetry tracing setup
+- Global exception handler from core.exceptions
+- Prometheus-fastapi-instrumentator (it already handles metrics)
+- Core middleware imports (they may have additional logic)
+
+### Add from Commit Version
+- GZip compression middleware
+- Cache service startup/shutdown events
+- Enhanced health check endpoints (/health/ready, /health/live)
+- Production-aware documentation URLs
+- Root endpoint
+- Uvicorn main block
+
+### Skip from Commit Version
+- Manual Prometheus metrics (duplicate of instrumentator)
+- Inline security headers (we have SecurityHeadersMiddleware)
+- Manual /metrics endpoint (instrumentator already adds it)
+
+## Recommended Merged Version
+
+```python
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -22,7 +87,7 @@ setup_logging()
 # Import tracing after app creation to avoid circular imports
 from app.core.tracing import setup_tracing  # noqa: E402
 
-# Create FastAPI app with production-aware documentation
+# Create FastAPI app
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json" if settings.ENVIRONMENT != "production" else None,
@@ -37,7 +102,7 @@ app.add_exception_handler(Exception, global_exception_handler)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Setup Prometheus metrics
+# Setup Prometheus metrics (auto-instrumentation)
 Instrumentator().instrument(app).expose(app)
 
 # Setup OpenTelemetry tracing
@@ -46,7 +111,6 @@ if os.getenv("ENABLE_OTEL", "true").lower() == "true":
     try:
         setup_tracing(app, service_name=settings.PROJECT_NAME)
     except Exception as e:
-        # Tracing is optional - log error but continue
         logger = structlog.get_logger()
         logger.error("Failed to setup tracing", error=str(e))
 
@@ -54,11 +118,11 @@ if os.getenv("ENABLE_OTEL", "true").lower() == "true":
 # MIDDLEWARE - Order matters!
 # ============================================================================
 
-# 1. GZip Compression
+# 1. GZip Compression (NEW - from commit)
 app.add_middleware(
     GZipMiddleware,
-    minimum_size=1000,  # Only compress responses > 1KB
-    compresslevel=6,    # Balance between speed and compression
+    minimum_size=1000,
+    compresslevel=6,
 )
 
 # 2. Security headers middleware
@@ -75,7 +139,7 @@ app.add_middleware(
 )
 
 # ============================================================================
-# STARTUP / SHUTDOWN EVENTS
+# STARTUP / SHUTDOWN EVENTS (NEW - from commit)
 # ============================================================================
 
 @app.on_event("startup")
@@ -109,7 +173,7 @@ async def shutdown_event():
 # ROUTES
 # ============================================================================
 
-# Enhanced health check endpoints
+# Enhanced health check endpoints (NEW - from commit)
 @app.get("/health", tags=["Health"])
 async def health_check():
     """Basic health check"""
@@ -148,7 +212,7 @@ async def liveness_check():
         "timestamp": datetime.utcnow().isoformat()
     }
 
-# Root endpoint
+# Root endpoint (NEW - from commit)
 @app.get("/", tags=["Root"])
 async def root():
     """API root endpoint"""
@@ -162,7 +226,7 @@ async def root():
 # API routes
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
-# Uvicorn main block
+# Uvicorn main block (NEW - from commit)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
@@ -172,3 +236,17 @@ if __name__ == "__main__":
         reload=settings.ENVIRONMENT == "development",
         log_level="info"
     )
+```
+
+## Summary
+
+This hybrid approach:
+1. **Preserves** existing rate limiting, tracing, and exception handling
+2. **Adds** GZip compression for better performance
+3. **Adds** cache service lifecycle management
+4. **Enhances** health check endpoints for Kubernetes
+5. **Improves** production security (docs disabled)
+6. **Maintains** existing middleware architecture
+
+**Lines:** ~150 (balanced between 64 and 263)
+**Risk:** Low - additive changes, no functionality removed
