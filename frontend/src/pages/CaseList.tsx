@@ -108,6 +108,8 @@ export function CaseList() {
   const queryClient = useQueryClient();
 
   // Prefetch next page for better UX
+  // Note: 'data' is intentionally not in dependencies to avoid refetching on every data change
+  // We only want to prefetch when page/filter params change
   useEffect(() => {
     if (!debouncedSearchQuery.trim() && data && page < (data.pages || 1)) {
       // Prefetch next page
@@ -122,7 +124,8 @@ export function CaseList() {
         }),
       });
     }
-  }, [page, data?.pages, statusFilter, sortBy, sortOrder, limit, debouncedSearchQuery, queryClient]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, data?.pages, statusFilter, sortBy, sortOrder, limit, debouncedSearchQuery]);
 
   const deleteCasesMutation = useMutation({
     mutationFn: async (ids: string[]) => {
