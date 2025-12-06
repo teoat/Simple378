@@ -6,7 +6,7 @@ services:
       - "8000:8000"
     command: >
       bash -c "alembic upgrade head && \
-               uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+               uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --workers 1"
     volumes:
       - ./backend:/app
       - /app/.venv
@@ -23,11 +23,28 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
-      - db
-      - cache
-      - vector_db
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+      vector_db:
+        condition: service_started
     networks:
       - fraud_net
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   mcp-server:
     build: ./mcp-server
@@ -41,11 +58,22 @@ services:
       - REDIS_URL=${REDIS_URL:-redis://cache:6379/0}
       - BACKEND_URL=${BACKEND_URL:-http://backend:8000}
       - COORDINATION_TTL=${COORDINATION_TTL:-3600}
+      - NODE_ENV=development
     depends_on:
-      - cache
-      - backend
+      cache:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
     networks:
       - fraud_net
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
   frontend:
     build: ./frontend
@@ -58,11 +86,21 @@ services:
     environment:
       - VITE_API_URL=http://backend:8000
       - CHOKIDAR_USEPOLLING=true
+      - NODE_ENV=development
     restart: always
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - fraud_net
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   db:
     image: postgres:16-alpine
@@ -73,31 +111,103 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_INITDB_ARGS="-E UTF8 --locale=C"
+      # Performance tuning for development
+      - POSTGRES_SHARED_BUFFERS=256MB
+      - POSTGRES_EFFECTIVE_CACHE_SIZE=1GB
+      - POSTGRES_WORK_MEM=16MB
+      - POSTGRES_MAINTENANCE_WORK_MEM=128MB
+      - POSTGRES_MAX_CONNECTIONS=100
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c work_mem=16MB
+      -c maintenance_work_mem=128MB
+      -c max_connections=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c wal_buffers=8MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+      -c checkpoint_completion_target=0.9
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - fraud_net
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   vector_db:
     image: qdrant/qdrant:latest
     container_name: fraud_qdrant
     ports:
       - "6333:6333"
+    environment:
+      # Performance optimization
+      - QDRANT__SERVICE__HTTP_PORT=6333
+      - QDRANT__SERVICE__GRPC_PORT=6334
+      - QDRANT__STORAGE__PERFORMANCE__MAX_SEARCH_THREADS=4
+      - QDRANT__STORAGE__OPTIMIZERS__INDEXING_THRESHOLD=20000
     volumes:
       - qdrant_data:/qdrant/storage
     networks:
       - fraud_net
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   cache:
     image: redis:7-alpine
     container_name: fraud_redis
     ports:
       - "6380:6379"
-    command: redis-server --appendonly yes
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+      --tcp-backlog 511
+      --timeout 300
+      --tcp-keepalive 60
+      --loglevel notice
     volumes:
       - redis_data:/data
     networks:
       - fraud_net
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 768M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -105,8 +215,20 @@ services:
     ports:
       - "16686:16686" # UI
       - "4317:4317" # OTLP gRPC
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - SPAN_STORAGE_TYPE=memory
+      - MEMORY_MAX_TRACES=10000
     networks:
       - fraud_net
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
 networks:
   fraud_net:

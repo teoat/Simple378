@@ -28,9 +28,22 @@ spec:
       labels:
         app: backend
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - backend
+              topologyKey: kubernetes.io/hostname
       containers:
       - name: backend
         image: fraud-detection-backend:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8000
         env:
@@ -49,25 +62,31 @@ spec:
             secretKeyRef:
               name: api-secrets
               key: anthropic-key
+        - name: WEB_CONCURRENCY
+          value: "4"
         resources:
           requests:
-            memory: "512Mi"
-            cpu: "500m"
+            memory: "768Mi"
+            cpu: "750m"
           limits:
-            memory: "1Gi"
-            cpu: "1000m"
+            memory: "1536Mi"
+            cpu: "1500m"
         livenessProbe:
           httpGet:
             path: /health
             port: 8000
           initialDelaySeconds: 30
           periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /health
             port: 8000
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
 ---
 apiVersion: v1
 kind: Service
@@ -97,18 +116,47 @@ spec:
       labels:
         app: frontend
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - frontend
+              topologyKey: kubernetes.io/hostname
       containers:
       - name: frontend
         image: fraud-detection-frontend:latest
+        imagePullPolicy: Always
         ports:
-        - containerPort: 5173
+        - containerPort: 8080
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "250m"
+            memory: "192Mi"
+            cpu: "200m"
           limits:
-            memory: "512Mi"
-            cpu: "500m"
+            memory: "384Mi"
+            cpu: "400m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
 ---
 apiVersion: v1
 kind: Service
@@ -120,5 +168,5 @@ spec:
     app: frontend
   ports:
   - port: 80
-    targetPort: 5173
+    targetPort: 8080
   type: LoadBalancer
