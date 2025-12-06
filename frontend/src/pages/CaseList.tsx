@@ -107,6 +107,23 @@ export function CaseList() {
   const isLoading = isSearchLoading || isRegularLoading;
   const queryClient = useQueryClient();
 
+  // Prefetch next page for better UX
+  useEffect(() => {
+    if (!debouncedSearchQuery.trim() && data && page < (data.pages || 1)) {
+      // Prefetch next page
+      queryClient.prefetchQuery({
+        queryKey: ['cases', { status: statusFilter !== 'all' ? statusFilter : undefined, page: page + 1, limit, sortBy, sortOrder }],
+        queryFn: () => api.getCases({ 
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          page: page + 1,
+          limit,
+          sortBy: sortBy || undefined,
+          sortOrder: sortBy ? sortOrder : undefined,
+        }),
+      });
+    }
+  }, [page, data?.pages, statusFilter, sortBy, sortOrder, limit, debouncedSearchQuery, queryClient]);
+
   const deleteCasesMutation = useMutation({
     mutationFn: async (ids: string[]) => {
       await Promise.all(ids.map(id => api.deleteCase(id)));
