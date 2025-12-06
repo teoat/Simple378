@@ -93,7 +93,9 @@ export function ConfirmDialog({
               {/* Actions */}
               <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
                 <button
-                  onClick={onClose}
+                  onClick={() => {
+                    if (!isLoading) onClose();
+                  }}
                   disabled={isLoading}
                   className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
                 >
