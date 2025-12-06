@@ -50,6 +50,7 @@ export function Tooltip({ content, children, position = 'top', delay = 300, clas
     right: 'left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 rotate-45',
   };
 
+  const tooltipId = useRef(`tooltip-${Math.random().toString(36).slice(2)}`).current;
   return (
     <div
       ref={triggerRef}
@@ -58,21 +59,22 @@ export function Tooltip({ content, children, position = 'top', delay = 300, clas
       onFocus={handleMouseEnter}
       onBlur={handleMouseLeave}
       className="relative inline-block"
+      aria-describedby={isVisible ? tooltipId : undefined}
     >
       {children}
-  
+
       <AnimatePresence>
         {isVisible && (
           <motion.div
+            id={tooltipId}
             role="tooltip"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.15 }}
             className={cn(
-              'absolute z-50 px-3 py-1.5 text-xs font-medium text-white bg-slate-900 dark:bg-slate-700 rounded-lg shadow-lg whitespace-nowrap',
+              'pointer-events-none absolute z-50 px-3 py-1.5 text-xs font-medium text-white bg-slate-900 dark:bg-slate-700 rounded-lg shadow-lg whitespace-nowrap',
               positionClasses[position],
-              className
             )}
           >
             <div className={cn('absolute w-2 h-2 bg-slate-900 dark:bg-slate-700', arrowClasses[position])} />
