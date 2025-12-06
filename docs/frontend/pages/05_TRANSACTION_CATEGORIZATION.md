@@ -3,7 +3,7 @@
 > Classify and label raw bank transactions for accurate financial reporting
 
 **Route:** `/categorization`
-**File:** `src/pages/TransactionCategorization.tsx`
+**File:** `src/pages/Categorization.tsx`
 
 ---
 

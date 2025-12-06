@@ -20,7 +20,7 @@
 ## Core Pages
 
 | # | Page | Route | Documentation |
-|---|------|-------|---------------|
+|---|---|------|---------------|
 | 1 | Login | `/login` | [01_LOGIN.md](./01_LOGIN.md) |
 | 2 | Case Management | `/cases` | [02_CASE_LIST.md](./02_CASE_LIST.md) |
 | 3 | Case Detail | `/cases/:id` | [03_CASE_DETAIL.md](./03_CASE_DETAIL.md) |
