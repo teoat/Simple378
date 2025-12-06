@@ -25,7 +25,7 @@ export function EmptyState({ icon: Icon, title, description, action, className }
       )}
     >
       <div className="relative mb-6">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-2xl animate-pulse" />
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-2xl animate-pulse-glow" />
         <div className="relative w-20 h-20 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-full flex items-center justify-center shadow-lg">
           <Icon className="w-10 h-10 text-slate-400 dark:text-slate-500" />
         </div>

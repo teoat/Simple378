@@ -24,6 +24,14 @@ const glowColors = {
   pink: 'shadow-pink-500/20',
 };
 
+const cornerGlowColors = {
+  blue: 'bg-blue-500',
+  purple: 'bg-purple-500',
+  green: 'bg-green-500',
+  orange: 'bg-orange-500',
+  pink: 'bg-pink-500',
+};
+
 export function GradientCard({ 
   children, 
   className, 
@@ -51,11 +59,7 @@ export function GradientCard({
       {/* Decorative corner glow */}
       <div className={cn(
         'absolute -top-24 -right-24 w-48 h-48 rounded-full blur-3xl opacity-30',
-        gradient === 'blue' && 'bg-blue-500',
-        gradient === 'purple' && 'bg-purple-500',
-        gradient === 'green' && 'bg-green-500',
-        gradient === 'orange' && 'bg-orange-500',
-        gradient === 'pink' && 'bg-pink-500',
+        cornerGlowColors[gradient]
       )} />
       
       {/* Content */}

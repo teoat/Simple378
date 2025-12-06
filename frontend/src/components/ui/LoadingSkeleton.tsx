@@ -15,7 +15,7 @@ export function LoadingSkeleton({
   className,
   count = 1 
 }: LoadingSkeletonProps) {
-  const baseClasses = 'bg-gradient-to-r from-slate-200 via-slate-300 to-slate-200 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 animate-shimmer bg-[length:200%_100%]';
+  const baseClasses = 'bg-gradient-to-r from-slate-200 via-slate-300 to-slate-200 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 animate-shimmer';
   
   const variantClasses = {
     text: 'h-4 rounded',

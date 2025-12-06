@@ -49,6 +49,20 @@
     animation: ui-shimmer 3s ease-in-out infinite;
   }
 
+  /* Pulse glow animation for decorative elements */
+  @keyframes ui-pulse-glow {
+    0%, 100% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: ui-pulse-glow 3s ease-in-out infinite;
+  }
+
   /* Blob animation for backgrounds */
   @keyframes blob {
     0%, 100% {

@@ -40,7 +40,7 @@ export function Badge({
         'inline-flex items-center gap-1.5 rounded-full font-medium transition-all',
         variants[variant],
         sizes[size],
-        pulse && 'animate-pulse',
+        pulse && 'animate-pulse-glow',
         className
       )}
     >
