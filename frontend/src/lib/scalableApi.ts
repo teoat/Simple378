@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { LoadBalancer, DistributedCache } from '../hooks/useScaling';
 
 /**
@@ -66,7 +66,7 @@ export class ScalableApiClient {
         if (config?.method === 'get') {
           const cached = this.cache.get(config.url || '');
           if (cached) {
-            return { data: JSON.parse(cached), status: 200, config };
+            return { data: JSON.parse(await cached as unknown as string), status: 200, config };
           }
         }
 

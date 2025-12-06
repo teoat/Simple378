@@ -1,10 +1,17 @@
 /**
  * Service Worker for AntiGravity Fraud Detection Platform
  * Handles caching, offline functionality, and background sync
+ * 
+ * IMPROVED: Added retry limits with exponential backoff to prevent infinite retry loops
  */
 
-const CACHE_NAME = 'antigravity-v2';
-const API_CACHE_NAME = 'antigravity-api-v2';
+const CACHE_NAME = 'antigravity-v3';
+const API_CACHE_NAME = 'antigravity-api-v3';
+
+// Retry configuration
+const MAX_RETRIES = 3;
+const BACKOFF_MULTIPLIER = 5; // seconds
+const MAX_BACKOFF = 300; // 5 minutes
 
 // Resources to cache immediately
 const STATIC_CACHE_URLS = [
@@ -154,34 +161,52 @@ async function handleNavigationRequest(request) {
   }
 }
 
-// Queue requests for background sync
+// Queue requests for background sync (FIXED: includes retry tracking)
 async function queueForSync(request) {
   const syncStore = await openSyncStore();
+  const transaction = syncStore.transaction(['syncQueue'], 'readwrite');
+  const store = transaction.objectStore('syncQueue');
 
   const requestData = {
     url: request.url,
     method: request.method,
     headers: Object.fromEntries(request.headers.entries()),
     body: request.method !== 'GET' ? await request.clone().text() : null,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    lastRetryTime: Date.now(),  // Track for exponential backoff
+    retries: 0                   // Track retry attempts
   };
 
-  await syncStore.add('syncQueue', requestData);
+  await new Promise((resolve, reject) => {
+    const addRequest = store.add(requestData);
+    addRequest.onsuccess = resolve;
+    addRequest.onerror = () => reject(addRequest.error);
+  });
+
   console.log('[SW] Queued request for sync:', request.url);
 }
 
-// Open IndexedDB for background sync
+// Open IndexedDB for background sync (FIXED: added retries index)
 async function openSyncStore() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('antigravity-sync', 1);
+    const request = indexedDB.open('antigravity-sync', 2); // Bumped version for schema update
 
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
 
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
+      
+      // Handle upgrade from v1 to v2
       if (!db.objectStoreNames.contains('syncQueue')) {
-        db.createObjectStore('syncQueue', { keyPath: 'id', autoIncrement: true });
+        const store = db.createObjectStore('syncQueue', { keyPath: 'id', autoIncrement: true });
+        store.createIndex('retries', 'retries', { unique: false });
+        store.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+      
+      // Create dead letter queue for failed requests
+      if (!db.objectStoreNames.contains('deadLetterQueue')) {
+        db.createObjectStore('deadLetterQueue', { keyPath: 'id', autoIncrement: true });
       }
     };
   });
@@ -194,18 +219,57 @@ self.addEventListener('sync', (event) => {
   }
 });
 
-// Process queued requests
+// Process queued requests (FIXED: with retry limits and exponential backoff)
 async function processSyncQueue() {
   const syncStore = await openSyncStore();
-  const transaction = syncStore.transaction(['syncQueue'], 'readwrite');
+  const transaction = syncStore.transaction(['syncQueue', 'deadLetterQueue'], 'readwrite');
   const store = transaction.objectStore('syncQueue');
+  const deadLetterStore = transaction.objectStore('deadLetterQueue');
 
   const requests = await new Promise((resolve) => {
     const request = store.getAll();
     request.onsuccess = () => resolve(request.result);
   });
 
+  const now = Date.now();
+  const deadLetterQueue = [];
+
   for (const queuedRequest of requests) {
+    // Check retry limit
+    if (queuedRequest.retries >= MAX_RETRIES) {
+      console.warn('[SW] Max retries exceeded, moving to dead letter:', queuedRequest.url);
+      deadLetterQueue.push(queuedRequest);
+      
+      // Move to dead letter queue
+      await new Promise((resolve) => {
+        const addRequest = deadLetterStore.add({
+          ...queuedRequest,
+          movedAt: now,
+          reason: 'max_retries_exceeded'
+        });
+        addRequest.onsuccess = resolve;
+      });
+      
+      // Remove from sync queue
+      await new Promise((resolve) => {
+        const deleteRequest = store.delete(queuedRequest.id);
+        deleteRequest.onsuccess = resolve;
+      });
+      
+      continue;
+    }
+
+    // Check backoff timing (exponential backoff)
+    const backoffMs = Math.min(
+      BACKOFF_MULTIPLIER * 1000 * Math.pow(2, queuedRequest.retries),
+      MAX_BACKOFF * 1000
+    );
+    
+    if (now - queuedRequest.lastRetryTime < backoffMs) {
+      console.log('[SW] Backoff still active for', queuedRequest.url);
+      continue; // Wait longer before retrying
+    }
+
     try {
       const request = new Request(queuedRequest.url, {
         method: queuedRequest.method,
@@ -214,17 +278,71 @@ async function processSyncQueue() {
       });
 
       const response = await fetch(request);
+      
       if (response.ok) {
-        // Remove from queue on success
+        // Success: remove from queue
         await new Promise((resolve) => {
           const deleteRequest = store.delete(queuedRequest.id);
           deleteRequest.onsuccess = resolve;
         });
-        console.log('[SW] Synced request:', queuedRequest.url);
+        console.log('[SW] Synced successfully:', queuedRequest.url);
+      } else if (response.status >= 500) {
+        // Server error: retry with backoff
+        queuedRequest.retries += 1;
+        queuedRequest.lastRetryTime = now;
+        queuedRequest.lastError = `Server error: ${response.status}`;
+        await new Promise((resolve) => {
+          const updateRequest = store.put(queuedRequest);
+          updateRequest.onsuccess = resolve;
+        });
+        console.log('[SW] Server error, retrying:', queuedRequest.url, `(attempt ${queuedRequest.retries}/${MAX_RETRIES})`);
+      } else {
+        // Client error (4xx): don't retry, move to dead letter
+        console.warn('[SW] Client error, moving to dead letter:', queuedRequest.url);
+        await new Promise((resolve) => {
+          const addRequest = deadLetterStore.add({
+            ...queuedRequest,
+            movedAt: now,
+            reason: `client_error_${response.status}`
+          });
+          addRequest.onsuccess = resolve;
+        });
+        await new Promise((resolve) => {
+          const deleteRequest = store.delete(queuedRequest.id);
+          deleteRequest.onsuccess = resolve;
+        });
       }
     } catch (error) {
-      console.log('[SW] Failed to sync request:', queuedRequest.url, error);
+      // Network error: retry with backoff
+      queuedRequest.retries += 1;
+      queuedRequest.lastRetryTime = now;
+      queuedRequest.lastError = error.message || 'Network error';
+      await new Promise((resolve) => {
+        const updateRequest = store.put(queuedRequest);
+        updateRequest.onsuccess = resolve;
+      });
+      console.log('[SW] Network error, retrying:', queuedRequest.url, `(attempt ${queuedRequest.retries}/${MAX_RETRIES})`);
     }
+  }
+
+  // Notify about dead letter items (in production: send to Sentry/logging service)
+  if (deadLetterQueue.length > 0) {
+    console.error('[SW] Dead letter queue has', deadLetterQueue.length, 'items');
+    
+    // Notify main thread about failed syncs
+    const clients = await self.clients.matchAll();
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'SYNC_FAILED',
+        count: deadLetterQueue.length,
+        items: deadLetterQueue.map(item => ({
+          url: item.url,
+          method: item.method,
+          timestamp: item.timestamp,
+          retries: item.retries
+        }))
+      });
+    });
   }
 }
 
@@ -272,4 +390,38 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
+  
+  // Allow main thread to request sync status
+  if (event.data && event.data.type === 'GET_SYNC_STATUS') {
+    getSyncStatus().then(status => {
+      event.source.postMessage({
+        type: 'SYNC_STATUS',
+        ...status
+      });
+    });
+  }
 });
+
+// Get current sync queue status
+async function getSyncStatus() {
+  try {
+    const syncStore = await openSyncStore();
+    const transaction = syncStore.transaction(['syncQueue', 'deadLetterQueue'], 'readonly');
+    const syncQueue = transaction.objectStore('syncQueue');
+    const deadLetterQueue = transaction.objectStore('deadLetterQueue');
+    
+    const pending = await new Promise((resolve) => {
+      const request = syncQueue.count();
+      request.onsuccess = () => resolve(request.result);
+    });
+    
+    const failed = await new Promise((resolve) => {
+      const request = deadLetterQueue.count();
+      request.onsuccess = () => resolve(request.result);
+    });
+    
+    return { pending, failed };
+  } catch (error) {
+    return { pending: 0, failed: 0, error: error.message };
+  }
+}

@@ -1,69 +1,39 @@
 /**
  * API Client
- * Centralized API request handling
+ * Re-exports the scalable API client as the default API
+ * This enables load balancing, distributed caching, and automatic failover
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+// Re-export the scalable API client as the unified API
+export { scalableApi as api, scalableApi as default } from './scalableApi';
+import { scalableApi } from './scalableApi';
 
-export async function apiRequest<T = unknown>(
-  endpoint: string,
-  options: RequestInit = {}
+/**
+ * apiRequest function for backward compatibility
+ * Used in components that expect a function-style API call
+ */
+export async function apiRequest<T = any>(
+  url: string,
+  options?: RequestInit
 ): Promise<T> {
-  const url = `${BASE_URL}${endpoint}`;
-
-  const token = localStorage.getItem('token');
-
-  const headers: HeadersInit = {
-    ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-    ...(token && { Authorization: `Bearer ${token}` }),
-    ...options.headers,
-  };
-
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || `API Error: ${response.statusText}`);
+  const method = options?.method?.toUpperCase() || 'GET';
+  const body = options?.body ? JSON.parse(options.body as string) : undefined;
+  
+  switch (method) {
+    case 'POST':
+      return scalableApi.post<T>(url, body);
+    case 'PUT':
+      return scalableApi.put<T>(url, body);
+    case 'PATCH':
+      return scalableApi.patch<T>(url, body);
+    case 'DELETE':
+      return scalableApi.delete<T>(url);
+    default:
+      return scalableApi.get<T>(url);
   }
-
-  // Handle 204 No Content
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json();
 }
 
-// Convenience methods
-export const api = {
-  get: <T>(endpoint: string) => apiRequest<T>(endpoint),
-
-  post: <T>(endpoint: string, data?: unknown) =>
-    apiRequest<T>(endpoint, {
-      method: 'POST',
-      body: data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined),
-    }),
-
-  put: <T>(endpoint: string, data?: unknown) =>
-    apiRequest<T>(endpoint, {
-      method: 'PUT',
-      body: data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined),
-    }),
-
-  patch: <T>(endpoint: string, data?: unknown) =>
-    apiRequest<T>(endpoint, {
-      method: 'PATCH',
-      body: data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined),
-    }),
-
-  delete: <T>(endpoint: string) =>
-    apiRequest<T>(endpoint, { method: 'DELETE' }),
-};
-
-// Subject API endpoints
+// Subject API endpoints using the scalable client
 export const subjectsApi = {
   getSubjects: (params?: {
     status?: string;
@@ -83,17 +53,16 @@ export const subjectsApi = {
         }
       });
     }
-    return api.get(`/subjects?${searchParams.toString()}`);
+    return scalableApi.get(`/subjects?${searchParams.toString()}`);
   },
 
-  getSubject: (subjectId: string) => api.get(`/subjects/${subjectId}`),
+  getSubject: (subjectId: string) => scalableApi.get(`/subjects/${subjectId}`),
 
-  deleteSubject: (subjectId: string) => api.delete(`/subjects/${subjectId}`),
+  deleteSubject: (subjectId: string) => scalableApi.delete(`/subjects/${subjectId}`),
 
-  exportSubjectData: (subjectId: string) => api.get(`/subjects/${subjectId}/export`),
+  exportSubjectData: (subjectId: string) => scalableApi.get(`/subjects/${subjectId}/export`),
 
   batchUpdateCases: (data: { case_ids: string[]; status?: string; assigned_to?: string }) =>
-    api.patch('/cases/batch', data),
+    scalableApi.patch('/cases/batch', data),
 };
 
-export default api;
