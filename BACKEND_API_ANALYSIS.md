@@ -393,7 +393,9 @@ class LLMService:
             max_tokens=max_tokens,
             messages=[{"role": "user", "content": prompt}]
         )
-        return response.content[0].text
+        if response.content:
+            return response.content[0].text
+        return ""
 ```
 
 ---
