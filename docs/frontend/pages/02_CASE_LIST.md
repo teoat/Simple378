@@ -15,7 +15,7 @@ The Case List page displays all investigation cases with filtering, sorting, and
 
 ## Screenshot
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ 📁 Cases                                   [+ New Case] [🔍 Search]        │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -184,9 +184,34 @@ Clicking a row navigates to Case Detail. Hover reveals:
 | `Space` | Toggle selection |
 | `Shift + Click` | Range select |
 
+
+---
+
+## 🚀 Smart Triage & Heuristics (Proposed)
+
+Intelligent case management that prioritizes work based on actionable metrics, not just raw risk scores.
+
+### 1. 🐢 Stagnation Risk Heuristic
+Identifies cases that are "alive" but not progressing.
+- **Trigger:** `Last Update > 14 days` AND `Status != Closed`.
+- **Action:** Auto-escalate priority to 'High' to force review.
+- **Metric:** "Days Dormant" counter prominently displayed.
+
+### 2. ⚖️ Assignment Load Balancing
+Heuristic distribution of cases to prevent investigator burnout.
+- **Logic:** Calculates `Complexity Load` per investigator (not just case count).
+- **Rule:** If Investigator A has 5 'Complex' cases, route new High-Risk cases to Investigator B.
+- **Heuristic:** `Complexity = (Transaction Count * 0.5) + (Risk Score * 0.3) + (Entities Involved * 0.2)`.
+
+### 3. 🧩 Case Complexity Scoring
+Predicative analysis of how hard a case will be to solve.
+- **Input:** Number of linked entities, data volume, cross-border flags.
+- **Output:** `Estimated Hours` to close.
+- **Use Case:** Helps managers allocate resources (e.g., "Assign Senior Analyst to cases > 40hrs").
+
 ---
 
 ## Related Pages
 
-- [Case Detail](./CASE_DETAIL.md) - View case details
-- [Dashboard](./DASHBOARD.md) - Return to overview
+- [Case Detail](./03_CASE_DETAIL.md) - View case details
+- [Dashboard](./08_DASHBOARD.md) - Return to overview

@@ -1,9 +1,12 @@
 # Comprehensive Page Workflow & Design Specification
 
 **Created:** December 5, 2025  
+**Last Updated:** December 6, 2025  
 **Status:** Design Blueprint & Current Implementation Analysis
 
 This document combines the current frontend implementation with the proposed comprehensive workflow design, providing a complete picture of both the existing system and the target vision.
+
+> 📚 **Detailed Page Documentation:** See [docs/frontend/pages/](./pages/README.md) for comprehensive documentation of each individual page.
 
 ---
 
@@ -15,6 +18,7 @@ This document combines the current frontend implementation with the proposed com
 4. [Detailed Page Workflows](#ii-detailed-page-workflows)
 5. [Gap Analysis](#gap-analysis)
 6. [Migration Path](#migration-path)
+7. [Page Documentation Links](#page-documentation-links)
 
 ---
 
@@ -39,12 +43,19 @@ This section describes the logical flow and navigation sequence through the appl
                      ┌──────────────────────────────────────────────────────┐
                      │           INGESTION & MAPPING (Page 4)               │
                      │    Upload Data → Define Field Mappings → Preview     │
-                     └────────────────────────┬─────────────────────────────┘
+                                     ┌────────────────────────┬─────────────────────────────┘
                                               │
                                               ▼
                                     ┌──────────────────┐
-                                    │ RECONCILIATION   │
+                                    │  CATEGORIZATION  │
                                     │    (Page 5)      │
+                                    │  Label Expenses  │
+                                    └────────┬─────────┘
+                                             │
+                                             ▼
+                                    ┌──────────────────┐
+                                    │ RECONCILIATION   │
+                                    │    (Page 6)      │
                                     │   Match Data     │
                                     └────────┬─────────┘
                                              │
@@ -52,28 +63,28 @@ This section describes the logical flow and navigation sequence through the appl
                                     ┌──────────────────┐
                                     │ HUMAN            │
                                     │ ADJUDICATION     │
-                                    │    (Page 6)      │
+                                    │    (Page 7)      │
                                     │ Resolve Conflicts│
                                     └────────┬─────────┘
                                              │
                                              ▼
                                     ┌──────────────────┐
                                     │    DASHBOARD     │
-                                    │    (Page 7)      │
+                                    │    (Page 8)      │
                                     │ System Metrics   │
                                     └────────┬─────────┘
                                              │
                                              ▼
                                     ┌──────────────────┐
                                     │  VISUALIZATION   │
-                                    │    (Page 8)      │
+                                    │    (Page 9)      │
                                     │ Financial Charts │
                                     └────────┬─────────┘
                                              │
                                              ▼
                                     ┌──────────────────┐
                                     │  FINAL SUMMARY   │
-                                    │    (Page 9)      │
+                                    │    (Page 10)     │
                                     │  Report & Close  │
                                     └──────────────────┘
 
@@ -97,10 +108,10 @@ This section describes the logical flow and navigation sequence through the appl
 ### Complete Page Sequence (Linear Flow)
 
 ```
-┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐
-│   1   │───▶│   2   │───▶│   3   │───▶│   4   │───▶│   5   │───▶│   6   │───▶│   7   │───▶│   8   │───▶│   9   │
-│ Login │    │ Cases │    │Detail │    │Ingest │    │Reconc │    │ Adjud │    │ Dash  │    │  Viz  │    │Summary│
-└───────┘    └───────┘    └───────┘    └───────┘    └───────┘    └───────┘    └───────┘    └───────┘    └───────┘
+┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐    ┌───────┐
+│   1   │───▶│   2   │───▶│   3   │───▶│   4   │───▶│   5   │───▶│   6   │───▶│   7   │───▶│   8   │───▶│   9   │───▶│  10   │
+│ Login │    │ Cases │    │Detail │    │Ingest │    │Catgz  │    │Reconc │    │ Adjud │    │ Dash  │    │  Viz  │    │Summary│
+└───────┘    └───────┘    └───────┘    └───────┘    └───────┘    └───────┘    └───────┘    └───────┘    └───────┘    └───────┘
                                             │
                                        + Mapping
 ```
@@ -113,11 +124,12 @@ This section describes the logical flow and navigation sequence through the appl
 | 2 | Cases | Case Management | Browse and manage all cases |
 | 3 | Case Detail | Investigation | Deep dive into specific case |
 | 4 | Ingestion & Mapping | Data Input | Upload files and define field mappings |
-| 5 | Reconciliation | Data Matching | Match incoming vs existing data |
-| 6 | Human Adjudication | Conflict Resolution | Resolve flagged discrepancies |
-| 7 | Dashboard | Metrics Overview | System health and KPIs |
-| 8 | Visualization | Financial Analysis | Charts and expense breakdowns |
-| 9 | Final Summary | Reporting | Generate reports and close cases |
+| 5 | Categorization | Expense Labeling | Classify bank transactions (AI + Manual) |
+| 6 | Reconciliation | Data Matching | Match incoming vs existing data |
+| 7 | Human Adjudication | Conflict Resolution | Resolve flagged discrepancies |
+| 8 | Dashboard | Metrics Overview | System health and KPIs |
+| 9 | Visualization | Financial Analysis | Charts and expense breakdowns |
+| 10 | Final Summary | Reporting | Generate reports and close cases |
 
 **Extended Pages (Bonus Features):**
 
@@ -151,41 +163,47 @@ This section describes the logical flow and navigation sequence through the appl
 - **Ingestion:** Upload source files (CSV, JSON, Excel, DB connection)
 - **Mapping:** Define how source fields map to system schema
 - Preview data before committing
-- Proceed to **Reconciliation** (Page 5)
+- Proceed to **Categorization** (Page 5)
 
-#### Step 5: Reconciliation
+#### Step 5: Categorization
+- Label raw bank transactions
+- AI auto-suggests categories (e.g., "Uber" -> "Travel")
+- Bulk edit and apply rules
+- Proceed to **Reconciliation** (Page 6)
+
+#### Step 6: Reconciliation
 - Match incoming data against existing records
 - View match rate, new records, conflicts
-- Flagged items sent to **Human Adjudication** (Page 6)
+- Flagged items sent to **Human Adjudication** (Page 7)
 
-#### Step 6: Human Adjudication
+#### Step 7: Human Adjudication
 - Three-column layout: Queue, Comparison, Decision
 - Review conflicts side-by-side
 - Accept source, accept system, merge, or mark as new
 - AI assistant provides context
-- Proceed to **Dashboard** (Page 7)
+- Proceed to **Dashboard** (Page 8)
 
-#### Step 7: Dashboard
+#### Step 8: Dashboard
 - System-wide metrics and KPIs
 - Active cases, high risk subjects, pending reviews
 - Charts: Risk distribution, weekly activity
-- Navigate to **Visualization** (Page 8)
+- Navigate to **Visualization** (Page 9)
 
-#### Step 8: Visualization (Financial)
+#### Step 9: Visualization (Financial)
 - Financial deep-dive charts
 - Cash flow, balance sheet, expense trends
 - AI-generated explanations
-- Navigate to **Forensic Balance Sheet** (Page 8b) for fraud detection
-- Proceed to **Final Summary** (Page 9)
+- Navigate to **Forensic Balance Sheet** (Page 9b) for fraud detection
+- Proceed to **Final Summary** (Page 10)
 
-#### Step 8b: Forensic Balance Sheet (Fraud Detection)
+#### Step 9b: Forensic Balance Sheet (Fraud Detection)
 - Phase-by-phase fund release vs. expense tracking
 - Detection of expense claims exceeding actual cashflow
 - Mirroring fraud detection (round-trip transfers)
 - Personal account diversion analysis
 - AI forensic summary with SAR generation
 
-#### Step 9: Final Summary
+#### Step 10: Final Summary
 - Case completion status
 - Executive summary cards (Ingestion, Reconciliation, Adjudication)
 - Generate PDF report
@@ -195,18 +213,19 @@ This section describes the logical flow and navigation sequence through the appl
 
 ### Navigation Matrix
 
-| From \ To | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 8b | 9 |
-|-----------|---|---|---|---|---|---|---|---|-----|---|
-| **1. Login** | - | ✓ | - | - | - | - | - | - | - | - |
-| **2. Cases** | - | - | ✓ | ✓ | - | - | ✓ | - | - | - |
-| **3. Case Detail** | - | ✓ | - | ✓ | - | ✓ | ✓ | ✓ | ✓ | - |
-| **4. Ingestion** | - | ✓ | ✓ | - | ✓ | - | ✓ | - | - | - |
-| **5. Reconcile** | - | - | - | - | - | ✓ | ✓ | ✓ | ✓ | ✓ |
-| **6. Adjudicate** | - | ✓ | ✓ | - | ✓ | - | ✓ | - | ✓ | ✓ |
-| **7. Dashboard** | ✓ | ✓ | - | ✓ | ✓ | ✓ | - | ✓ | ✓ | ✓ |
-| **8. Visualization** | - | - | ✓ | - | - | - | ✓ | - | ✓ | ✓ |
-| **8b. Forensic BS** | - | - | ✓ | - | ✓ | ✓ | ✓ | ✓ | - | ✓ |
-| **9. Summary** | - | ✓ | - | ✓ | - | - | ✓ | - | - | - |
+| From \ To | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 9b | 10 |
+|-----------|---|---|---|---|---|---|---|---|---|----|----|
+| **1. Login** | - | ✓ | - | - | - | - | - | - | - | - | - |
+| **2. Cases** | - | - | ✓ | ✓ | - | - | - | ✓ | - | - | - |
+| **3. Case Detail** | - | ✓ | - | ✓ | - | - | ✓ | ✓ | ✓ | ✓ | - |
+| **4. Ingestion** | - | ✓ | ✓ | - | ✓ | ✓ | - | ✓ | - | - | - |
+| **5. Categorize**| - | - | - | ✓ | - | ✓ | - | - | - | - | - |
+| **6. Reconcile** | - | - | - | - | ✓ | - | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **7. Adjudicate**| - | ✓ | ✓ | - | - | ✓ | - | ✓ | - | ✓ | ✓ |
+| **8. Dashboard** | ✓ | ✓ | - | ✓ | ✓ | ✓ | ✓ | - | ✓ | ✓ | ✓ |
+| **9. Visualization** | - | - | ✓ | - | - | - | - | ✓ | - | ✓ | ✓ |
+| **9b. Forensic BS**| - | - | ✓ | - | - | ✓ | ✓ | ✓ | ✓ | - | ✓ |
+| **10. Summary** | - | ✓ | - | ✓ | - | - | - | ✓ | - | - | - |
 
 **Legend:** ✓ = Direct navigation available
 
@@ -296,7 +315,8 @@ These elements should be persistent across all authenticated pages (Pages 2–9)
 │  🏠 Dashboard    │  ← Icon + Label (on hover)
 │  📋 Cases        │
 │  📥 Ingestion    │
-│  �️  Mapping     │
+│  ️  Mapping     │
+│  🏷️  Categorize  │
 │  🔄 Reconcile    │
 │  ⚖️  Adjudication│
 │  📊 Analytics    │
@@ -495,12 +515,13 @@ LONG MESSAGE (Expanded with scroll):
 | 2 | Case Management | CaseList.tsx | ✅ Complete | - |
 | 2a | Case Detail | CaseDetail.tsx | ✅ Complete | - |
 | 3 | Ingestion | Forensics.tsx | 🟡 Partial | High |
-| 4 | Mapping | - | ❌ Missing | High |
-| 5 | Reconciliation | Reconciliation.tsx | 🟡 Partial | Medium |
-| 6 | Human Adjudication | AdjudicationQueue.tsx | ✅ Complete | - |
-| 7 | Dashboard (Operational) | Dashboard.tsx | ✅ Complete | - |
-| 8 | Visualization (Financial) | - | ❌ Missing | Medium |
-| 9 | Final Summary | - | ❌ Missing | Low |
+| 4 | Mapping | Consolidated into Ingestion | 🟡 Combined | High |
+| 5 | Categorization | Categorization.tsx | ✅ Implemented | High |
+| 6 | Reconciliation | Reconciliation.tsx | 🟡 Partial | Medium |
+| 7 | Human Adjudication | AdjudicationQueue.tsx | ✅ Complete | - |
+| 8 | Dashboard (Operational) | Dashboard.tsx | ✅ Complete | - |
+| 9 | Visualization (Financial) | - | ❌ Missing | Medium |
+| 10 | Final Summary | - | ❌ Missing | Low |
 | - | Search Analytics | SearchAnalytics.tsx | ✅ Bonus | - |
 | - | Semantic Search | SemanticSearch.tsx | ✅ Bonus | - |
 | - | Settings | Settings.tsx | ✅ Complete | - |
@@ -663,7 +684,7 @@ Current implementation has tabs on top with right sidebar for actions/AI. Propos
 
 ---
 
-### Page 3: Ingestion
+### Page 4: Ingestion
 
 **Route:** `/forensics` (Proposed: `/ingestion`)  
 **Component:** `Forensics.tsx`  
@@ -963,7 +984,7 @@ Current implementation has tabs on top with right sidebar for actions/AI. Propos
 
 ---
 
-### Page 4: Mapping
+### Page 4b: Mapping
 
 **Route:** `/mapping` (Proposed)  
 **Component:** Not yet implemented  
@@ -1017,7 +1038,57 @@ Current implementation has tabs on top with right sidebar for actions/AI. Propos
 
 ---
 
-### Page 5: Reconciliation
+### Page 5: Categorization
+
+**Route:** `/categorization`
+**Component:** `TransactionCategorization.tsx`
+**Status:** ❌ Missing
+
+#### Design Specification
+
+**Layout:**
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 🏷️ Transaction Categorization           [⬇ Import Rules] [✚ New Rule] [Save]│
+│ ─────────────────────────────────────────────────────────────────────────────│
+│                                                                             │
+│  🔍 [ Search transactions...       ]    Filter: [All Amounts ▼] [Uncategorized ▼]│
+│                                                                             │
+│  ┌─────────────────────────────────────┐ ┌──────────────────────────────────┐│
+│  │ 🤖 AI SUGGESTION                    │ │ ⚡ QUICK RULES                   ││
+│  │ Found 15 recurring "Uber" rides.    │ │ If 'STARBUCKS' → 'Meals'         ││
+│  │ [Apply 'Travel' Category to All?]   │ │ If 'AWS' → 'Software'            ││
+│  └─────────────────────────────────────┘ └──────────────────────────────────┘│
+│                                                                             │
+│  ┌──┬────────────┬────────────────────────────┬─────────────┬──────────────┐│
+│  │☐ │ DATE       │ DESCRIPTION                │ AMOUNT      │ CATEGORY     ││
+│  ├──┼────────────┼────────────────────────────┼─────────────┼──────────────┤│
+│  │☑ │ 2024-10-05 │ UBER *TRIP ID:8842         │ $ 24.50     │ 🚗 Travel [▼]││
+│  │☐ │ 2024-10-06 │ STARBUCKS #2204            │ $ 8.40      │ ☕ Meals  [▼]││
+│  │☐ │ 2024-10-06 │ DIGITALOCEAN *HOSTING      │ $ 45.00     │ 💻 IT/Ops [▼]││
+│  └──┴────────────┴────────────────────────────┴─────────────┴──────────────┘│
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Proposed Features
+- **Smart Classification:** AI matching based on vendor history
+- **Rule Engine:** User-defined "If/Then" logic
+- **Bulk Split:** Split transactions into multiple categories
+- **Project Tagging:** Link expenses to Case IDs directly
+
+#### Integration Points
+- **Input:** Raw transactions from Page 4 (Ingestion)
+- **Output:** Categorized records for Page 6 (Reconciliation)
+
+**Action Items:**
+1. Create `TransactionCategorization.tsx`
+2. Implement Rule Engine (Regex/String match)
+3. Integrate AI Suggestion API
+
+---
+
+### Page 6: Reconciliation
 
 **Route:** `/reconciliation`  
 **Component:** `Reconciliation.tsx`  
@@ -1722,7 +1793,7 @@ Visualize and analyze relationships between entities (people, companies, bank ac
 
 ---
 
-### Page 6: Human Adjudication
+### Page 7: Human Adjudication
 
 **Route:** `/adjudication`  
 **Component:** `AdjudicationQueue.tsx`  
@@ -1776,7 +1847,7 @@ Current implementation is excellent and matches proposed design closely. The "AI
 
 ---
 
-### Page 7: Dashboard (Forensic Investigation)
+### Page 8: Dashboard (Forensic Investigation)
 
 **Route:** `/dashboard` or `/` (default)  
 **Component:** `Dashboard.tsx`  
@@ -1888,7 +1959,7 @@ Current implementation is excellent and matches proposed design closely. The "AI
 
 ---
 
-### Page 8: Visualization (Financial) - NEW
+### Page 9: Visualization (Financial) - NEW
 
 **Route:** `/financial-visualization` (Proposed)  
 **Component:** Not yet implemented  
@@ -1958,7 +2029,7 @@ Current implementation is excellent and matches proposed design closely. The "AI
 
 ---
 
-### Page 8b: Forensic Balance Sheet - NEW (Fraud Detection)
+### Page 9b: Forensic Balance Sheet - NEW (Fraud Detection)
 
 **Route:** `/forensic-balance-sheet` (Proposed)  
 **Component:** Not yet implemented  
@@ -2210,7 +2281,7 @@ FOR each transfer:
 
 ---
 
-### Page 9: Final Summary - NEW
+### Page 10: Final Summary - NEW
 
 **Route:** `/summary` (Proposed)  
 **Component:** Not yet implemented  
@@ -3880,6 +3951,47 @@ By following this workflow specification, the development team has a clear roadm
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** December 5, 2025  
+## Page Documentation Links
+
+For detailed documentation on each individual page, see the following files in `docs/frontend/pages/`:
+
+### Core Pages (Workflow Order)
+
+| # | Page | Documentation | Route |
+|---|------|---------------|-------|
+| 1 | Login | [01_LOGIN.md](./pages/01_LOGIN.md) | `/login` |
+| 2 | Case Management | [02_CASE_LIST.md](./pages/02_CASE_LIST.md) | `/cases` |
+| 3 | Case Detail | [03_CASE_DETAIL.md](./pages/03_CASE_DETAIL.md) | `/cases/:id` |
+| 4 | Ingestion & Mapping | [04_INGESTION.md](./pages/04_INGESTION.md) | `/ingestion` |
+| 5 | Reconciliation | [06_RECONCILIATION.md](./pages/06_RECONCILIATION.md) | `/reconciliation` |
+| 6 | Human Adjudication | [07_ADJUDICATION.md](./pages/07_ADJUDICATION.md) | `/adjudication` |
+| 7 | Dashboard | [08_DASHBOARD.md](./pages/08_DASHBOARD.md) | `/dashboard` |
+| 8 | Visualization | [09_VISUALIZATION.md](./pages/09_VISUALIZATION.md) | `/visualization` |
+| 9 | Final Summary | [10_SUMMARY.md](./pages/10_SUMMARY.md) | `/summary` |
+
+### Extended Pages (Bonus Features)
+
+| Page | Documentation | Route |
+|------|---------------|-------|
+| Search Analytics | [SEARCH_ANALYTICS.md](./pages/SEARCH_ANALYTICS.md) | `/search-analytics` |
+| Semantic Search | [SEMANTIC_SEARCH.md](./pages/SEMANTIC_SEARCH.md) | `/semantic-search` |
+
+### Global Pages
+
+| Page | Documentation | Access |
+|------|---------------|--------|
+| Settings | [SETTINGS.md](./pages/SETTINGS.md) | Header icon (⚙️) |
+| Error Pages | [ERROR_PAGES.md](./pages/ERROR_PAGES.md) | Fallback routes |
+
+### Implementation Resources
+
+| Document | Purpose |
+|----------|---------|
+| [IMPLEMENTATION_GUIDE.md](./IMPLEMENTATION_GUIDE.md) | Step-by-step implementation instructions |
+| [pages/README.md](./pages/README.md) | Page documentation index |
+
+---
+
+**Document Version:** 1.1  
+**Last Updated:** December 6, 2025  
 **Maintainer:** Development Team

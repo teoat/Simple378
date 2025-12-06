@@ -15,7 +15,7 @@ The Login page provides secure authentication for the Simple378 platform with a 
 
 ## Screenshot
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                                                                             │
 │     ○ ○ ○                       (floating blobs)                    ○ ○    │
@@ -143,9 +143,30 @@ const handleSubmit = async (e) => {
 - [x] Focus management
 - [ ] Skip link (planned)
 
+
+---
+
+## 🚀 Zero Trust Heuristics (Proposed)
+
+Risk-based authentication that adapts to user behavior.
+
+### 1. 🌍 Impossible Travel Detection
+Logic to prevent physically impossible login sequences.
+- **Scenario:** Login from Jakarta (10:00 AM) -> Login from London (10:15 AM).
+- **Action:** Immediate lock & security alert.
+
+### 2. 🖱️ Behavioral Biometrics
+Profiling user interaction patterns to detect bots or hijacked sessions.
+- **Metric:** Mouse velocity, typing cadence (keystroke dynamics).
+- **Trigger:** "Non-human interaction detected (0ms reaction time)."
+
+### 3. 🛡️ Context-Aware MFA
+Dynamic friction based on risk score.
+- **Rule:** Low Risk (Home IP) = No MFA. High Risk (New Device + VPN) = Hardware Key required.
+
 ---
 
 ## Related Pages
 
-- [Dashboard](./DASHBOARD.md) - After successful login
+- [Dashboard](./08_DASHBOARD.md) - After successful login
 - [Settings](./SETTINGS.md) - Password reset

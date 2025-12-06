@@ -15,7 +15,7 @@ The Case Detail page provides comprehensive information about a single investiga
 
 ## Screenshot
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ ◄ Back to Cases                                         [⚡ Actions ▼]     │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -194,9 +194,30 @@ useEffect(() => {
 | `N` | Add note |
 | `Esc` | Back to list |
 
+
+---
+
+## 🚀 Investigative Heuristics (Proposed)
+
+Augmenting human intuition with machine precision.
+
+### 1. 🕸️ Snowball Search (Network Expansion)
+Automatically suggests related entities based on heuristic links.
+- **Rule:** "If Subject traded with X > 5 times, and X shares phone with Y -> Suggest adding Y to case."
+- **Benefit:** Uncovers hidden collusion rings without manual queries.
+
+### 2. ⏳ Timeline Gap Analysis
+Identifies logical inconsistencies in the data trail.
+- **Alert:** "Data Missing: Zero activity for 45 days in high-traffic account (Probability < 1%)."
+- **Action:** Prompts investigator to request missing statements.
+
+### 3. 👤 Behavioral Deviation
+Compares subject actions against their own baseline or peer groups.
+- **Metric:** "Spending Velocity is 400% above 12-month average."
+
 ---
 
 ## Related Pages
 
-- [Case List](./CASE_LIST.md) - Return to list
-- [Adjudication](./ADJUDICATION.md) - Review alerts
+- [Case List](./02_CASE_LIST.md) - Return to list
+- [Adjudication](./07_ADJUDICATION.md) - Review alerts

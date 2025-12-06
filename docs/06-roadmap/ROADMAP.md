@@ -61,10 +61,18 @@ Q4 2024          Q1 2025          Q2 2025          Q3 2025
 | Asset Tracing | Track diverted fund assets | Medium |
 
 ### Phase 5D: AI Enhancement (Week 15-16)
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| AI Training Mode | Learn from investigator feedback | High |
-| External Integrations | Connect to external data sources | Medium |
+| Feature | Description | Priority |\n|---------|-------------|----------|\n| AI Training Mode | Learn from investigator feedback | High |\n| External Integrations | Connect to external data sources | Medium |
+
+### Phase 5E: Advanced Analytics ✅ (Week 17 - Completed Dec 2025)
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Redaction Gap Analysis** | Heuristic functions to infer missing/redacted bank statement values | ✅ Documented |
+| **Heuristic Balance Reconstruction** | Calculate ending balance when missing via transaction categorization | ✅ Documented |
+| **Advanced Match Weighting** | Configurable weights for reconciliation (Description/Amount/Date) | ✅ Documented |
+| **Field Mapping Standardization** | Detailed data model for ingestion normalization | ✅ Documented |
+| **Dashboard Pipeline Monitor** | Real-time cross-page integration health tracking | ✅ Documented |
+| **Data Quality Alerts** | Proactive warnings for upstream blocking issues | ✅ Documented |
+| **Cross-Page KPI Aggregation** | Unified metrics from Ingestion/Reconciliation/Adjudication | ✅ Documented |
 
 ---
 

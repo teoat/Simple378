@@ -15,7 +15,7 @@ The Dashboard is the main landing page after login, providing a comprehensive ov
 
 ## Screenshot
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ 📊 Dashboard                                            [🔔] [👤 Admin ▼]  │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -62,6 +62,9 @@ The Dashboard is the main landing page after login, providing a comprehensive ov
 | Recent Activity | ✅ | Real-time activity feed |
 | Quick Actions | ✅ | Shortcuts to common tasks |
 | Real-time Updates | ✅ | WebSocket for live data |
+| **Pipeline Health Monitor** | 🚀 | *Proposed:* Track status of all workflow pages |
+| **Data Quality Alerts** | 🚀 | *Proposed:* Upstream issue warnings |
+| **Cross-Page KPI Cards** | 🚀 | *Proposed:* Sync metrics from all pages |
 
 ---
 
@@ -152,6 +155,137 @@ useWebSocket((message) => {
 | `/` | Focus search |
 
 ---
+---
+
+## 🚀 Advanced Features (Proposed)
+
+### 1. 🔗 Pipeline Health Monitor
+
+Real-time status tracking for the entire data workflow, identifying bottlenecks and completion stages.
+
+**Visual Design:**
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ 📊 SYSTEM PIPELINE STATUS                                    │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ① Ingestion    ✅ 1,245 records   Last: 2 hrs ago         │
+│  ② Categorize   ⚠️  89% complete   127 pending              │
+│  ③ Reconcile    ✅ 94% match rate  45 conflicts             │
+│  ④ Adjudicate   🔴 12 pending      Action required          │
+│  ⑤ Visualize    ✅ Ready           Charts updated            │
+│                                                              │
+│  [View Bottlenecks] [Download Report] [Force Sync]          │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Status Indicators:**
+- ✅ **Healthy**: All processes complete, data synced
+- ⚠️ **Warning**: Minor delays or incomplete processing
+- 🔴 **Critical**: Blocking issues requiring immediate action
+
+**Metrics Tracked:**
+
+| Page | Metric | Source Endpoint |
+|------|--------|----------------|
+| Ingestion | Record count, last upload | `/api/v1/ingestion/stats` |
+| Categorization | % complete, pending count | `/api/v1/categorization/stats` |
+| Reconciliation | Match rate, conflicts | `/api/v1/reconciliation/kpis` |
+| Adjudication | Queue size, avg resolution time | `/api/v1/adjudication/queue` |
+| Visualization | Last refresh timestamp | `/api/v1/visualization/status` |
+
+### 2. 🚨 Data Quality Alerts
+
+Proactive warnings when upstream issues block downstream features.
+
+**Alert Types:**
+
+| Alert | Trigger Condition | Recommended Action |
+|-------|------------------|-------------------|
+| **Categorization Incomplete** | >10% uncategorized transactions | Review and bulk-assign categories |
+| **Reconciliation Stalled** | >50 unmatched items for >24h | Manual review in Reconciliation page |
+| **Forensic BS Unavailable** | Categorization <85% complete | Complete categorization first |
+| **Visualization Outdated** | Last sync >4 hours ago | Trigger manual refresh |
+| **Adjudication Backlog** | Queue >100 items | Assign additional reviewers |
+
+**Alert Display:**
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ ⚠️ DATA QUALITY ALERTS (3 Active)                           │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  🔴 CRITICAL: Forensic Balance Sheet unavailable            │
+│     → 127 transactions (15%) remain uncategorized           │
+│     [Go to Categorization] [Review Items]                   │
+│                                                              │
+│  ⚠️ WARNING: Reconciliation stalled for 26 hours           │
+│     → 45 unmatched items require manual review              │
+│     [Open Reconciliation] [Assign Reviewer]                 │
+│                                                              │
+│  ℹ️ INFO: Visualization charts last updated 3.5 hrs ago    │
+│     → Sync pending from Reconciliation                      │
+│     [Refresh Now] [View Details]                            │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### 3. 🎯 Cross-Page KPI Aggregation
+
+Unified metrics pulled from all workflow pages in real-time.
+
+**Aggregated KPI Cards:**
+
+| KPI Card | Formula | Data Sources |
+|----------|---------|--------------|
+| **Data Completeness** | (Categorized / Total) × 100% | Ingestion + Categorization |
+| **Match Efficiency** | (Matched / Total) × 100% | Reconciliation |
+| **Review Velocity** | Avg decisions per hour | Adjudication |
+| **System Throughput** | Records processed end-to-end | All pages |
+
+**WebSocket Event Synchronization:**
+
+The Dashboard subscribes to real-time events from all pages:
+
+```typescript
+// Subscribe to cross-page events
+wsClient.on('reconciliation.match_complete', (data) => {
+  updatePipelineStatus('reconciliation', data.match_rate);
+  invalidateQueries(['dashboard', 'pipeline']);
+});
+
+wsClient.on('categorization.batch_updated', (data) => {
+  updatePipelineStatus('categorization', data.completion_pct);
+  checkDataQualityAlerts();
+});
+
+wsClient.on('adjudication.decision_made', (data) => {
+  decrementQueueCount();
+  updateReviewVelocity(data.time_taken);
+});
+
+wsClient.on('ingestion.file_processed', (data) => {
+  updatePipelineStatus('ingestion', data.record_count);
+  triggerDownstreamRefresh();
+});
+```
+
+### 4. 📈 Metric Drift Detection
+
+Flags slow, subtle degradation in system performance or risk profile.
+
+- **Scenario:** Average Risk Score increases from 45 to 60 over 3 months.
+- **Alert:** "System Drift Warn: Global Risk Score +15 points in Q1."
+
+### 5. ⚡ Spike Detection (Attack Monitor)
+
+Identifies sudden bursts of activity indicative of data dumps or attacks.
+
+- **Trigger:** >300% increase in 'New Alerts' within 1 hour.
+- **Action:** Triggers 'System Lockdown' protocol recommendation.
+
+---
 
 ## Refresh Behavior
 
@@ -163,5 +297,5 @@ useWebSocket((message) => {
 
 ## Related Pages
 
-- [Case List](./CASE_LIST.md) - View all cases
-- [Adjudication](./ADJUDICATION.md) - Review pending alerts
+- [Case List](./02_CASE_LIST.md) - View all cases
+- [Adjudication](./07_ADJUDICATION.md) - Review pending alerts
