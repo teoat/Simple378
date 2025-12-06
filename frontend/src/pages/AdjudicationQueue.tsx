@@ -109,11 +109,12 @@ export default function AdjudicationQueue() {
                       {new Date(c.created_at).toLocaleDateString()}
                     </td>
                     <td className="p-4">
-                      <Button size="sm" variant="secondary">
-                        <Link to={`/adjudication/${c.id}`}>
-                          Review Case
-                        </Link>
-                      </Button>
+                      <Link 
+                        to={`/adjudication/${c.id}`}
+                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 rounded-md px-3"
+                      >
+                        Review Case
+                      </Link>
                     </td>
                   </tr>
                 ))}
