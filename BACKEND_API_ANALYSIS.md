@@ -368,10 +368,11 @@ class AIOrchestrator:
         # Coordinate multiple AI agents
         graph_agent = self.create_graph_agent()
         fraud_agent = self.create_fraud_agent()
-
-        async def run_with_timeout(coro, timeout=30):
-            try:
-                return await asyncio.wait_for(coro, timeout=timeout)
+graph_result, fraud_result = await asyncio.gather(
+    asyncio.wait_for(graph_agent.run(case_id), timeout=30),
+    asyncio.wait_for(fraud_agent.run(case_id), timeout=30),
+    return_exceptions=False
+)
             except Exception as e:
                 logging.exception("AI agent failed", exc_info=e)
                 return e
