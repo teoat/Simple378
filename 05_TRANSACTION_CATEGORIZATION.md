@@ -1,6 +1,7 @@
 # Transaction Categorization
 
-**Status:** 📋 Planned Feature
+**Status:** 📋 Planned Feature  
+**Note:** API specifications and implementation details are subject to change.
 
 ---
 

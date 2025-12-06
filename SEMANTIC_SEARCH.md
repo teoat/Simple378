@@ -68,9 +68,9 @@ qdrant:
 
 ### Embedding Generation
 
-**Provider:** Anthropic Claude (or OpenAI)  
-**Model:** `text-embedding-ada-002` or Claude embeddings  
-**Dimension:** 1536 (OpenAI) or 768 (Claude)
+**Provider:** OpenAI (primary) or similar embedding service  
+**Model:** `text-embedding-ada-002` (OpenAI) or `text-embedding-3-small`  
+**Dimension:** 1536 (ada-002) or 1536/768 (configurable for v3)
 
 **Process:**
 ```
