@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Filter, Save, History } from 'lucide-react';
+import { Search, Filter, Save, History, Brain, Lightbulb } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/input';
@@ -142,6 +143,80 @@ export function SemanticSearch() {
                   </p>
                 </CardContent>
               </Card>
+
+              {/* Query Interpretation */}
+              <AnimatePresence>
+                {query.length > 2 && searchResults && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
+                          <Brain className="w-5 h-5" />
+                          Query Understanding
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-3">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                            <div>
+                              <span className="font-medium text-blue-900 dark:text-blue-100">Original Query:</span>
+                              <span className="ml-2 text-blue-800 dark:text-blue-200">"{query}"</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                            <div>
+                              <span className="font-medium text-green-900 dark:text-green-100">Interpreted as:</span>
+                              <div className="ml-2 text-green-800 dark:text-green-200">
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                  <Badge variant="outline" className="border-green-300 text-green-800 dark:border-green-700 dark:text-green-200">
+                                    Entity Search
+                                  </Badge>
+                                  <Badge variant="outline" className="border-green-300 text-green-800 dark:border-green-700 dark:text-green-200">
+                                    Risk Analysis
+                                  </Badge>
+                                  <Badge variant="outline" className="border-green-300 text-green-800 dark:border-green-700 dark:text-green-200">
+                                    Pattern Matching
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <Lightbulb className="w-4 h-4 text-yellow-500 mt-1 flex-shrink-0" />
+                            <div>
+                              <span className="font-medium text-yellow-900 dark:text-yellow-100">AI Insights:</span>
+                              <p className="ml-2 text-yellow-800 dark:text-yellow-200 text-sm mt-1">
+                                Searching for high-risk entities and suspicious patterns. Prioritizing results with
+                                recent activity and elevated risk scores.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-blue-200 dark:border-blue-800">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-blue-700 dark:text-blue-300">
+                              Found {searchResults.length} semantically relevant results
+                            </span>
+                            <button className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 underline text-sm">
+                              Refine interpretation
+                            </button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Results */}
               {error && (

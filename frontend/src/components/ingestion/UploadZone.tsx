@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useDropzone, type FileRejection } from 'react-dropzone';
-import { UploadCloud, X, AlertCircle } from 'lucide-react';
+import { UploadCloud, X, AlertCircle, FileText, FileImage, FileVideo, FileAudio, FileSpreadsheet } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface UploadZoneProps {
@@ -25,8 +25,24 @@ export function UploadZone({ onUpload, showProcessing }: UploadZoneProps) {
       'application/pdf': ['.pdf'],
       'image/jpeg': ['.jpg', '.jpeg'],
       'image/png': ['.png'],
+      'image/tiff': ['.tiff', '.tif'],
+      'image/webp': ['.webp'],
+      'image/heic': ['.heic'],
       'text/csv': ['.csv'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls'],
+      'application/json': ['.json'],
+      'text/xml': ['.xml'],
+      'video/mp4': ['.mp4'],
+      'video/mov': ['.mov'],
+      'video/avi': ['.avi'],
+      'video/mkv': ['.mkv'],
+      'video/webm': ['.webm'],
+      'audio/mpeg': ['.mp3'],
+      'audio/wav': ['.wav'],
+      'audio/m4a': ['.m4a'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/msword': ['.doc']
     },
     maxSize: 50 * 1024 * 1024, // 50MB
     disabled: showProcessing
@@ -48,12 +64,32 @@ export function UploadZone({ onUpload, showProcessing }: UploadZoneProps) {
         <input {...getInputProps()} />
         
         <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-          <div className={`
-            p-4 rounded-full bg-slate-100 dark:bg-slate-800 mb-4 transition-transform duration-300
-            ${isDragActive ? 'scale-110 bg-purple-100 dark:bg-cyan-900/30' : ''}
-          `}>
-            <UploadCloud className={`w-10 h-10 ${isDragActive ? 'text-purple-500 dark:text-cyan-400' : 'text-slate-400'}`} />
-          </div>
+          <motion.div
+            animate={isDragActive ? { scale: 1.1, rotate: [0, -5, 5, 0] } : { scale: 1, rotate: 0 }}
+            transition={{ duration: 0.3 }}
+            className={`
+              p-4 rounded-full bg-slate-100 dark:bg-slate-800 mb-4 relative overflow-hidden
+              ${isDragActive ? 'bg-purple-100 dark:bg-cyan-900/30 shadow-lg shadow-purple-500/20' : ''}
+            `}
+          >
+            <UploadCloud className={`w-10 h-10 transition-colors duration-300 ${isDragActive ? 'text-purple-500 dark:text-cyan-400' : 'text-slate-400'}`} />
+
+            {/* Animated particles when dragging */}
+            {isDragActive && (
+              <>
+                <motion.div
+                  className="absolute inset-0 rounded-full border-2 border-purple-400 dark:border-cyan-400"
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
+                <motion.div
+                  className="absolute inset-2 rounded-full border border-purple-300 dark:border-cyan-300"
+                  animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0, 0.3] }}
+                  transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
+                />
+              </>
+            )}
+          </motion.div>
           
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">
             {isDragActive ? 'Drop files here' : 'Drag & drop files here'}
@@ -62,15 +98,26 @@ export function UploadZone({ onUpload, showProcessing }: UploadZoneProps) {
             or click to browse from your computer
           </p>
           
-          <div className="flex gap-2 text-xs text-slate-400 dark:text-slate-500">
-            <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800">PDF</span>
-            <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800">JPG</span>
-            <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800">PNG</span>
-            <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800">CSV</span>
-            <span className="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800">XLSX</span>
+          <div className="grid grid-cols-2 gap-3 text-xs text-slate-400 dark:text-slate-500 max-w-md">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+              <FileText className="w-4 h-4 text-red-500" />
+              <span>Documents</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+              <FileImage className="w-4 h-4 text-blue-500" />
+              <span>Images</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+              <FileSpreadsheet className="w-4 h-4 text-green-500" />
+              <span>Spreadsheets</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+              <FileVideo className="w-4 h-4 text-purple-500" />
+              <span>Video/Audio</span>
+            </div>
           </div>
-          <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-            Max file size: 50MB
+          <p className="mt-3 text-xs text-slate-400 dark:text-slate-500 text-center">
+            Supports PDF, images, spreadsheets, video, audio, and more • Max file size: 50MB
           </p>
         </div>
 

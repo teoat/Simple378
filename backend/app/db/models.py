@@ -74,6 +74,7 @@ class Transaction(Base):
     currency = Column(String, default="USD")
     date = Column(DateTime, nullable=False)
     description = Column(String, nullable=True)
+    category = Column(String, nullable=True)
     
     # Provenance
     source_bank = Column(String, nullable=False)

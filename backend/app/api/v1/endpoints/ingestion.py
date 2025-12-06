@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Body
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Dict, Any
 from uuid import UUID
 
 from app.api import deps
@@ -19,7 +19,7 @@ async def upload_transactions(
     current_user = Depends(require_permission(Permission.INGESTION_UPLOAD))
 ):
     """
-    Upload a CSV file of transactions for a specific subject and bank.
+    Legacy upload endpoint (direct CSV processing).
     """
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="Only CSV files are supported")
@@ -48,17 +48,10 @@ async def create_transactions_batch(
     Batch create transactions from mapped JSON data.
     """
     try:
-        # Group by subject_id (assuming all are for same subject for now, or handle mixed)
-        # For simplicity, we assume the frontend sends transactions for a single subject or we handle them individually.
-        # But IngestionService.create_transactions_batch takes a single subject_id.
-        
-        # Let's assume all transactions in the batch belong to the same subject for this MVP endpoint
         if not transactions:
             return []
             
         subject_id = transactions[0].subject_id
-        
-        # Convert Pydantic models to dicts
         tx_dicts = [tx.dict(exclude={'subject_id'}) for tx in transactions]
         
         created_txs = await IngestionService.create_transactions_batch(
@@ -70,3 +63,112 @@ async def create_transactions_batch(
         return created_txs
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create transactions: {str(e)}")
+
+# --- New Wizard Endpoints ---
+
+@router.post("/session", response_model=Dict[str, Any])
+async def create_upload_session(
+    file: UploadFile = File(...),
+    current_user = Depends(require_permission(Permission.INGESTION_UPLOAD))
+):
+    """
+    Step 1: Upload file for temp storage and get schema (headers).
+    """
+    try:
+        if not file.filename.lower().endswith('.csv'):
+             raise HTTPException(status_code=400, detail="Only CSV files are supported currently")
+
+        upload_id = await IngestionService.save_temp_file(file)
+        headers = IngestionService.detect_csv_headers(upload_id)
+        
+        return {
+            "upload_id": upload_id,
+            "filename": file.filename,
+            "headers": headers,
+            "detected_type": "csv"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload initialization failed: {str(e)}")
+
+@router.post("/{upload_id}/preview")
+async def preview_mapping(
+    upload_id: str,
+    mapping: Dict[str, str],
+    current_user = Depends(require_permission(Permission.INGESTION_UPLOAD))
+):
+    """
+    Step 2: Preview data with applied mapping.
+    """
+    try:
+        preview_data = IngestionService.preview_mapping(upload_id, mapping)
+        return preview_data
+    except Exception as e:
+         raise HTTPException(status_code=500, detail=f"Preview failed: {str(e)}")
+
+@router.post("/{upload_id}/finish")
+async def finish_import(
+    upload_id: str,
+    mapping: Dict[str, str] = Body(...),
+    subject_id: str = Body(...), # Or UUID
+    bank_name: str = Body(...),
+    db: AsyncSession = Depends(deps.get_db),
+    current_user = Depends(require_permission(Permission.INGESTION_UPLOAD))
+):
+    """
+    Step 3: Process full file and save transactions.
+    """
+    try:
+        # Convert string UUID to UUID object if needed
+        try:
+             s_uuid = UUID(subject_id)
+        except ValueError:
+             raise HTTPException(status_code=400, detail="Invalid subject_id UUID")
+
+        transactions = await IngestionService.process_csv_with_mapping(
+            db=db,
+            upload_id=upload_id,
+            mapping=mapping,
+            subject_id=s_uuid,
+            bank_name=bank_name
+        )
+        return {"count": len(transactions), "status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+
+@router.post("/{upload_id}/analyze-redactions")
+async def analyze_redactions(
+    upload_id: str,
+    mapping: Dict[str, str] = Body(...),
+    start_balance: float = Body(None),
+    end_balance: float = Body(None),
+    current_user = Depends(require_permission(Permission.INGESTION_UPLOAD))
+):
+    """
+    Step 2.5: Analyze for redaction gaps (Advanced Feature).
+    """
+    try:
+        from app.services.redaction_analyzer import RedactionAnalyzer
+        
+        # Get all data mapped
+        # Note: In production we might want to paginate or limit this, but for analysis we likely need context
+        # Re-using preview_mapping with high limit for MVP analysis
+        raw_data = IngestionService.preview_mapping(upload_id, mapping, limit=10000)
+        
+        gaps = RedactionAnalyzer.analyze_sequence_gaps(raw_data)
+        
+        balance_discrepancies = []
+        if start_balance is not None and end_balance is not None:
+             from decimal import Decimal
+             balance_discrepancies = RedactionAnalyzer.analyze_running_balance(
+                 raw_data, 
+                 Decimal(str(start_balance)), 
+                 Decimal(str(end_balance))
+             )
+             
+        return {
+            "gaps": gaps,
+            "balance_findings": balance_discrepancies,
+            "total_analyzed": len(raw_data)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")

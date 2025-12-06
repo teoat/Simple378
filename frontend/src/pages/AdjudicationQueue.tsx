@@ -53,19 +53,32 @@ export function AdjudicationQueue() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Derive page directly from URL
+  // Derive state directly from URL
   const page = parseInt(searchParams.get('page') || '1', 10);
+  const sortBy = (searchParams.get('sort_by') || 'priority') as 'risk_score' | 'created_at' | 'priority';
+  const sortOrder = (searchParams.get('sort_order') || 'desc') as 'asc' | 'desc';
 
-  // Update URL when page changes
+  // Update URL helpers
   const updatePage = (newPage: number) => {
-    setSearchParams({ page: newPage.toString() });
+    setSearchParams(prev => {
+      prev.set('page', newPage.toString());
+      return prev;
+    });
   };
 
-  // Fetch adjudication queue
+  const updateSort = (key: string, order: 'asc' | 'desc') => {
+    setSearchParams(prev => {
+      prev.set('sort_by', key);
+      prev.set('sort_order', order);
+      prev.set('page', '1'); // Reset to first page on sort change
+      return prev;
+    });
+  };
+
   const { data: queueData, isLoading, error } = useQuery({
-    queryKey: ['adjudication-queue', page],
-    queryFn: () => api.getAdjudicationQueue(page, 100), // Fetch 100 items per page
-    refetchInterval: 30000, // Refetch every 30 seconds
+    queryKey: ['adjudication-queue', page, sortBy, sortOrder],
+    queryFn: () => api.getAdjudicationQueue(page, 20, sortBy, sortOrder),
+    refetchInterval: 30000,
     placeholderData: (previousData) => previousData,
   });
 
@@ -165,7 +178,10 @@ export function AdjudicationQueue() {
                   <AlertList 
                     alerts={alerts} 
                     selectedId={selectedId} 
-                    onSelect={setSelectedId} 
+                    onSelect={setSelectedId}
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSortChange={updateSort}
                   />
                 </div>
               )}

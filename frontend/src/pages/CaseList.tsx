@@ -152,7 +152,7 @@ export function CaseList() {
         {/* Bulk Actions */}
       {selectedCases.size > 0 && (
         <BulkActions
-          selectedCount={selectedCases.size}
+          selectedIds={selectedCases}
           onClearSelection={clearSelection}
         />
       )}

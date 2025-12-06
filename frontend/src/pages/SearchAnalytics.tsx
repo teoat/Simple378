@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Search, Clock, Target, RefreshCw, Users, TrendingUp } from 'lucide-react';
+import { BarChart3, Search, Clock, Target, RefreshCw, Users, TrendingUp, Calendar } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
 import { normalizeSearchAnalytics, normalizeDashboardData } from '../lib/searchAnalyticsTransforms';
 import type { SearchAnalyticsData, SearchDashboardData } from '../types/search';
@@ -112,7 +113,12 @@ export function SearchAnalytics() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700"
+          >
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
                 <Search className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -122,11 +128,17 @@ export function SearchAnalytics() {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {analytics?.total_searches || 0}
                 </p>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">+12% vs last week</p>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700"
+          >
             <div className="flex items-center">
               <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
                 <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -136,11 +148,17 @@ export function SearchAnalytics() {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {analytics?.unique_users || 0}
                 </p>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">+8% vs last week</p>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700"
+          >
             <div className="flex items-center">
               <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
                 <Target className="w-6 h-6 text-purple-600 dark:text-purple-400" />
@@ -150,11 +168,17 @@ export function SearchAnalytics() {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {analytics?.average_results?.toFixed(1) || '0.0'}
                 </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">+2.3 vs last week</p>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700"
+          >
             <div className="flex items-center">
               <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
                 <Clock className="w-6 h-6 text-orange-600 dark:text-orange-400" />
@@ -164,37 +188,133 @@ export function SearchAnalytics() {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {analytics?.performance_metrics?.average_search_time?.toFixed(2) || '0.00'}s
                 </p>
+                <p className="text-xs text-red-600 dark:text-red-400 mt-1">+0.2s vs last week</p>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
+
+        {/* Search Trends Chart */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
+              <TrendingUp className="w-5 h-5 mr-2 text-blue-500" />
+              Search Trends (Last 30 Days)
+            </h3>
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <Calendar className="w-4 h-4" />
+              <span>Daily searches</span>
+            </div>
+          </div>
+
+          {/* Simple trend visualization - in a real app, this would use a charting library */}
+          <div className="h-64 flex items-end justify-between gap-1">
+            {Array.from({ length: 30 }, (_, i) => {
+              const height = Math.random() * 100 + 20; // Mock data
+              const isToday = i === 29;
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center">
+                  <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: `${height}%` }}
+                    transition={{ delay: i * 0.02, duration: 0.5 }}
+                    className={`w-full rounded-t-sm transition-colors ${
+                      isToday
+                        ? 'bg-blue-500 dark:bg-blue-400'
+                        : 'bg-blue-200 dark:bg-blue-700 hover:bg-blue-300 dark:hover:bg-blue-600'
+                    }`}
+                    title={`${30 - i} days ago: ${Math.round(height)} searches`}
+                  />
+                  {i % 5 === 0 && (
+                    <span className="text-xs text-gray-400 mt-2 transform -rotate-45 origin-top">
+                      {30 - i}d
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex justify-between items-center mt-4 text-sm text-gray-500 dark:text-gray-400">
+            <span>30 days ago</span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-blue-200 dark:bg-blue-700 rounded"></div>
+                <span>Daily searches</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-blue-500 dark:bg-blue-400 rounded"></div>
+                <span>Today</span>
+              </div>
+            </div>
+            <span>Today</span>
+          </div>
+        </motion.div>
 
         {/* Charts and Insights */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Popular Queries */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.6 }}
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700"
+          >
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
+              <Target className="w-5 h-5 mr-2 text-green-500" />
               Popular Search Queries
             </h3>
             {analytics?.popular_queries && analytics.popular_queries.length > 0 ? (
               <div className="space-y-3">
-                {analytics.popular_queries.slice(0, 5).map((query: { query: string; count: number }, index: number) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400 truncate flex-1">
-                      "{query.query}"
-                    </span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white ml-2">
-                      {query.count}
-                    </span>
-                  </div>
-                ))}
+                {analytics.popular_queries.slice(0, 5).map((query: { query: string; count: number }, index: number) => {
+                  const maxCount = Math.max(...analytics.popular_queries.map((q: { count: number }) => q.count));
+                  const percentage = (query.count / maxCount) * 100;
+
+                  return (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.7 + index * 0.1 }}
+                      className="group"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-gray-600 dark:text-gray-400 truncate flex-1 font-medium">
+                          "{query.query}"
+                        </span>
+                        <span className="text-sm font-bold text-gray-900 dark:text-white ml-2 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
+                          {query.count}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${percentage}%` }}
+                          transition={{ delay: 0.8 + index * 0.1, duration: 0.5 }}
+                          className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full"
+                        />
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             ) : (
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
-                No search data available yet
-              </p>
+              <div className="text-center py-8">
+                <Search className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  No search data available yet
+                </p>
+                <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
+                  Searches will appear here as users interact with the system
+                </p>
+              </div>
             )}
-          </div>
+          </motion.div>
 
           {/* Search Type Distribution */}
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">

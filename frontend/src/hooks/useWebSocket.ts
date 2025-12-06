@@ -69,7 +69,9 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
             ws.close();
           },
           onRestored: () => {
-            console.log('WebSocket connection health restored');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('WebSocket connection health restored');
+            }
           }
         });
         heartbeatRef.current.start();

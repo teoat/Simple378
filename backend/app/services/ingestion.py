@@ -11,6 +11,14 @@ from app.core.config import settings
 from concurrent.futures import ProcessPoolExecutor
 import asyncio
 from decimal import Decimal, InvalidOperation
+import os
+import tempfile
+import json
+import shutil
+from pathlib import Path
+
+TEMP_UPLOAD_DIR = Path(tempfile.gettempdir()) / "simple378_uploads"
+TEMP_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _parse_csv_in_process(file_content: bytes, bank_name: str, filename: str) -> List[Dict[str, Any]]:
@@ -202,3 +210,174 @@ class IngestionService:
         except Exception as e:
             print(f"Error parsing row: {row} - {e}")
             return None
+
+    @staticmethod
+    async def save_temp_file(file: UploadFile) -> str:
+        """
+        Saves an uploaded file to a temporary location and returns the file ID.
+        """
+        upload_id = str(uuid.uuid4())
+        file_path = TEMP_UPLOAD_DIR / f"{upload_id}.csv"
+        
+        try:
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            return upload_id
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to save temp file: {str(e)}")
+
+    @staticmethod
+    def get_temp_file_path(upload_id: str) -> Path:
+        file_path = TEMP_UPLOAD_DIR / f"{upload_id}.csv"
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="Upload session expired or not found")
+        return file_path
+
+    @staticmethod
+    def detect_csv_headers(upload_id: str) -> List[str]:
+        """
+        Reads the first line of the CSV to get headers.
+        """
+        file_path = IngestionService.get_temp_file_path(upload_id)
+        
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                reader = csv.reader(f)
+                headers = next(reader)
+                return [h.strip() for h in headers if h.strip()]
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to read CSV headers: {str(e)}")
+
+    @staticmethod
+    def preview_mapping(upload_id: str, mapping: Dict[str, str], limit: int = 5) -> List[Dict[str, Any]]:
+        """
+        Returns a preview of the data after applying the mapping.
+        mapping format: { "target_field": "source_column_name" }
+        """
+        file_path = IngestionService.get_temp_file_path(upload_id)
+        preview_data = []
+        
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                
+                count = 0
+                for row in reader:
+                    if count >= limit:
+                        break
+                        
+                    mapped_row = IngestionService._apply_dynamic_mapping(row, mapping)
+                    if mapped_row:
+                        preview_data.append(mapped_row)
+                        count += 1
+                        
+            return preview_data
+        except Exception as e:
+             raise HTTPException(status_code=400, detail=f"Failed to generate preview: {str(e)}")
+
+    @staticmethod
+    async def process_csv_with_mapping(
+        db: AsyncSession,
+        upload_id: str,
+        mapping: Dict[str, str],
+        subject_id: UUID,
+        bank_name: str = "Manual Import"
+    ) -> List[Transaction]:
+        """
+        Processes the temp file using the provided mapping and inserts transactions.
+        """
+        file_path = IngestionService.get_temp_file_path(upload_id)
+        
+        try:
+            # We'll do this in-process for now since we have the file path
+            # Ideally offload to worker if files are huge
+            transactions_to_insert = []
+            
+            with open(file_path, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                
+                for row in reader:
+                    mapped_data = IngestionService._apply_dynamic_mapping(row, mapping)
+                    if mapped_data:
+                         transactions_to_insert.append({
+                            "id": uuid.uuid4(),
+                            "subject_id": subject_id,
+                            "source_bank": bank_name,
+                            "source_file_id": f"upload_{upload_id}",
+                            **mapped_data,
+                            "created_at": datetime.now(),
+                            "updated_at": datetime.now()
+                        })
+            
+            if not transactions_to_insert:
+                 return []
+
+            from sqlalchemy import insert
+            stmt = insert(Transaction).values(transactions_to_insert)
+            await db.execute(stmt)
+            await db.commit()
+            
+            # Clean up temp file
+            # os.remove(file_path) # Optional: keep for audit? For now, let's keep it safe.
+            
+            return [Transaction(**tx) for tx in transactions_to_insert]
+            
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to process import: {str(e)}")
+
+    @staticmethod
+    def _apply_dynamic_mapping(row: Dict[str, str], mapping: Dict[str, str]) -> Dict[str, Any]:
+        """
+        Applies mapping: mapping["target_field"] = "source_column"
+        """
+        try:
+            # Essential fields
+            date_col = mapping.get("date")
+            amount_col = mapping.get("amount")
+            desc_col = mapping.get("description")
+            
+            if not date_col or not amount_col:
+                return None # Skip if essential mapping missing
+                
+            date_str = row.get(date_col)
+            amount_str = row.get(amount_col)
+            
+            if not date_str or not amount_str:
+                return None # Skip empty rows
+                
+            # Parse Date
+            try:
+                date = datetime.fromisoformat(date_str)
+            except ValueError:
+                try:
+                    date = datetime.strptime(date_str, "%m/%d/%Y")
+                except ValueError:
+                    try:
+                        date = datetime.strptime(date_str, "%Y-%m-%d")
+                    except ValueError:
+                         return None # Date parse failed
+
+            # Parse Amount
+            try:
+                amount = Decimal(str(amount_str).replace('$', '').replace(',', ''))
+            except (ValueError, TypeError, InvalidOperation):
+                 return None
+
+            result = {
+                "date": date,
+                "amount": amount,
+                "description": row.get(desc_col, "Unknown Transaction"),
+                "currency": "USD"
+            }
+            
+            # Optional fields
+            if "category" in mapping:
+                 cat_col = mapping["category"]
+                 if cat_col in row:
+                     result["category"] = row.get(cat_col)
+            
+            return result
+
+        except Exception:
+            return None
+

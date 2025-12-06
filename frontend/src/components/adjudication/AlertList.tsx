@@ -19,12 +19,20 @@ interface AlertListProps {
   alerts: Alert[];
   selectedId?: string | null;
   onSelect?: (id: string | null) => void;
+  // Sorting props
+  sortBy: 'risk_score' | 'created_at' | 'priority';
+  sortOrder: 'asc' | 'desc';
+  onSortChange: (key: string, order: 'asc' | 'desc') => void;
 }
 
-type SortKey = 'created_at' | 'risk_score' | 'status';
-type SortDirection = 'asc' | 'desc';
-
-export function AlertList({ alerts: initialAlerts, selectedId: propSelectedId, onSelect }: AlertListProps) {
+export function AlertList({ 
+  alerts: initialAlerts, 
+  selectedId: propSelectedId, 
+  onSelect,
+  sortBy,
+  sortOrder,
+  onSortChange
+}: AlertListProps) {
   const [selectedId, setSelectedId] = useState<string | null>(propSelectedId || null);
 
   const handleSelect = (id: string | null) => {
@@ -37,10 +45,6 @@ export function AlertList({ alerts: initialAlerts, selectedId: propSelectedId, o
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [riskFilter, setRiskFilter] = useState<string>('');
   
-  // Sorting state
-  const [sortKey, setSortKey] = useState<SortKey>('created_at');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const ALERTS_PER_PAGE = 15;
@@ -57,14 +61,6 @@ export function AlertList({ alerts: initialAlerts, selectedId: propSelectedId, o
     });
   };
 
-  const handleSelectAll = () => {
-    if (bulkSelectedIds.size === filteredAlerts.length) {
-      setBulkSelectedIds(new Set());
-    } else {
-      setBulkSelectedIds(new Set(filteredAlerts.map(a => a.id)));
-    }
-  };
-  
   const filteredAlerts = initialAlerts
     .filter(alert => {
       const statusMatch = statusFilter === 'all' || alert.status === statusFilter;
@@ -72,44 +68,38 @@ export function AlertList({ alerts: initialAlerts, selectedId: propSelectedId, o
       return statusMatch && riskMatch;
     });
 
-  const sortedAlerts = useMemo(() => {
-    return [...filteredAlerts].sort((a, b) => {
-      const valA = a[sortKey];
-      const valB = b[sortKey];
-      
-      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [filteredAlerts, sortKey, sortDirection]);
+  // Alerts are already sorted by the server
   
-  const paginatedAlerts = useMemo(() => {
-    const startIndex = (currentPage - 1) * ALERTS_PER_PAGE;
-    return sortedAlerts.slice(startIndex, startIndex + ALERTS_PER_PAGE);
-  }, [sortedAlerts, currentPage]);
-
-  const totalPages = Math.ceil(sortedAlerts.length / ALERTS_PER_PAGE);
+  // Alerts are always from the current server page
+  
+  const handleSelectAll = () => {
+    if (bulkSelectedIds.size === filteredAlerts.length) {
+      setBulkSelectedIds(new Set());
+    } else {
+      setBulkSelectedIds(new Set(filteredAlerts.map(a => a.id)));
+    }
+  };
 
   // Keyboard navigation for main selection
   useHotkeys('up', () => {
-    if (paginatedAlerts.length === 0) return;
-    const currentIndex = paginatedAlerts.findIndex(a => a.id === selectedId);
+    if (filteredAlerts.length === 0) return;
+    const currentIndex = filteredAlerts.findIndex(a => a.id === selectedId);
     if (currentIndex > 0) {
-      handleSelect(paginatedAlerts[currentIndex - 1].id);
-    } else if (!selectedId && paginatedAlerts.length > 0) {
-      handleSelect(paginatedAlerts[0].id);
+      handleSelect(filteredAlerts[currentIndex - 1].id);
+    } else if (!selectedId && filteredAlerts.length > 0) {
+      handleSelect(filteredAlerts[0].id);
     }
-  }, [paginatedAlerts, selectedId]);
+  }, [filteredAlerts, selectedId]);
 
   useHotkeys('down', () => {
-    if (paginatedAlerts.length === 0) return;
-    const currentIndex = paginatedAlerts.findIndex(a => a.id === selectedId);
-    if (currentIndex < paginatedAlerts.length - 1) {
-      setSelectedId(paginatedAlerts[currentIndex + 1].id);
-    } else if (!selectedId && paginatedAlerts.length > 0) {
-      handleSelect(paginatedAlerts[0].id);
+    if (filteredAlerts.length === 0) return;
+    const currentIndex = filteredAlerts.findIndex(a => a.id === selectedId);
+    if (currentIndex < filteredAlerts.length - 1) {
+      setSelectedId(filteredAlerts[currentIndex + 1].id);
+    } else if (!selectedId && filteredAlerts.length > 0) {
+      handleSelect(filteredAlerts[0].id);
     }
-  }, [paginatedAlerts, selectedId]);
+  }, [filteredAlerts, selectedId]);
 
   return (
     <div className="flex flex-col h-full">
@@ -130,11 +120,15 @@ export function AlertList({ alerts: initialAlerts, selectedId: propSelectedId, o
           className="w-[160px]"
         />
 
-        <select value={`${sortKey}-${sortDirection}`} onChange={(e) => {
-          const [key, direction] = e.target.value.split('-');
-          setSortKey(key as any);
-          setSortDirection(direction as 'asc' | 'desc');
-        }} className="w-[180px] px-3 py-2 border border-slate-300 rounded">
+        <select 
+          value={`${sortBy}-${sortOrder}`} 
+          onChange={(e) => {
+            const [key, direction] = e.target.value.split('-');
+            onSortChange(key, direction as 'asc' | 'desc');
+          }} 
+          className="w-[180px] px-3 py-2 border border-slate-300 rounded"
+        >
+          <option value="priority-desc">Priority (Risk)</option>
           <option value="created_at-desc">Newest First</option>
           <option value="created_at-asc">Oldest First</option>
           <option value="risk_score-desc">Risk: High to Low</option>
@@ -159,8 +153,8 @@ export function AlertList({ alerts: initialAlerts, selectedId: propSelectedId, o
         aria-label="Alert Queue"
       >
         <AnimatePresence>
-          {paginatedAlerts.length > 0 ? (
-            paginatedAlerts.map((alert) => (
+          {filteredAlerts.length > 0 ? (
+            filteredAlerts.map((alert) => (
               <AlertCard
                 key={alert.id}
                 alert={alert}
@@ -179,33 +173,7 @@ export function AlertList({ alerts: initialAlerts, selectedId: propSelectedId, o
         </AnimatePresence>
       </div>
       
-      {/* Pagination and Select All */}
-      {totalPages > 1 && (
-        <div className="p-2 border-t border-white/10 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="select-all-checkbox"
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              checked={bulkSelectedIds.size === filteredAlerts.length && filteredAlerts.length > 0}
-              onChange={handleSelectAll}
-              aria-label="Select all alerts"
-            />
-            <label htmlFor="select-all-checkbox" className="text-sm text-slate-400">Select All</label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
-              Previous
-            </Button>
-            <span className="text-sm text-slate-400">
-              Page {currentPage} of {totalPages}
-            </span>
-            <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Internal Pagination Removed - Managed by Parent */}
     </div>
   );
 }

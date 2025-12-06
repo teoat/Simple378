@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
-import { Clock, FileText, Network, DollarSign, ChevronLeft, Shield, AlertTriangle, CheckCircle, Download, Edit } from 'lucide-react';
+import { Clock, FileText, Network, DollarSign, ChevronLeft, Shield, AlertTriangle, CheckCircle, Download, Edit, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EntityGraph } from '../components/visualizations/EntityGraph';
 import { RiskBar } from '../components/cases/RiskBar';
@@ -10,6 +10,7 @@ import { AIReasoningTab } from '../components/adjudication/AIReasoningTab';
 import { CaseOverview } from '../components/cases/CaseOverview';
 import { CaseTimeline } from '../components/cases/CaseTimeline';
 import { CaseFinancials } from '../components/cases/CaseFinancials';
+import { CommentsSection } from '../components/cases/CommentsSection';
 import { useCaseDetail } from '../hooks/useCaseDetail';
 
 const tabs = [
@@ -17,6 +18,7 @@ const tabs = [
   { name: 'Graph Analysis', id: 'graph', icon: Network },
   { name: 'Timeline', id: 'timeline', icon: Clock },
   { name: 'Financials', id: 'financials', icon: DollarSign },
+  { name: 'Notes', id: 'notes', icon: MessageSquare },
   { name: 'Evidence', id: 'evidence', icon: Shield },
 ];
 
@@ -145,9 +147,15 @@ export function CaseDetail() {
                  </div>
                )}
 
-               {activeTab === 'Financials' && <CaseFinancials />}
+                {activeTab === 'Financials' && <CaseFinancials />}
 
-               {activeTab === 'Timeline' && <CaseTimeline />}
+                {activeTab === 'Timeline' && <CaseTimeline />}
+
+                {activeTab === 'Notes' && (
+                  <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 h-full">
+                    <CommentsSection caseId={caseData.id} />
+                  </div>
+                )}
 
               {activeTab === 'Evidence' && (
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-12 flex flex-col items-center justify-center text-center border-dashed h-full">
@@ -229,14 +237,18 @@ export function CaseDetail() {
                   <span className="text-slate-600 dark:text-slate-400">Switch to Timeline</span>
                   <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium">3</kbd>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-600 dark:text-slate-400">Switch to Financials</span>
-                  <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium">4</kbd>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-600 dark:text-slate-400">Switch to Evidence</span>
-                  <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium">5</kbd>
-                </div>
+                 <div className="flex items-center justify-between">
+                   <span className="text-slate-600 dark:text-slate-400">Switch to Financials</span>
+                   <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium">4</kbd>
+                 </div>
+                 <div className="flex items-center justify-between">
+                   <span className="text-slate-600 dark:text-slate-400">Switch to Notes</span>
+                   <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium">5</kbd>
+                 </div>
+                 <div className="flex items-center justify-between">
+                   <span className="text-slate-600 dark:text-slate-400">Switch to Evidence</span>
+                   <kbd className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium">6</kbd>
+                 </div>
                 <div className="h-px bg-slate-200 dark:bg-slate-700 my-4"></div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-600 dark:text-slate-400">Show/Hide Help</span>

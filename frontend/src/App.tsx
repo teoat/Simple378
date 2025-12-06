@@ -15,11 +15,14 @@ const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m
 const CaseList = lazy(() => import('./pages/CaseList').then(m => ({ default: m.CaseList })));
 const CaseDetail = lazy(() => import('./pages/CaseDetail').then(m => ({ default: m.CaseDetail })));
 const Reconciliation = lazy(() => import('./pages/Reconciliation').then(m => ({ default: m.Reconciliation })));
-const Forensics = lazy(() => import('./pages/Forensics').then(m => ({ default: m.Forensics })));
+const Ingestion = lazy(() => import('./pages/Ingestion').then(m => ({ default: m.Ingestion })));
+const Categorization = lazy(() => import('./pages/Categorization').then(m => ({ default: m.Categorization })));
+const Visualization = lazy(() => import('./pages/Visualization').then(m => ({ default: m.Visualization })));
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const AdjudicationQueue = lazy(() => import('./pages/AdjudicationQueue').then(m => ({ default: m.AdjudicationQueue })));
 const SemanticSearch = lazy(() => import('./pages/SemanticSearch').then(m => ({ default: m.SemanticSearch })));
 const SearchAnalytics = lazy(() => import('./pages/SearchAnalytics').then(m => ({ default: m.SearchAnalytics })));
+const Summary = lazy(() => import('./pages/Summary').then(m => ({ default: m.Summary })));
 
 // Loading fallback component
 function PageLoader() {
@@ -52,11 +55,14 @@ function App() {
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/cases" element={<CaseList />} />
-                  <Route path="/cases/:id" element={<CaseDetail />} />
-                  <Route path="/adjudication" element={<AdjudicationQueue />} />
-                  <Route path="/reconciliation" element={<Reconciliation />} />
-                  <Route path="/forensics" element={<Forensics />} />
-                  <Route path="/search" element={<SemanticSearch />} />
+                   <Route path="/cases/:id" element={<CaseDetail />} />
+                   <Route path="/cases/:caseId/summary" element={<Summary />} />
+                   <Route path="/adjudication" element={<AdjudicationQueue />} />
+                   <Route path="/reconciliation" element={<Reconciliation />} />
+                   <Route path="/ingestion" element={<Ingestion />} />
+                   <Route path="/categorization" element={<Categorization />} />
+                   <Route path="/visualization" element={<Visualization />} />
+                   <Route path="/search" element={<SemanticSearch />} />
                   <Route path="/analytics" element={<SearchAnalytics />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>

@@ -21,7 +21,9 @@ export function registerServiceWorker() {
       navigator.serviceWorker
         .register('/sw.js') // Updated to match our service worker file
         .then((registration) => {
-          console.log('ServiceWorker registered: ', registration);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('ServiceWorker registered: ', registration);
+          }
 
           // Check for updates
           registration.addEventListener('updatefound', () => {
@@ -62,7 +64,9 @@ export function requestBackgroundSync() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.ready.then(() => {
       // Background sync not supported in all browsers
-      console.log('Service worker ready, background sync not implemented');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Service worker ready, background sync not implemented');
+      }
     });
   }
 }

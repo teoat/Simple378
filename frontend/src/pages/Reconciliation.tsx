@@ -6,13 +6,23 @@ import { TransactionRow } from '../components/reconciliation/TransactionRow';
 import { FileUploader } from '../components/forensics/FileUploader';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
 import { ReconciliationSkeleton } from '../components/reconciliation/ReconciliationSkeleton';
-import { ArrowRight, CheckCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle, AlertTriangle, Clock, Zap } from 'lucide-react';
 
 export function Reconciliation() {
   const [threshold, setThreshold] = useState(0.8);
   const [draggedItem, setDraggedItem] = useState<{ id: string; type: 'expense' | 'bank' } | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [simulationMode, setSimulationMode] = useState(false);
   const queryClient = useQueryClient();
+
+  // Mock account status data
+  const accountStatuses = [
+    { id: 'bca-4589', name: 'BCA **** 4589', status: 'complete', coverage: 100, transactions: 145 },
+    { id: 'mandiri-7823', name: 'Mandiri **** 7823', status: 'partial', coverage: 67, transactions: 67 },
+    { id: 'bni-1256', name: 'BNI **** 1256', status: 'complete', coverage: 100, transactions: 89 },
+    { id: 'bri-9012', name: 'BRI **** 9012', status: 'missing', coverage: 0, transactions: 0 },
+    { id: 'cimb-3456', name: 'CIMB **** 3456', status: 'missing', coverage: 0, transactions: 0 },
+  ];
 
   const { data: expenses, isLoading: expensesLoading } = useQuery({
     queryKey: ['reconciliation', 'expenses'],
@@ -148,6 +158,72 @@ export function Reconciliation() {
         </div>
       </div>
 
+      {/* Account Status Overview */}
+      <div className="backdrop-blur-lg bg-white/10 dark:bg-slate-900/20 rounded-xl border border-white/20 dark:border-slate-700/30 shadow-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Bank Account Status</h2>
+          <button
+            onClick={() => setSimulationMode(!simulationMode)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              simulationMode
+                ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }`}
+          >
+            <Zap className="h-4 w-4" />
+            {simulationMode ? 'Disable Simulation' : 'Enable Simulation'}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          {accountStatuses.map((account) => {
+            const getStatusIcon = () => {
+              switch (account.status) {
+                case 'complete': return <CheckCircle className="h-5 w-5 text-green-500" />;
+                case 'partial': return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+                case 'missing': return <Clock className="h-5 w-5 text-red-500" />;
+                default: return <Clock className="h-5 w-5 text-slate-400" />;
+              }
+            };
+
+            const getStatusColor = () => {
+              switch (account.status) {
+                case 'complete': return 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20';
+                case 'partial': return 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20';
+                case 'missing': return 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20';
+                default: return 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50';
+              }
+            };
+
+            return (
+              <div key={account.id} className={`p-4 rounded-lg border ${getStatusColor()}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-slate-900 dark:text-white">{account.name}</span>
+                  {getStatusIcon()}
+                </div>
+                <div className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
+                  <div>Status: <span className="capitalize font-medium">{account.status}</span></div>
+                  <div>Coverage: {account.coverage}%</div>
+                  <div>Transactions: {account.transactions}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {simulationMode && (
+          <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+            <div className="flex items-center gap-2 text-purple-800 dark:text-purple-200">
+              <Zap className="h-4 w-4" />
+              <span className="font-medium">Simulation Mode Active</span>
+            </div>
+            <p className="text-sm text-purple-700 dark:text-purple-300 mt-1">
+              Estimating missing transactions from 2 accounts based on historical patterns and expense claims.
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Upload Section */}
       <div className="backdrop-blur-lg bg-white/10 dark:bg-slate-900/20 rounded-xl border border-white/20 dark:border-slate-700/30 shadow-xl p-6 mb-6">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Upload Transactions</h2>
@@ -215,11 +291,21 @@ export function Reconciliation() {
             </div>
           </div>
 
-          {/* Match Indicator */}
-          <div className="hidden lg:flex items-center justify-center">
+          {/* Match Indicator with Visual Connections */}
+          <div className="hidden lg:flex items-center justify-center relative">
             <div className="flex flex-col items-center gap-2">
-              <ArrowRight className="h-12 w-12 text-purple-400 dark:text-cyan-400" />
+              <div className="relative">
+                <ArrowRight className="h-12 w-12 text-purple-400 dark:text-cyan-400" />
+                {/* Animated connection lines for visual feedback */}
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-400/50 to-transparent animate-pulse" />
+                  <div className="absolute top-1/2 right-0 w-2 h-2 bg-purple-400 rounded-full animate-ping" />
+                </div>
+              </div>
               <span className="text-xs text-slate-500 dark:text-slate-400">Drag to match</span>
+              <div className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+                Match Rate: 78% • 15 Unmatched • 8 Flagged
+              </div>
             </div>
           </div>
 

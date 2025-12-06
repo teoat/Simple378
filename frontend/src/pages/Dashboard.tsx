@@ -6,7 +6,7 @@ import { RiskDistributionChart } from '../components/dashboard/RiskDistributionC
 import { WeeklyActivityChart } from '../components/dashboard/WeeklyActivityChart';
 import { DashboardSkeleton } from '../components/dashboard/DashboardSkeleton';
 import { DashboardWidget } from '../components/dashboard/DashboardWidget';
-import { BarChart3, TrendingUp, Users, AlertCircle, Plus } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, AlertCircle, Plus, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
@@ -127,6 +127,82 @@ export function Dashboard() {
               icon={TrendingUp}
               index={3}
             />
+          </div>
+        </DashboardWidget>
+
+        {/* Data Quality Alerts Widget */}
+        <DashboardWidget title="Data Quality Alerts">
+          <div className="space-y-4">
+            {/* Critical Alert */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-start gap-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20"
+            >
+              <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-semibold text-red-800 dark:text-red-200">Critical: Forensic Balance Sheet Unavailable</h4>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                  127 transactions (15%) remain uncategorized. Complete categorization to enable advanced fraud detection.
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <button className="px-3 py-1 text-xs bg-red-100 text-red-800 rounded-md hover:bg-red-200 dark:bg-red-800 dark:text-red-200 dark:hover:bg-red-700 transition-colors">
+                    Go to Categorization
+                  </button>
+                  <button className="px-3 py-1 text-xs text-red-700 dark:text-red-300 hover:underline">
+                    Review Items
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Warning Alert */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="flex items-start gap-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20"
+            >
+              <Clock className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-semibold text-yellow-800 dark:text-yellow-200">Warning: Reconciliation Stalled</h4>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                  45 unmatched items require manual review. Process has been paused for 26 hours.
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <button className="px-3 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-md hover:bg-yellow-200 dark:bg-yellow-800 dark:text-yellow-200 dark:hover:bg-yellow-700 transition-colors">
+                    Open Reconciliation
+                  </button>
+                  <button className="px-3 py-1 text-xs text-yellow-700 dark:text-yellow-300 hover:underline">
+                    Assign Reviewer
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Info Alert */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex items-start gap-4 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20"
+            >
+              <CheckCircle className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-semibold text-blue-800 dark:text-blue-200">Info: Visualization Charts Outdated</h4>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                  Charts last updated 3.5 hours ago. Sync pending from reconciliation data.
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <button className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 dark:bg-blue-800 dark:text-blue-200 dark:hover:bg-blue-700 transition-colors">
+                    Refresh Now
+                  </button>
+                  <button className="px-3 py-1 text-xs text-blue-700 dark:text-blue-300 hover:underline">
+                    View Details
+                  </button>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </DashboardWidget>
 

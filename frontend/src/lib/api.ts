@@ -347,6 +347,38 @@ export const api = {
       }>
     >(`/cases/${id}/timeline`),
 
+  // Bulk Operations
+  bulkArchiveCases: (ids: string[]) =>
+    request<{ count: number }>('/cases/bulk/archive', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    }),
+
+  bulkAssignCases: (ids: string[], userId: string) =>
+    request<{ count: number }>('/cases/bulk/assign', {
+      method: 'POST',
+      body: JSON.stringify({ ids, assigned_to: userId }),
+    }),
+
+  bulkDeleteCases: (ids: string[]) =>
+    request<{ count: number }>('/cases/bulk/delete', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    }),
+
+  bulkExportCases: (ids: string[]) =>
+    fetch(`${API_V1}/cases/bulk/export`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getAuthToken()}`,
+      },
+      body: JSON.stringify({ ids }),
+    }).then((res) => {
+      if (!res.ok) throw new Error('Export failed');
+      return res.blob();
+    }),
+
   // Graph
   getGraph: (subjectId: string) =>
     request<{
@@ -421,6 +453,70 @@ export const api = {
       body: JSON.stringify(transactions),
     }),
 
+  // Ingestion Wizard
+  createUploadSession: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return fetch(`${API_V1}/ingestion/session`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${getAuthToken()}` },
+      body: formData,
+    }).then(res => {
+      if (!res.ok) throw new Error('Upload session creation failed');
+      return res.json();
+    });
+  },
+
+  previewMapping: (uploadId: string, mapping: Record<string, string>) =>
+    request<Array<Record<string, unknown>>>(`/ingestion/${uploadId}/preview`, {
+      method: 'POST',
+      body: JSON.stringify(mapping),
+    }),
+
+  finishImport: (uploadId: string, mapping: Record<string, string>, subjectId: string, bankName: string) =>
+    request<{ count: number; status: string }>(`/ingestion/${uploadId}/finish`, {
+      method: 'POST',
+      body: JSON.stringify({ mapping, subject_id: subjectId, bank_name: bankName }),
+    }),
+
+  analyzeRedactions: (
+    uploadId: string, 
+    mapping: Record<string, string>,
+    startBalance?: number,
+    endBalance?: number
+  ) =>
+    request<{
+      gaps: Array<{ type: string; inferred_value: string; confidence: number; context: string }>;
+      balance_findings: Array<{ type: string; inferred_value: number; confidence: number; context: string }>;
+      total_analyzed: number;
+    }>(`/ingestion/${uploadId}/analyze-redactions`, {
+      method: 'POST',
+      body: JSON.stringify({ mapping, start_balance: startBalance, end_balance: endBalance }),
+    }),
+
+      body: JSON.stringify({ mapping, start_balance: startBalance, end_balance: endBalance }),
+    }),
+    endBalance?: number
+  ) =>
+    request<{
+      gaps: Array<{ type: string; inferred_value: string; confidence: number; context: string }>;
+      balance_findings: Array<{ type: string; inferred_value: number; confidence: number; context: string }>;
+      total_analyzed: number;
+    }>(`/ingestion/${uploadId}/analyze-redactions`, {
+      method: 'POST',
+      body: JSON.stringify({ mapping, start_balance: startBalance, end_balance: endBalance }),
+    }),
+
+  // Visualization
+  getFinancialKPIs: () =>
+    request<Record<string, { value: number; trend: number; direction: string }>>('/visualization/kpis'),
+
+  getExpenseTrend: () =>
+    request<Array<{ name: string; amount: number }>>('/visualization/expenses'),
+
+  getBalanceSheet: () =>
+    request<Array<{ name: string; children: Array<{ name: string; size: number }> }>>('/visualization/balance-sheet'),
+
   // Forensics
   analyzeFile: (file: File) => {
     const formData = new FormData();
@@ -494,7 +590,7 @@ export const api = {
     }),
 
   // Adjudication
-  getAdjudicationQueue: (page = 1, limit = 100) =>
+  getAdjudicationQueue: (page = 1, limit = 100, sortBy: 'risk_score' | 'created_at' | 'priority' = 'priority', sortOrder: 'asc' | 'desc' = 'desc') =>
     request<{
       items: Array<{
         id: string;
@@ -518,7 +614,7 @@ export const api = {
       total: number;
       page: number;
       pages: number;
-    }>(`/adjudication/queue?page=${page}&limit=${limit}`),
+    }>(`/adjudication/queue?page=${page}&limit=${limit}&sort_by=${sortBy}&sort_order=${sortOrder}`),
 
   submitDecision: (analysisId: string, decision: string, notes?: string) =>
     request<{
@@ -599,6 +695,130 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  // Comments
+  getComments: (caseId: string) =>
+    request<
+      Array<{
+        id: string;
+        case_id: string;
+        user_id: string;
+        user_name: string;
+        user_avatar?: string;
+        content: string;
+        created_at: string;
+        parent_id?: string;
+        attachments?: Array<{ name: string; url: string; type: string }>;
+      }>
+    >(`/cases/${caseId}/comments`),
+
+  addComment: (caseId: string, content: string, parentId?: string) =>
+    request<{
+      id: string;
+      case_id: string;
+      user_id: string;
+      user_name: string;
+      content: string;
+      created_at: string;
+      parent_id?: string;
+    }>(`/cases/${caseId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content, parent_id: parentId }),
+    }),
+
+  deleteComment: (commentId: string) =>
+    request(`/comments/${commentId}`, {
+      method: 'DELETE',
+    }),
+
+  // Categorization
+  getCategorizationTransactions: (params?: { search?: string; category?: string; uncategorized?: boolean }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.search) searchParams.append('search', params.search);
+    if (params?.category) searchParams.append('category', params.category);
+    if (params?.uncategorized) searchParams.append('uncategorized', 'true');
+
+    return request<{
+      transactions: Array<{
+        id: string;
+        date: string;
+        description: string;
+        amount: number;
+        category: string | null;
+        confidence: number;
+        source: string;
+        ai_suggestion?: string;
+        ai_confidence?: number;
+      }>;
+      total: number;
+      categorized: number;
+      uncategorized: number;
+    }>(`/categorization/transactions?${searchParams.toString()}`);
+  },
+
+  getCategorizationCategories: () =>
+    request<string[]>('/categorization/categories'),
+
+  getCategorizationAISuggestions: () =>
+    request<Array<{
+      transactionId: string;
+      suggestedCategory: string;
+      confidence: number;
+      reasoning: string;
+    }>>('/categorization/ai-suggestions'),
+
+  categorizeTransaction: (transactionId: string, category: string) =>
+    request<{
+      id: string;
+      category: string;
+      confidence: number;
+      updated_at: string;
+    }>(`/categorization/transactions/${transactionId}/categorize`, {
+      method: 'POST',
+      body: JSON.stringify({ category }),
+    }),
+
+  bulkCategorizeTransactions: (transactionIds: string[], category: string) =>
+    request<{
+      categorized: number;
+      failed: number;
+      errors?: string[];
+    }>('/categorization/bulk-categorize', {
+      method: 'POST',
+      body: JSON.stringify({ transactionIds, category }),
+    }),
+
+  // Case Summary
+  getCaseSummary: (caseId: string) =>
+    request<{
+      id: string;
+      subject_name: string;
+      status: string;
+      risk_score: number;
+      created_at: string;
+      completed_at?: string;
+      confidence?: number;
+      findings?: Array<{
+        id: string;
+        type: string;
+        title: string;
+        description: string;
+        impact?: string;
+        recommendation?: string;
+      }>;
+      ingestion_stats?: {
+        records_processed: number;
+        files_ingested: number;
+      };
+      reconciliation_stats?: {
+        match_rate: number;
+        conflicts_resolved: number;
+      };
+      adjudication_stats?: {
+        decisions_made: number;
+        avg_resolution_time: string;
+      };
+    }>(`/cases/${caseId}/summary`),
 };
 
 export { ApiError };

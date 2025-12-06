@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Lock, Chrome, Building2, Smartphone, Mail, Key } from 'lucide-react';
+import { PasswordlessModal } from './PasswordlessModal';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -9,7 +10,35 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [touched, setTouched] = useState({ email: false, password: false });
+  const [showPasswordlessModal, setShowPasswordlessModal] = useState(false);
   const { login } = useAuth();
+
+  // SSO Handlers
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    try {
+      // TODO: Implement Google OAuth - needs OAuth provider configuration
+      toast.error('Google OAuth not yet implemented');
+    } catch (error) {
+      console.error('Google login failed:', error);
+      toast.error('Google login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleMicrosoftLogin = async () => {
+    setIsLoading(true);
+    try {
+      // TODO: Implement Microsoft OAuth - needs OAuth provider configuration
+      toast.error('Microsoft OAuth not yet implemented');
+    } catch (error) {
+      console.error('Microsoft login failed:', error);
+      toast.error('Microsoft login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Validation Logic
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -178,7 +207,58 @@ export function LoginForm() {
             'Sign in'
           )}
         </motion.button>
+
+        {/* Divider */}
+        <div className="relative mt-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200 dark:border-slate-700" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400">Or continue with</span>
+          </div>
+        </div>
+
+        {/* SSO Buttons */}
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleGoogleLogin}
+            disabled={isLoading}
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 h-10 px-4 py-2 w-full text-slate-900 dark:text-slate-100"
+          >
+            <Chrome className="h-4 w-4 mr-2" />
+            Google
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleMicrosoftLogin}
+            disabled={isLoading}
+            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 h-10 px-4 py-2 w-full text-slate-900 dark:text-slate-100"
+          >
+            <Building2 className="h-4 w-4 mr-2" />
+            Microsoft
+          </motion.button>
+        </div>
+
+        {/* Passwordless Authentication */}
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => setShowPasswordlessModal(true)}
+            className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+          >
+            Try passwordless sign in
+          </button>
+        </div>
       </form>
+
+      {/* Passwordless Modal */}
+      <PasswordlessModal
+        isOpen={showPasswordlessModal}
+        onClose={() => setShowPasswordlessModal(false)}
+      />
     </div>
   );
 }
