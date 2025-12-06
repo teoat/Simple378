@@ -1,11 +1,11 @@
 import { useState, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useHotkeys } from 'react-hotkeys-hook';
 import toast from 'react-hot-toast';
 import { api } from '../lib/api';
 import { cn } from '../lib/utils';
-import { Clock, FileText, Network, DollarSign, ChevronLeft, Shield, AlertTriangle, CheckCircle, Download, Edit } from 'lucide-react';
+import { Clock, FileText, Network, DollarSign, Shield, AlertTriangle, CheckCircle, Download, Edit } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EntityGraph } from '../components/visualizations/EntityGraph';
 import { Timeline } from '../components/visualizations/Timeline';
@@ -13,6 +13,7 @@ import { FinancialSankey } from '../components/visualizations/FinancialSankey';
 import { RiskBar } from '../components/cases/RiskBar';
 import { StatusBadge } from '../components/cases/StatusBadge';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
+import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 
 const tabs = [
   { name: 'Overview', id: 'overview', icon: FileText },
@@ -124,15 +125,14 @@ export function CaseDetail()  {
 
   return (
     <PageErrorBoundary pageName="Case Detail">
-      <div className="p-8 space-y-8 min-h-screen bg-slate-50/50 dark:bg-slate-900/50">
-      {/* Navigation */}
-      <Link 
-        to="/cases" 
-        className="inline-flex items-center text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
-      >
-        <ChevronLeft className="h-4 w-4 mr-1" />
-        Back to Cases
-      </Link>
+      <div className="p-8 space-y-6 min-h-screen bg-slate-50/50 dark:bg-slate-900/50">
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[
+          { label: 'Cases', href: '/cases' },
+          { label: `Case ${caseData.id.slice(0, 8)}` },
+        ]}
+      />
 
       {/* Header Card */}
       <div className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-slate-700/50 p-6">

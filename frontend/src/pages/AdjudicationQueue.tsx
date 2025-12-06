@@ -8,7 +8,10 @@ import { api } from '../lib/api';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
 import { AdjudicationQueueSkeleton } from '../components/adjudication/AdjudicationQueueSkeleton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { Badge } from '../components/ui/Badge';
 import toast from 'react-hot-toast';
+import { CheckCircle } from 'lucide-react';
 
 // Map AnalysisResult from API to Alert interface
 function mapAnalysisResultToAlert(result: {
@@ -234,25 +237,20 @@ export function AdjudicationQueue() {
         <div className="col-span-3 flex flex-col h-full">
           <div className="mb-4 flex justify-between items-center">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">Queue</h2>
-            <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-1 rounded text-xs font-medium">
+            <Badge variant="purple" icon={<span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />}>
               {queueData?.total || 0} Pending
-            </span>
+            </Badge>
           </div>
           
           <div className="flex-1 flex flex-col overflow-hidden">
             {alerts.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
-                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                  <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-1">
-                  {page > 1 ? 'Page is empty' : 'Queue is empty'}
-                </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {page > 1 ? 'No alerts on this page' : 'All alerts have been reviewed'}
-                </p>
+              <div className="flex-1 flex items-center justify-center">
+                <EmptyState
+                  icon={CheckCircle}
+                  title={page > 1 ? 'Page is empty' : 'Queue is empty'}
+                  description={page > 1 ? 'No alerts on this page. Try going back to previous pages.' : 'All alerts have been reviewed. Great work!'}
+                  className="py-8"
+                />
               </div>
             ) : (
               <div className="flex-1 overflow-hidden">

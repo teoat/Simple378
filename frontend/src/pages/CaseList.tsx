@@ -17,6 +17,8 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { cn } from '../lib/utils';
 import { NewCaseModal } from '../components/cases/NewCaseModal';
 import { Modal } from '../components/ui/Modal';
+import { EmptyState } from '../components/ui/EmptyState';
+import { Tooltip } from '../components/ui/Tooltip';
 
 const SortIcon = ({ column, sortBy, sortOrder }: { column: string; sortBy: string; sortOrder: 'asc' | 'desc' }) => {
   if (sortBy !== column) return null;
@@ -360,9 +362,11 @@ export function CaseList() {
                         {new Date(case_.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label="Actions">
-                          <MoreVertical className="h-4 w-4" />
-                        </button>
+                        <Tooltip content="More actions">
+                          <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label="Actions">
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        </Tooltip>
                       </td>
                     </motion.tr>
                   ))}
@@ -370,12 +374,16 @@ export function CaseList() {
               </table>
 
               {data?.items.length === 0 && (
-                <div className="text-center py-20">
-                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Search className="h-8 w-8 text-slate-400" />
-                  </div>
-                  <h3 className="text-lg font-medium text-slate-900 dark:text-white">No cases found</h3>
-                  <p className="text-slate-500 dark:text-slate-400 mt-1">Try adjusting your search or filters</p>
+                <div className="py-8">
+                  <EmptyState
+                    icon={Search}
+                    title="No cases found"
+                    description={searchQuery ? "Try adjusting your search query or filters" : "Create your first case to get started"}
+                    action={!searchQuery ? {
+                      label: "Create New Case",
+                      onClick: () => setIsNewCaseModalOpen(true)
+                    } : undefined}
+                  />
                 </div>
               )}
             </div>

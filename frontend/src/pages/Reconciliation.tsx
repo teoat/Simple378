@@ -6,7 +6,9 @@ import { TransactionRow } from '../components/reconciliation/TransactionRow';
 import { FileUploader } from '../components/forensics/FileUploader';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
 import { ReconciliationSkeleton } from '../components/reconciliation/ReconciliationSkeleton';
-import { ArrowRight, CheckCircle } from 'lucide-react';
+import { EmptyState } from '../components/ui/EmptyState';
+import { Badge } from '../components/ui/Badge';
+import { ArrowRight, CheckCircle, Upload, FileText } from 'lucide-react';
 
 export function Reconciliation() {
   const [threshold, setThreshold] = useState(0.8);
@@ -112,9 +114,14 @@ export function Reconciliation() {
 
   return (
     <PageErrorBoundary pageName="Reconciliation">
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6 min-h-screen bg-slate-50/50 dark:bg-slate-900/50">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Transaction Reconciliation</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Transaction Reconciliation</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Match expenses with bank transactions automatically or manually
+          </p>
+        </div>
         <div className="flex gap-4 items-center">
           <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
             Confidence Threshold:
@@ -132,7 +139,7 @@ export function Reconciliation() {
           <button
             onClick={() => autoReconcileMutation.mutate()}
             disabled={autoReconcileMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 backdrop-blur-md bg-blue-600/90 dark:bg-blue-500/90 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 font-medium border border-blue-400/20 disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all font-medium border border-blue-400/20 disabled:opacity-50"
           >
             <CheckCircle className="h-5 w-5" />
             {autoReconcileMutation.isPending ? 'Running...' : 'Auto-Reconcile'}
@@ -175,9 +182,12 @@ export function Reconciliation() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-6">
           {/* Expenses Column */}
           <div className="backdrop-blur-lg bg-white/10 dark:bg-slate-900/20 rounded-xl border border-white/20 dark:border-slate-700/30 shadow-xl p-6">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-              Expenses ({expenses?.length ?? 0})
-            </h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Expenses
+              </h2>
+              <Badge variant="info">{expenses?.length ?? 0} items</Badge>
+            </div>
             <div className="space-y-2 max-h-[600px] overflow-y-auto">
               {expenses?.map((expense) => (
                 <div
@@ -200,9 +210,12 @@ export function Reconciliation() {
                 </div>
               ))}
               {expenses?.length === 0 && (
-                <div className="text-center py-8 text-slate-500">
-                  No expenses found
-                </div>
+                <EmptyState
+                  icon={FileText}
+                  title="No expenses found"
+                  description="Upload expense reports to begin reconciliation"
+                  className="py-12"
+                />
               )}
             </div>
           </div>
@@ -217,9 +230,12 @@ export function Reconciliation() {
 
           {/* Transactions Column */}
           <div className="backdrop-blur-lg bg-white/10 dark:bg-slate-900/20 rounded-xl border border-white/20 dark:border-slate-700/30 shadow-xl p-6">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-              Transactions ({transactions?.length ?? 0})
-            </h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Transactions
+              </h2>
+              <Badge variant="success">{transactions?.length ?? 0} items</Badge>
+            </div>
             <div className="space-y-2 max-h-[600px] overflow-y-auto">
               {transactions?.map((transaction) => (
                 <div
@@ -242,9 +258,12 @@ export function Reconciliation() {
                 </div>
               ))}
               {transactions?.length === 0 && (
-                <div className="text-center py-8 text-slate-500">
-                  No transactions found
-                </div>
+                <EmptyState
+                  icon={Upload}
+                  title="No transactions found"
+                  description="Upload bank statements to begin reconciliation"
+                  className="py-12"
+                />
               )}
             </div>
           </div>
