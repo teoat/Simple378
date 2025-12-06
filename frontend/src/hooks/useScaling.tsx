@@ -6,9 +6,11 @@ import { useCallback, useRef } from 'react';
 export class LoadBalancer {
   private servers: string[];
   private currentIndex = 0;
+  private strategy: 'round-robin' | 'least-connections';
 
-  constructor(servers: string[]) {
+  constructor(servers: string[], strategy: 'round-robin' | 'least-connections' = 'round-robin') {
     this.servers = servers;
+    this.strategy = strategy;
   }
 
   /**
@@ -24,12 +26,17 @@ export class LoadBalancer {
    * Least-connections load balancing
    */
   async getServerWithLeastConnections(): Promise<string> {
+    // If only one server, return it
+    if (this.servers.length === 1) {
+      return this.servers[0];
+    }
+
     const loads = await Promise.all(
       this.servers.map(async (server) => {
         try {
           const response = await fetch(`${server}/api/health/load`);
           const data = await response.json();
-          return { server, load: data.connections };
+          return { server, load: data.connections as number };
         } catch {
           return { server, load: Infinity };
         }
@@ -39,6 +46,19 @@ export class LoadBalancer {
     const best = loads.reduce((min, current) => (current.load < min.load ? current : min));
     return best.server;
   }
+
+  /**
+   * Get current strategy
+   */
+  getStrategy(): string {
+    return this.strategy;
+  }
+}
+
+interface CacheEntry {
+  value: unknown;
+  ttl: number;
+  timestamp: number;
 }
 
 /**
@@ -75,13 +95,14 @@ export class DistributedCache {
     return null;
   }
 
-  async set(key: string, value: any, ttl: number = 3600): Promise<boolean> {
+  async set(key: string, value: unknown, ttl: number = 3600): Promise<boolean> {
     const server = this.getServerForKey(key);
     try {
+      const cacheEntry: CacheEntry = { value, ttl, timestamp: Date.now() };
       const response = await fetch(`${server}/cache/${key}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value, ttl, timestamp: Date.now() }),
+        body: JSON.stringify(cacheEntry),
       });
       return response.ok;
     } catch (error) {
@@ -118,7 +139,7 @@ export function useDistributedCache(cacheServers: string[]) {
     return cacheRef.current.get<T>(key);
   }, []);
 
-  const set = useCallback(async (key: string, value: any, ttl?: number): Promise<boolean> => {
+  const set = useCallback(async (key: string, value: unknown, ttl?: number): Promise<boolean> => {
     return cacheRef.current.set(key, value, ttl);
   }, []);
 

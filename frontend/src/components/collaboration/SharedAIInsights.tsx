@@ -76,7 +76,7 @@ export function SharedAIInsights({
 
   // Filter and sort insights
   const filteredInsights = useMemo(() => {
-    let filtered = insights.filter(insight => {
+    const filtered = insights.filter(insight => {
       // Search filter
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();

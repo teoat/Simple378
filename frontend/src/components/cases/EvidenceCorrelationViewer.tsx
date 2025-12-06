@@ -165,7 +165,7 @@ export function EvidenceCorrelationViewer({
         </div>
         <div className="flex items-center gap-2">
           <Button
-            variant={showCorrelations ? 'default' : 'outline'}
+            variant={showCorrelations ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setShowCorrelations(!showCorrelations)}
           >

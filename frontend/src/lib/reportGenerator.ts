@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 
@@ -382,7 +381,7 @@ export class ReportGenerator {
     });
   }
 
-  private renderSignatureSection(pdf: jsPDF, section: ReportSection, data: any, yPosition: number): void {
+  private renderSignatureSection(pdf: jsPDF, _section: ReportSection, _data: any, yPosition: number): void {
     pdf.text('Investigator: ___________________________', 20, yPosition);
     pdf.text('Date: ___________________________', 20, yPosition + 10);
     pdf.text('Signature: ___________________________', 20, yPosition + 25);

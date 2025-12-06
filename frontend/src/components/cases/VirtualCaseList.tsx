@@ -2,8 +2,8 @@ import { useState, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Plus, Briefcase, ChevronRight } from 'lucide-react';
-import { apiRequest } from '../lib/api';
+import { Search, Briefcase, ChevronRight } from 'lucide-react';
+import { api } from '../../lib/api';
 
 interface Case {
   id: string;
@@ -26,7 +26,7 @@ export function VirtualCaseList({ height = 600, itemHeight = 80 }: VirtualCaseLi
 
   const { data: cases, isLoading } = useQuery({
     queryKey: ['cases'],
-    queryFn: () => apiRequest<Case[]>('/cases/'),
+    queryFn: () => api.get<Case[]>('/cases/'),
     retry: false,
   });
 

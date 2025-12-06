@@ -185,10 +185,10 @@ export function ForceDirectedGraph({
 
     simulation.on('tick', () => {
       link
-        .attr('x1', (d) => d.source.x as number)
-        .attr('y1', (d) => d.source.y as number)
-        .attr('x2', (d) => d.target.x as number)
-        .attr('y2', (d) => d.target.y as number);
+        .attr('x1', (d) => (d.source as NodeDatum).x as number)
+        .attr('y1', (d) => (d.source as NodeDatum).y as number)
+        .attr('x2', (d) => (d.target as NodeDatum).x as number)
+        .attr('y2', (d) => (d.target as NodeDatum).y as number);
 
       node
         .attr('cx', (d) => d.x as number)

@@ -217,7 +217,7 @@ ${summary.recommendations.map(r => `• ${r}`).join('\n')}
         </div>
         <div className="flex items-center gap-2">
           <Button
-            variant={showDetails ? 'default' : 'outline'}
+            variant={showDetails ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setShowDetails(!showDetails)}
           >

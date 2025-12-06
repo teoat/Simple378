@@ -212,7 +212,7 @@ export function FinancialFlowAnalysis({
               ].map(({ id, icon: Icon, label }) => (
                 <Button
                   key={id}
-                  variant={viewMode === id ? 'default' : 'outline'}
+                  variant={viewMode === id ? 'primary' : 'outline'}
                   size="sm"
                   onClick={() => setViewMode(id as any)}
                   className="flex items-center gap-1"
