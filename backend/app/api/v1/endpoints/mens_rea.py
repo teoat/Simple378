@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 from app.schemas import mens_rea as schemas
@@ -6,7 +6,6 @@ from app.models import mens_rea as models
 from app.services.detectors.structuring import StructuringDetector
 from app.services.detectors.velocity import VelocityDetector
 from app.services.detectors.mirroring import MirroringDetector
-import uuid
 
 router = APIRouter()
 

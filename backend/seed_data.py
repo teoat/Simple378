@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from app.db.session import AsyncSessionLocal
 from app.db.models import Subject
 from app.models.mens_rea import AnalysisResult
-from sqlalchemy import select
 
 import uuid
 

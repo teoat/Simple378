@@ -1,10 +1,9 @@
-from typing import TypedDict, Annotated, List, Sequence
+from typing import TypedDict, Annotated, Sequence
 import operator
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langgraph.graph import StateGraph, END
 from app.services.ai.llm_service import LLMService
 from app.services.ai.prompts import (
-    SUPERVISOR_PROMPT, 
     FRAUD_ANALYST_PROMPT, 
     DOCUMENT_PROCESSOR_PROMPT, 
     REPORT_GENERATOR_PROMPT
@@ -78,7 +77,6 @@ class Orchestrator:
         """
         Fraud analyst analyzes transactions using ScoringService and LLM.
         """
-        from app.services.scoring import ScoringService
         
         case_id = state.get("case_id")
         messages = state["messages"]

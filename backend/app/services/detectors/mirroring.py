@@ -22,7 +22,8 @@ class MirroringDetector:
         amount_map = {}
         for tx in transactions:
             amt = float(tx.get("amount", 0))
-            if amt == 0: continue
+            if amt == 0:
+                continue
             
             # Use absolute amount for grouping
             abs_amt = abs(amt)
