@@ -3,57 +3,108 @@ Health monitoring endpoints for observability and SLA tracking.
 Provides real-time system health metrics, alerts, and performance data.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.orm import Session
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 import time
 import psutil
+import json
 
 from app.core.auth import get_current_user
 from app.db.base import get_db
 from app.db.models import User
+from app.services.cache_service import cache
+from app.core.cache import set_cache_headers, add_etag
 
 router = APIRouter(prefix="/monitoring", tags=["monitoring"])
 
 
 class HealthMetrics:
-    """Real-time system health metrics"""
+    """Persistent system health metrics using Redis"""
+    METRICS_KEY = "health_metrics"
+    RESPONSE_TIMES_KEY = "response_times"
+
     def __init__(self):
         self.start_time = datetime.utcnow()
-        self.total_requests = 0
-        self.total_errors = 0
-        self.response_times = []
 
-    def record_request(self, response_time_ms: float, is_error: bool = False):
+    async def _load_metrics(self) -> Dict:
+        """Load metrics from Redis"""
+        try:
+            data = await cache.get(self.METRICS_KEY)
+            if data:
+                return json.loads(data)
+            return {
+                "total_requests": 0,
+                "total_errors": 0,
+                "start_time": self.start_time.isoformat()
+            }
+        except Exception:
+            # Fallback to in-memory if Redis fails
+            return {
+                "total_requests": 0,
+                "total_errors": 0,
+                "start_time": self.start_time.isoformat()
+            }
+
+    async def _save_metrics(self, metrics: Dict):
+        """Save metrics to Redis with 24h TTL"""
+        try:
+            await cache.set(self.METRICS_KEY, json.dumps(metrics), ttl=86400)
+        except Exception:
+            # Silently fail if Redis is unavailable
+            pass
+
+    async def record_request(self, response_time_ms: float, is_error: bool = False):
         """Record a request and its metrics"""
-        self.total_requests += 1
-        self.response_times.append(response_time_ms)
+        metrics = await self._load_metrics()
+        metrics["total_requests"] += 1
         if is_error:
-            self.total_errors += 1
-        # Keep only last 1000 samples
-        if len(self.response_times) > 1000:
-            self.response_times.pop(0)
+            metrics["total_errors"] += 1
 
-    @property
-    def average_response_time(self) -> float:
-        """Calculate average response time"""
-        if not self.response_times:
+        # Store response time in a separate sorted set for percentile calculations
+        try:
+            await cache.redis_client.zadd(self.RESPONSE_TIMES_KEY, {str(time.time()): response_time_ms})
+            # Keep only last 1000 response times
+            await cache.redis_client.zremrangebyrank(self.RESPONSE_TIMES_KEY, 0, -1001)
+        except Exception:
+            pass
+
+        await self._save_metrics(metrics)
+
+    async def get_average_response_time(self) -> float:
+        """Calculate average response time from Redis"""
+        try:
+            response_times = await cache.redis_client.zrange(self.RESPONSE_TIMES_KEY, 0, -1, withscores=True)
+            if not response_times:
+                return 0
+            return sum(score for _, score in response_times) / len(response_times)
+        except Exception:
             return 0
-        return sum(self.response_times) / len(self.response_times)
 
-    @property
-    def error_rate(self) -> float:
+    async def get_total_requests(self) -> int:
+        """Get total requests from Redis"""
+        metrics = await self._load_metrics()
+        return metrics.get("total_requests", 0)
+
+    async def get_total_errors(self) -> int:
+        """Get total errors from Redis"""
+        metrics = await self._load_metrics()
+        return metrics.get("total_errors", 0)
+
+    async def get_error_rate(self) -> float:
         """Calculate error rate (0.0 to 1.0)"""
-        if self.total_requests == 0:
+        total_requests = await self.get_total_requests()
+        if total_requests == 0:
             return 0
-        return self.total_errors / self.total_requests
+        total_errors = await self.get_total_errors()
+        return total_errors / total_requests
 
-    @property
-    def uptime(self) -> float:
+    async def get_uptime(self) -> float:
         """Calculate uptime since start (0.0 to 1.0)"""
         # For demo: assume 99.95% uptime unless errors exceed threshold
-        if self.error_rate > 0.05:
+        error_rate = await self.get_error_rate()
+        if error_rate > 0.05:
             return 0.95
         return 0.9995
 
@@ -64,6 +115,7 @@ _global_metrics = HealthMetrics()
 
 @router.get("/health")
 async def get_system_health(
+    response: Response,
     current_user: User = Depends(get_current_user),
 ) -> Dict:
     """
@@ -82,10 +134,10 @@ async def get_system_health(
     # Simulate system metrics
     cpu_percent = psutil.cpu_percent(interval=0.1)
     memory_info = psutil.virtual_memory()
-    
-    response_time_ms = _global_metrics.average_response_time or 125
-    error_rate = _global_metrics.error_rate * 100
-    uptime = _global_metrics.uptime * 100
+
+    response_time_ms = await _global_metrics.get_average_response_time() or 125
+    error_rate = (await _global_metrics.get_error_rate()) * 100
+    uptime = (await _global_metrics.get_uptime()) * 100
     
     # Determine health status
     if error_rate > 5 or response_time_ms > 1000 or uptime < 99:
@@ -134,7 +186,7 @@ async def get_system_health(
             "threshold": 85,
         })
     
-    return {
+    health_data = {
         "status": status_str,
         "response_time": response_time_ms,
         "error_rate": error_rate,
@@ -145,6 +197,12 @@ async def get_system_health(
         "alerts": alerts,
         "timestamp": datetime.utcnow().isoformat(),
     }
+    
+    # Set cache headers - health data valid for 30 seconds
+    set_cache_headers(response, max_age=30, is_public=False)
+    add_etag(response, health_data)
+    
+    return health_data
 
 
 @router.get("/metrics")
@@ -164,15 +222,16 @@ async def get_detailed_metrics(
         - p50, p95, p99 latencies
         - error breakdown
     """
+    avg_response_time = await _global_metrics.get_average_response_time()
     return {
         "time_range": f"{time_range_minutes} minutes",
-        "p50_latency_ms": _global_metrics.average_response_time * 0.5,
-        "p95_latency_ms": _global_metrics.average_response_time * 1.5,
-        "p99_latency_ms": _global_metrics.average_response_time * 2.0,
+        "p50_latency_ms": avg_response_time * 0.5,
+        "p95_latency_ms": avg_response_time * 1.5,
+        "p99_latency_ms": avg_response_time * 2.0,
         "requests_per_second": 45.3,
-        "total_requests": _global_metrics.total_requests,
-        "total_errors": _global_metrics.total_errors,
-        "error_rate": _global_metrics.error_rate * 100,
+        "total_requests": await _global_metrics.get_total_requests(),
+        "total_errors": await _global_metrics.get_total_errors(),
+        "error_rate": (await _global_metrics.get_error_rate()) * 100,
         "errors_by_type": {
             "4xx": 32,
             "5xx": 18,

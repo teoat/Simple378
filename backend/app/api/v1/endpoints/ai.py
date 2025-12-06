@@ -68,7 +68,7 @@ async def chat_with_ai(
                 case_uuid = UUID(case_id)
                 # Get basic case info for context
                 from app.db.models import Subject
-                from app.models.mens_rea import AnalysisResult
+                from app.db.models import AnalysisResult
 
                 subject_result = await db.execute(
                     db.select(Subject).where(Subject.id == case_uuid)
@@ -165,7 +165,7 @@ async def analyze_case_with_ai(
 
         # Get case data
         from app.db.models import Subject, Transaction
-        from app.models.mens_rea import AnalysisResult
+        from app.db.models import AnalysisResult
 
         subject_result = await db.execute(
             db.select(Subject).where(Subject.id == case_uuid)

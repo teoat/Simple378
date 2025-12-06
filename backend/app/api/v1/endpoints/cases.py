@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from typing import Optional
+from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
 import uuid
 
@@ -315,11 +315,12 @@ async def get_case_financials(
     if not subject:
         raise HTTPException(status_code=404, detail="Case not found")
 
-    # Fetch transactions
+    # Fetch transactions (limit to 5000 to prevent OOM)
     result = await db.execute(
         select(Transaction)
         .where(Transaction.subject_id == case_uuid)
         .order_by(Transaction.date)
+        .limit(5000)
     )
     transactions = result.scalars().all()
 

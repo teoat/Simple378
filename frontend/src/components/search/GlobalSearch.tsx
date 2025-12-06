@@ -1,103 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
-import { Search, X, Filter, Clock, Bookmark } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../lib/api';
+import { useNavigate } from 'react-router-dom';
 
-interface SearchResult {
-  id: string;
-  name: string;
-  type: string;
-  _index: string;
-  risk_score?: number;
-  amount?: number;
-  date?: string;
-  description?: string;
-  _formatted?: any;
-}
+// ... inside component ...
+  const navigate = useNavigate();
 
-
-
-interface SearchComponentProps {
-  onResultClick?: (result: SearchResult) => void;
-  placeholder?: string;
-  className?: string;
-  showFacets?: boolean;
-}
-
-export function GlobalSearch({
-  onResultClick,
-  placeholder = "Search cases, transactions, evidence...",
-  className = "",
-  showFacets = true
-}: SearchComponentProps) {
-  const queryClient = useQueryClient();
-  const [query, setQuery] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
-  const [showPresets, setShowPresets] = useState(false);
-  const [presetName, setPresetName] = useState('');
-  const searchRef = useRef<HTMLDivElement>(null);
-
-  // Search query
-  const { data: searchResults, isLoading } = useQuery({
-    queryKey: ['search', query, selectedFilters],
-    queryFn: () => api.post('/search/advanced-search', {
-      query,
-      index: 'all',
-      limit: 10,
-      filters: selectedFilters.length > 0 ? {
-        type: selectedFilters
-      } : null
-    }),
-    enabled: query.length > 2,
-    staleTime: 30000 // 30 seconds
-  });
-
-  // Search suggestions
-  const { data: suggestions } = useQuery({
-    queryKey: ['search-suggestions', query],
-    queryFn: () => api.get(`/search/suggestions?q=${encodeURIComponent(query)}`),
-    enabled: query.length > 1 && query.length < 3,
-    staleTime: 60000 // 1 minute
-  });
-
-  // Search presets
-  const { data: presets } = useQuery({
-    queryKey: ['search-presets'],
-    queryFn: () => api.get('/search/presets'),
-    staleTime: 300000 // 5 minutes
-  });
-
-  // Save preset mutation
-  const savePresetMutation = useMutation({
-    mutationFn: (preset: any) => api.post('/search/presets', preset),
-    onSuccess: () => {
-      setPresetName('');
-      setShowPresets(false);
-      // Invalidate presets query
-      queryClient.invalidateQueries({ queryKey: ['search-presets'] });
-    }
-  });
-
-  // Close search when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
+// ... inside handleResultClick ...
   const handleResultClick = (result: SearchResult) => {
     if (onResultClick) {
       onResultClick(result);
     } else {
       // Default navigation based on result type
       if (result._index === 'cases') {
-        window.location.href = `/cases/${result.id}`;
+        navigate(`/cases/${result.id}`);
       } else if (result._index === 'transactions') {
         // Navigate to case that contains this transaction
         // This would need additional logic to find the case ID

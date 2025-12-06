@@ -50,7 +50,7 @@ async def upload_transactions(
     bank_name: str = Form(...),
     file: UploadFile = File(...),
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(deps.verify_active_analyst)
 ):
     """
     Upload a CSV file of transactions for a specific subject and bank.
@@ -75,7 +75,7 @@ async def upload_transactions(
 @router.post("/auto-map", response_model=List[ColumnMapping])
 async def auto_map_columns(
     request: AutoMapRequest,
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(deps.verify_active_analyst)
 ):
     """
     Use AI to automatically map CSV headers to transaction fields.
@@ -90,7 +90,7 @@ async def auto_map_columns(
 async def create_transactions_batch(
     transactions: List[schemas.TransactionCreate],
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(deps.verify_active_analyst)
 ):
     """
     Batch create transactions from mapped JSON data.
@@ -122,7 +122,7 @@ async def create_transactions_batch(
 @router.post("/upload-init", response_model=UploadInitResponse)
 async def init_upload(
     file: UploadFile = File(...),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(deps.verify_active_analyst)
 ):
     """
     Step 1: Upload file, detect headers, and get AI mapping suggestions.
@@ -146,7 +146,7 @@ async def init_upload(
 @router.post("/mapping/preview")
 async def preview_mapping(
     request: PreviewRequest,
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(deps.verify_active_analyst)
 ):
     """
     Step 2: Preview data with applied mapping.
@@ -167,7 +167,7 @@ async def preview_mapping(
 async def process_mapped(
     request: ProcessMappedRequest,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(deps.verify_active_analyst)
 ):
     """
     Step 3: Process the full file with confirmed mapping.

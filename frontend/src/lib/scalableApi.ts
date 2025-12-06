@@ -97,16 +97,16 @@ export class ScalableApiClient {
   }
 
   private setCacheEntry(key: string, data: unknown, ttl: number = 60000): void {
+    // If cache is full, force cleanup to maintain size (simple LRU approximation)
+    if (this.inMemoryCache.size >= 100) {
+      this.cleanupCache(true);
+    }
+
     this.inMemoryCache.set(key, {
       data,
       timestamp: Date.now(),
       ttl,
     });
-
-    // Cleanup old entries periodically
-    if (this.inMemoryCache.size > 100) {
-      this.cleanupCache();
-    }
   }
 
   private getCacheEntry(key: string): unknown | null {
@@ -122,12 +122,22 @@ export class ScalableApiClient {
     return entry.data;
   }
 
-  private cleanupCache(): void {
+  private cleanupCache(force: boolean = false): void {
     const now = Date.now();
+    // 1. Delete expired entries
     for (const [key, entry] of this.inMemoryCache.entries()) {
       if (now - entry.timestamp > entry.ttl) {
         this.inMemoryCache.delete(key);
       }
+    }
+    
+    // 2. If still over limit and forced, delete oldest entries (LRU-ish by insertion time)
+    if (force && this.inMemoryCache.size >= 100) {
+        // Map is ordered by insertion. Delete the first key.
+        const firstKey = this.inMemoryCache.keys().next().value;
+        if (firstKey) {
+            this.inMemoryCache.delete(firstKey);
+        }
     }
   }
 

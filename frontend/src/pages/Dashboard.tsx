@@ -7,7 +7,7 @@ import {
   TrendingUp, TrendingDown, ArrowRight, Users,
   FileText, Activity
 } from 'lucide-react';
-import { apiRequest } from '../lib/api';
+import { api } from '../lib/api';
 import {
   LineChartWrapper,
   PieChartWrapper
@@ -38,7 +38,7 @@ export function Dashboard() {
 
   const { data: metrics, isLoading } = useQuery({
     queryKey: ['dashboard', 'metrics'],
-    queryFn: () => apiRequest<DashboardMetrics>('/dashboard/metrics'),
+    queryFn: () => api.get<DashboardMetrics>('/dashboard/metrics'),
     retry: false,
   });
 

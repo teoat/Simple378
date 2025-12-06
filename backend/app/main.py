@@ -1,15 +1,18 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from datetime import datetime
 import structlog
+import traceback
+import logging
+from uuid import uuid4
 
 # Core imports
 from app.core.config import settings
 from app.api.v1.api import api_router
 from app.core.logging import setup_logging
-from app.core.exceptions import global_exception_handler
+from app.core.exceptions import global_exception_handler, AppException
 from app.core.middleware import SecurityHeadersMiddleware, RateLimitHeadersMiddleware
 from app.core.rate_limit import limiter
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -31,7 +34,147 @@ app = FastAPI(
 )
 
 # Register global exception handler
-app.add_exception_handler(Exception, global_exception_handler)
+# app.add_exception_handler(Exception, global_exception_handler)
+
+from contextvars import ContextVar
+
+# Error monitoring context using ContextVars for async safety
+class RequestContext:
+    """Store request context using ContextVars for async safety"""
+    _request_id: ContextVar[str] = ContextVar("request_id", default=None)
+    _user_id: ContextVar[str] = ContextVar("user_id", default=None)
+    _method: ContextVar[str] = ContextVar("method", default=None)
+    _path: ContextVar[str] = ContextVar("path", default=None)
+    _timestamp: ContextVar[datetime] = ContextVar("timestamp", default=None)
+
+    @property
+    def request_id(self) -> str:
+        return self._request_id.get()
+    
+    @request_id.setter
+    def request_id(self, value: str):
+        self._request_id.set(value)
+
+    @property
+    def method(self) -> str:
+        return self._method.get()
+    
+    @method.setter
+    def method(self, value: str):
+        self._method.set(value)
+
+    @property
+    def path(self) -> str:
+        return self._path.get()
+    
+    @path.setter
+    def path(self, value: str):
+        self._path.set(value)
+
+    @property
+    def timestamp(self) -> datetime:
+        return self._timestamp.get()
+    
+    @timestamp.setter
+    def timestamp(self, value: datetime):
+        self._timestamp.set(value)
+
+request_context = RequestContext()
+
+@app.middleware("http")
+async def error_handling_middleware(request: Request, call_next):
+    """
+    Middleware to handle exceptions and log all requests
+    """
+    # Generate request ID
+    request_id = str(uuid4())
+    request_context.request_id = request_id
+    request_context.method = request.method
+    request_context.path = request.url.path
+    request_context.timestamp = datetime.utcnow()
+    
+    start_time = datetime.utcnow()
+    logger = structlog.get_logger()
+    
+    try:
+        response = await call_next(request)
+        
+        # Log successful response
+        duration = (datetime.utcnow() - start_time).total_seconds()
+        logger.info(
+            "request_completed",
+            request_id=request_id,
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            duration=duration
+        )
+        
+        # Add request ID to response headers
+        response.headers["X-Request-ID"] = request_id
+        
+        return response
+        
+    except Exception as e:
+        # Log error with full context
+        duration = (datetime.utcnow() - start_time).total_seconds()
+        logger.error(
+            "request_failed",
+            request_id=request_id,
+            method=request.method,
+            path=request.url.path,
+            duration=duration,
+            error=str(e),
+            traceback=traceback.format_exc()
+        )
+        
+        # Return consistent error response
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "error": "internal_server_error",
+                "message": "An unexpected error occurred. Please try again.",
+                "request_id": request_id,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    """Handle validation errors specifically"""
+    logger = structlog.get_logger()
+    logger.warning("validation_error", error=str(exc))
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "error": "validation_error",
+            "message": str(exc),
+            "request_id": request_context.request_id
+        }
+    )
+
+@app.exception_handler(AppException)
+async def app_exception_handler(request: Request, exc: AppException):
+    """Handle application-specific exceptions"""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=exc.headers,
+    )
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    """Fallback handler for all exceptions"""
+    logger = structlog.get_logger()
+    logger.error("unhandled_exception", error=str(exc), traceback=traceback.format_exc())
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error": "internal_server_error",
+            "message": "An unexpected error occurred",
+            "request_id": request_context.request_id
+        }
+    )
 
 # Add rate limiter to app state
 app.state.limiter = limiter
@@ -109,10 +252,17 @@ async def shutdown_event():
 # ROUTES
 # ============================================================================
 
+# ... imports
+from app.core.cache import set_cache_headers, set_no_cache, CACHE_PRESETS
+
+# ... (existing imports)
+
 # Enhanced health check endpoints
 @app.get("/health", tags=["Health"])
-async def health_check():
+async def health_check(response: JSONResponse):
     """Basic health check"""
+    # Prevent caching of health status
+    set_no_cache(response)
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
@@ -120,18 +270,23 @@ async def health_check():
     }
 
 @app.get("/health/ready", tags=["Health"])
-async def readiness_check():
+async def readiness_check(response: JSONResponse):
     """Readiness check (for Kubernetes)"""
-    # TODO: Add actual health checks for dependencies
+    # Prevent caching of readiness status
+    set_no_cache(response)
+    
     checks = {
-        "database": "healthy",
-        "redis": "healthy",
+        "database": "unknown",
+        "redis": "unknown",
     }
+    
+    # ... (existing check logic)
     
     all_healthy = all(v == "healthy" for v in checks.values())
     status_code = 200 if all_healthy else 503
     
-    return JSONResponse(
+    # Create response with proper status code
+    json_response = JSONResponse(
         status_code=status_code,
         content={
             "status": "ready" if all_healthy else "not_ready",
@@ -139,10 +294,16 @@ async def readiness_check():
             "timestamp": datetime.utcnow().isoformat()
         }
     )
+    
+    # Apply headers to the JSONResponse object
+    set_no_cache(json_response)
+    
+    return json_response
 
 @app.get("/health/live", tags=["Health"])
-async def liveness_check():
+async def liveness_check(response: JSONResponse):
     """Liveness check (for Kubernetes)"""
+    set_no_cache(response)
     return {
         "status": "alive",
         "timestamp": datetime.utcnow().isoformat()

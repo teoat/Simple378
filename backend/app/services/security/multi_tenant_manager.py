@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import and_, or_, func
 from app.db.models import Subject, Transaction, AuditLog, User
-from app.models.mens_rea import AnalysisResult
+from app.db.models import AnalysisResult
 
 class MultiTenantManager:
     """

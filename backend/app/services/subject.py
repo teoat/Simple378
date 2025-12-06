@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from app.db.models import Subject
-from app.models.mens_rea import AnalysisResult
+from app.db.models import AnalysisResult
 import uuid
 
 class SubjectService:

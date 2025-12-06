@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import desc, and_, or_
 from app.db.models import Subject, Transaction, AuditLog
-from app.models.mens_rea import AnalysisResult
+from app.db.models import AnalysisResult
 from app.services.ai.ml_model_trainer import MLModelTrainer
 from app.services.notification_service import NotificationService
 

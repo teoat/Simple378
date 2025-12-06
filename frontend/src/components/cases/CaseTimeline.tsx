@@ -15,9 +15,6 @@ import { Button } from '../ui/Button';
 import {
   Calendar,
   Filter,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   Eye,
   EyeOff
 } from 'lucide-react';
@@ -70,17 +67,21 @@ export function CaseTimeline({
     comments: true
   });
 
+  // Memoize default date range to avoid impure render calls
+  const defaultDateRange = useMemo(() => ({
+    start: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
+  }), []);
+
   // Default filters
-  const defaultFilters: TimelineFilters = {
-    dateRange: {
-      start: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      end: new Date().toISOString().split('T')[0]
-    },
-    eventTypes: ['transaction', 'analysis', 'evidence', 'comment', 'status_change'],
-    categories: [],
-    users: [],
-    ...filters
-  };
+  const defaultFilters: TimelineFilters = useMemo(() => ({
+    dateRange: filters.dateRange || defaultDateRange,
+    eventTypes: filters.eventTypes || ['transaction', 'analysis', 'evidence', 'comment', 'status_change'],
+    categories: filters.categories || [],
+    users: filters.users || [],
+    minAmount: filters.minAmount,
+    maxAmount: filters.maxAmount
+  }), [filters, defaultDateRange]);
 
   // Filter events based on current filters
   const filteredEvents = useMemo(() => {
@@ -167,8 +168,8 @@ export function CaseTimeline({
 
   // Get unique values for filter options
   const filterOptions = useMemo(() => {
-    const categories = [...new Set(events.map(e => e.category).filter(Boolean))];
-    const users = [...new Set(events.map(e => e.user).filter(Boolean))];
+    const categories = [...new Set(events.map(e => e.category).filter((c): c is string => !!c))];
+    const users = [...new Set(events.map(e => e.user).filter((u): u is string => !!u))];
     const eventTypes = [...new Set(events.map(e => e.type))];
 
     return { categories, users, eventTypes };
@@ -192,11 +193,6 @@ export function CaseTimeline({
     }
   };
 
-  const getTrendIcon = (current: number, previous: number) => {
-    if (current > previous) return <TrendingUp className="h-3 w-3 text-green-500" />;
-    if (current < previous) return <TrendingDown className="h-3 w-3 text-red-500" />;
-    return <Minus className="h-3 w-3 text-slate-400" />;
-  };
 
   return (
     <Card className="w-full">

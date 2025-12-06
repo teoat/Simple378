@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import and_, or_, desc
 from app.db.models import Subject, Transaction, AuditLog, ActionType
-from app.models.mens_rea import AnalysisResult
+from app.db.models import AnalysisResult
 from app.services.ai.case_classifier import CaseClassifier
 
 class WorkflowEngine:

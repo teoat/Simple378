@@ -326,9 +326,27 @@ Example response format:
                     "currency": "USD"
                 }
 
-            except Exception as e:
-                print(f"Error parsing row: {row} - {e}")
-                return None
+        except Exception as e:
+            print(f"Error parsing row: {row} - {e}")
+            return None
+
+        
+    @staticmethod
+    def _cleanup_old_uploads(upload_dir: str, max_age_seconds: int = 3600):
+        """Clean up files older than max_age_seconds"""
+        import time
+        try:
+            now = time.time()
+            for f in os.listdir(upload_dir):
+                f_path = os.path.join(upload_dir, f)
+                if os.path.isfile(f_path):
+                    if now - os.path.getmtime(f_path) > max_age_seconds:
+                        try:
+                            os.remove(f_path)
+                        except OSError:
+                            pass
+        except Exception:
+            pass # Silent fail on cleanup to avoid blocking main flow
 
     @staticmethod
     async def init_upload(file_obj, filename: str, upload_dir: str) -> Dict[str, Any]:
@@ -336,6 +354,10 @@ Example response format:
         Step 1: Save file and get suggested mappings.
         """
         os.makedirs(upload_dir, exist_ok=True)
+        
+        # Trigger cleanup of old files (fire and forget-ish)
+        IngestionService._cleanup_old_uploads(upload_dir)
+        
         file_id = str(uuid.uuid4())
         file_path = os.path.join(upload_dir, f"{file_id}.csv")
         
@@ -347,7 +369,8 @@ Example response format:
             df = pd.read_csv(file_path, nrows=0)
             headers = df.columns.tolist()
         except Exception as e:
-            os.remove(file_path) # Cleanup on valid check fail
+            if os.path.exists(file_path):
+                os.remove(file_path) # Cleanup on valid check fail
             raise HTTPException(status_code=400, detail=f"Invalid CSV file: {str(e)}")
         
         # Get AI mapping suggestions

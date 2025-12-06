@@ -9,6 +9,7 @@ export { scalableApi as api, scalableApi as default } from './scalableApi';
 import { scalableApi } from './scalableApi';
 
 /**
+ * @deprecated Use `api` (scalableApi) directly instead.
  * apiRequest function for backward compatibility
  * Used in components that expect a function-style API call
  */
@@ -17,7 +18,16 @@ export async function apiRequest<T = any>(
   options?: RequestInit
 ): Promise<T> {
   const method = options?.method?.toUpperCase() || 'GET';
-  const body = options?.body ? JSON.parse(options.body as string) : undefined;
+  
+  // Fix double parsing: If body is string, parse it. If object, use as is.
+  let body = options?.body;
+  if (typeof body === 'string') {
+    try {
+        body = JSON.parse(body);
+    } catch {
+        // use as string if not valid JSON
+    }
+  }
   
   switch (method) {
     case 'POST':

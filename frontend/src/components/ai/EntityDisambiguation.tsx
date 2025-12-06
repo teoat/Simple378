@@ -4,16 +4,15 @@ import { Button } from '../ui/Button';
 import {
   Users,
   Link,
-  Unlink,
-  AlertTriangle,
-  CheckCircle,
   Search,
   Merge,
-  Split,
-  Eye,
   RefreshCw
 } from 'lucide-react';
 import { api } from '../../lib/api';
+
+interface EntityAnalysisResponse {
+  matches: EntityMatch[];
+}
 
 interface Entity {
   id: string;
@@ -70,7 +69,7 @@ export function EntityDisambiguation({
   const analyzeEntities = async () => {
     setIsAnalyzing(true);
     try {
-      const response = await api.post('/ai/entity-disambiguation', {
+      const response = await api.post<EntityAnalysisResponse>('/ai/entity-disambiguation', {
         entities: filteredEntities
       });
 
@@ -233,6 +232,7 @@ export function EntityDisambiguation({
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value)}
                     className="px-2 py-1 text-sm border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900"
+                    aria-label="Filter entity type"
                   >
                     {entityTypes.map(type => (
                       <option key={type.value} value={type.value}>
@@ -260,6 +260,7 @@ export function EntityDisambiguation({
                       checked={selectedEntities.has(entity.id)}
                       onChange={() => toggleEntitySelection(entity.id)}
                       className="rounded"
+                      aria-label={`Select ${entity.name}`}
                     />
                     <span className="text-lg">{getEntityIcon(entity.type)}</span>
                     <div className="flex-1">

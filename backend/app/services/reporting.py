@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func, desc, and_, or_
 from app.db.models import Subject, Transaction, AuditLog
-from app.models.mens_rea import AnalysisResult
+from app.db.models import AnalysisResult
 
 class ReportingService:
     def __init__(self):

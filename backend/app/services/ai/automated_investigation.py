@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import desc, and_, or_, update
 from app.db.models import Subject, Transaction, AuditLog, ActionType
-from app.models.mens_rea import AnalysisResult
+from app.db.models import AnalysisResult
 from app.services.ai.llm_service import LLMService
 from app.services.ai.case_classifier import CaseClassifier
 from app.services.ai.predictive_fraud_prevention import PredictiveFraudPrevention

@@ -6,7 +6,6 @@ import {
   FileText,
   Users,
   Link,
-  AlertTriangle,
   CheckCircle,
   Eye,
   Download,
@@ -14,6 +13,10 @@ import {
   Zap
 } from 'lucide-react';
 import { api } from '../../lib/api';
+
+interface RelationshipExtractionResponse {
+  relationships: ExtractedRelationship[];
+}
 
 interface ExtractedRelationship {
   id: string;
@@ -55,7 +58,6 @@ export function RelationshipExtraction({
   documents,
   entities,
   onRelationshipAdd,
-  onRelationshipEdit
 }: RelationshipExtractionProps) {
   const [isExtracting, setIsExtracting] = useState(false);
   const [relationships, setRelationships] = useState<ExtractedRelationship[]>([]);
@@ -110,7 +112,7 @@ export function RelationshipExtraction({
   const extractRelationships = async () => {
     setIsExtracting(true);
     try {
-      const response = await api.post('/ai/extract-relationships', {
+      const response = await api.post<RelationshipExtractionResponse>('/ai/extract-relationships', {
         documents: selectedDocument ? documents.filter(d => d.id === selectedDocument) : documents,
         entities: entities
       });
@@ -242,6 +244,7 @@ export function RelationshipExtraction({
                     value={selectedDocument || ''}
                     onChange={(e) => setSelectedDocument(e.target.value || null)}
                     className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900"
+                    aria-label="Source Documents"
                   >
                     <option value="">All documents ({documents.length})</option>
                     {documents.map(doc => (
@@ -274,6 +277,7 @@ export function RelationshipExtraction({
                       value={filterType}
                       onChange={(e) => setFilterType(e.target.value)}
                       className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900"
+                      aria-label="Relationship Type"
                     >
                       {relationshipTypes.map(type => (
                         <option key={type.value} value={type.value}>
@@ -295,6 +299,7 @@ export function RelationshipExtraction({
                       value={minConfidence}
                       onChange={(e) => setMinConfidence(parseFloat(e.target.value))}
                       className="w-full"
+                      aria-label="Minimum Confidence"
                     />
                   </div>
                 </div>

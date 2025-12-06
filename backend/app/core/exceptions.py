@@ -21,6 +21,14 @@ class PermissionDeniedException(AppException):
     def __init__(self, detail: str = "Permission denied"):
         super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
 
+import structlog
+
+# ... imports ...
+
+logger = structlog.get_logger()
+
+# ... existing classes ...
+
 async def global_exception_handler(request: Request, exc: Exception):
     if isinstance(exc, AppException):
         return JSONResponse(
@@ -29,7 +37,9 @@ async def global_exception_handler(request: Request, exc: Exception):
             headers=exc.headers,
         )
     
-    # Log unknown exceptions here (logging setup will handle this)
+    # Log unknown exceptions here
+    logger.error("Unhandled exception", error=str(exc), exc_info=True, path=request.url.path)
+    
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": "Internal Server Error"},

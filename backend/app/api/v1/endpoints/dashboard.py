@@ -23,7 +23,7 @@ async def get_dashboard_metrics(
 
     # Count high risk subjects (risk_score > 80)
     # We need to import AnalysisResult inside the function or at top level if circular imports allow
-    from app.models.mens_rea import AnalysisResult
+    from app.db.models import AnalysisResult
     
     result_high_risk = await db.execute(
         select(func.count(AnalysisResult.id)).where(AnalysisResult.risk_score > 80)

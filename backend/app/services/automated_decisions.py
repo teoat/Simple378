@@ -4,7 +4,7 @@ import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.db.models import Subject, AuditLog, ActionType
-from app.models.mens_rea import AnalysisResult
+from app.db.models import AnalysisResult
 from app.services.workflow_engine import WorkflowEngine
 
 class NotificationService:

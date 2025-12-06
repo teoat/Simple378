@@ -1,0 +1,167 @@
+
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+src/components/admin/EnterpriseDashboard.tsx(1,1): error TS6192: All imports in import declaration are unused.
+src/components/admin/EnterpriseDashboard.tsx(3,1): error TS6133: 'Button' is declared but its value is never read.
+src/components/admin/EnterpriseDashboard.tsx(10,39): error TS6133: 'sendCustomMetric' is declared but its value is never read.
+src/components/admin/EnterpriseDashboard.tsx(11,11): error TS6133: 'slaStatus' is declared but its value is never read.
+src/components/ai/AIAssistant.tsx(4,26): error TS6133: 'CaseInsight' is declared but its value is never read.
+src/components/ai/AIAssistant.tsx(12,5): error TS6133: 'analyzeCase' is declared but its value is never read.
+src/components/ai/AIAssistant.tsx(17,5): error TS6133: 'setCurrentCaseId' is declared but its value is never read.
+src/components/ai/EntityDisambiguation.tsx(7,3): error TS6133: 'Unlink' is declared but its value is never read.
+src/components/ai/EntityDisambiguation.tsx(8,3): error TS6133: 'AlertTriangle' is declared but its value is never read.
+src/components/ai/EntityDisambiguation.tsx(9,3): error TS6133: 'CheckCircle' is declared but its value is never read.
+src/components/ai/EntityDisambiguation.tsx(12,3): error TS6133: 'Split' is declared but its value is never read.
+src/components/ai/EntityDisambiguation.tsx(13,3): error TS6133: 'Eye' is declared but its value is never read.
+src/components/ai/EntityDisambiguation.tsx(47,3): error TS6133: 'onEntitySeparate' is declared but its value is never read.
+src/components/ai/EntityDisambiguation.tsx(48,3): error TS6133: 'onEntityUpdate' is declared but its value is never read.
+src/components/ai/EntityDisambiguation.tsx(77,18): error TS18046: 'response' is of type 'unknown'.
+src/components/ai/RelationshipExtraction.tsx(9,3): error TS6133: 'AlertTriangle' is declared but its value is never read.
+src/components/ai/RelationshipExtraction.tsx(58,3): error TS6133: 'onRelationshipEdit' is declared but its value is never read.
+src/components/ai/RelationshipExtraction.tsx(118,57): error TS18046: 'response' is of type 'unknown'.
+src/components/analytics/GraphAnalytics.tsx(13,3): error TS6133: 'Eye' is declared but its value is never read.
+src/components/analytics/GraphAnalytics.tsx(80,42): error TS18046: 'response' is of type 'unknown'.
+src/components/analytics/GraphAnalytics.tsx(101,28): error TS18046: 'response' is of type 'unknown'.
+src/components/analytics/GraphAnalytics.tsx(112,9): error TS6133: 'findShortestPath' is declared but its value is never read.
+src/components/analytics/GraphAnalytics.tsx(119,23): error TS18046: 'response' is of type 'unknown'.
+src/components/analytics/GraphAnalytics.tsx(120,15): error TS18046: 'response' is of type 'unknown'.
+src/components/analytics/GraphAnalytics.tsx(121,19): error TS18046: 'response' is of type 'unknown'.
+src/components/analytics/GraphAnalytics.tsx(178,7): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+src/components/analytics/GraphAnalytics.tsx(178,31): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+src/components/analytics/GraphAnalytics.tsx(183,7): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+src/components/analytics/GraphAnalytics.tsx(183,31): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+src/components/analytics/GraphAnalytics.tsx(403,62): error TS6133: 'index' is declared but its value is never read.
+src/components/cases/CaseComparison.tsx(9,3): error TS6133: 'TrendingDown' is declared but its value is never read.
+src/components/cases/CaseComparison.tsx(12,3): error TS6133: 'AlertTriangle' is declared but its value is never read.
+src/components/cases/CaseComparison.tsx(14,3): error TS6133: 'Clock' is declared but its value is never read.
+src/components/cases/CaseComparison.tsx(38,3): error TS6133: 'onCaseSelect' is declared but its value is never read.
+src/components/cases/CaseComparison.tsx(284,47): error TS6133: 'index' is declared but its value is never read.
+src/components/cases/CaseTimeline.tsx(195,9): error TS6133: 'getTrendIcon' is declared but its value is never read.
+src/components/cases/CaseTimeline.tsx(304,71): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/cases/CaseTimeline.tsx(309,68): error TS2322: Type '(string | undefined)[]' is not assignable to type 'string[]'.
+  Type 'string | undefined' is not assignable to type 'string'.
+    Type 'undefined' is not assignable to type 'string'.
+src/components/cases/EntityGraph.tsx(6,3): error TS6133: 'ZoomIn' is declared but its value is never read.
+src/components/cases/EntityGraph.tsx(7,3): error TS6133: 'ZoomOut' is declared but its value is never read.
+src/components/cases/EntityGraph.tsx(12,3): error TS6133: 'Filter' is declared but its value is never read.
+src/components/cases/EntityGraph.tsx(14,3): error TS6133: 'Info' is declared but its value is never read.
+src/components/cases/EntityGraph.tsx(294,7): error TS2345: Argument of type '(selection: Selection<SVGSVGElement, unknown, any, any> | TransitionLike<SVGSVGElement, unknown>, transform: ZoomTransform | ((this: SVGSVGElement, event: any, d: unknown) => ZoomTransform), point?: [...] | ... 1 more ... | undefined) => void' is not assignable to parameter of type '(transition: Transition<SVGSVGElement | null, unknown, null, undefined>, ...args: any[]) => any'.
+  Types of parameters 'selection' and 'transition' are incompatible.
+    Type 'Transition<SVGSVGElement | null, unknown, null, undefined>' is not assignable to type 'Selection<SVGSVGElement, unknown, any, any> | TransitionLike<SVGSVGElement, unknown>'.
+      Type 'Transition<SVGSVGElement | null, unknown, null, undefined>' is missing the following properties from type 'Selection<SVGSVGElement, unknown, any, any>': classed, property, html, append, and 14 more.
+src/components/cases/FinancialFlowAnalysis.tsx(20,3): error TS6133: 'TrendingDown' is declared but its value is never read.
+src/components/cases/FinancialFlowAnalysis.tsx(318,61): error TS18048: 'percent' is possibly 'undefined'.
+src/components/cases/FinancialFlowAnalysis.tsx(323,38): error TS6133: 'entry' is declared but its value is never read.
+src/components/collaboration/ActivityFeed.tsx(1,20): error TS6133: 'useEffect' is declared but its value is never read.
+src/components/collaboration/ActivityFeed.tsx(55,3): error TS6133: 'realTime' is declared but its value is never read.
+src/components/collaboration/CommentThread.tsx(1,28): error TS6133: 'useEffect' is declared but its value is never read.
+src/components/collaboration/CommentThread.tsx(8,3): error TS6133: 'Clock' is declared but its value is never read.
+src/components/collaboration/CommentThread.tsx(11,3): error TS6133: 'Edit' is declared but its value is never read.
+src/components/collaboration/CommentThread.tsx(12,3): error TS6133: 'Trash2' is declared but its value is never read.
+src/components/collaboration/CommentThread.tsx(49,3): error TS6133: 'onDeleteComment' is declared but its value is never read.
+src/components/collaboration/CommentThread.tsx(58,10): error TS6133: 'showEmojiPicker' is declared but its value is never read.
+src/components/collaboration/CommentThread.tsx(62,26): error TS2304: Cannot find name 'useMemo'.
+src/components/collaboration/CommentThread.tsx(105,9): error TS6133: 'startEditing' is declared but its value is never read.
+src/components/collaboration/CommentThread.tsx(244,72): error TS7006: Parameter 'reply' implicitly has an 'any' type.
+src/components/collaboration/CommentThread.tsx(322,49): error TS7006: Parameter 'comment' implicitly has an 'any' type.
+src/components/collaboration/MentionsNotifications.tsx(2,1): error TS6192: All imports in import declaration are unused.
+src/components/collaboration/MentionsNotifications.tsx(7,3): error TS6133: 'X' is declared but its value is never read.
+src/components/collaboration/SharedAIInsights.tsx(3,1): error TS6133: 'Button' is declared but its value is never read.
+src/components/collaboration/SharedAIInsights.tsx(12,3): error TS6133: 'Tag' is declared but its value is never read.
+src/components/collaboration/SharedAIInsights.tsx(13,3): error TS6133: 'Filter' is declared but its value is never read.
+src/components/collaboration/SharedAIInsights.tsx(68,3): error TS6133: 'onAddComment' is declared but its value is never read.
+src/components/collaboration/SharedAIInsights.tsx(144,9): error TS6133: 'getVoteScore' is declared but its value is never read.
+src/components/compliance/AuditTrail.tsx(7,3): error TS6133: 'Lock' is declared but its value is never read.
+src/components/compliance/AuditTrail.tsx(8,3): error TS6133: 'Eye' is declared but its value is never read.
+src/components/compliance/AuditTrail.tsx(10,3): error TS6133: 'AlertTriangle' is declared but its value is never read.
+src/components/compliance/AuditTrail.tsx(11,3): error TS6133: 'CheckCircle' is declared but its value is never read.
+src/components/compliance/AuditTrail.tsx(16,3): error TS6133: 'Key' is declared but its value is never read.
+src/components/modal/CameraModal.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/modal/CameraModal.tsx(35,5): error TS2339: Property 'pickFile' does not exist on type '{ videoRef: MutableRefObject<HTMLVideoElement | null>; canvasRef: MutableRefObject<HTMLCanvasElement | null>; startCamera: () => Promise<...>; stopCamera: () => void; capturePhoto: () => Promise<...>; }'.
+src/components/modal/CameraModal.tsx(35,5): error TS6133: 'pickFile' is declared but its value is never read.
+src/components/modal/CameraModal.tsx(36,5): error TS2339: Property 'pickMultipleFiles' does not exist on type '{ videoRef: MutableRefObject<HTMLVideoElement | null>; canvasRef: MutableRefObject<HTMLCanvasElement | null>; startCamera: () => Promise<...>; stopCamera: () => void; capturePhoto: () => Promise<...>; }'.
+src/components/modal/CameraModal.tsx(52,9): error TS2322: Type 'boolean' is not assignable to type 'MediaProvider | null'.
+src/components/modal/CameraModal.tsx(68,42): error TS2554: Expected 0 arguments, but got 1.
+src/components/modal/CameraModal.tsx(69,46): error TS2345: Argument of type 'Blob | null' is not assignable to parameter of type 'Blob | MediaSource'.
+  Type 'null' is not assignable to type 'Blob | MediaSource'.
+src/components/modal/CameraModal.tsx(71,21): error TS2345: Argument of type 'Blob | null' is not assignable to parameter of type 'Blob'.
+  Type 'null' is not assignable to type 'Blob'.
+src/components/predictive/PredictiveDashboard.tsx(12,3): error TS6133: 'BarChart3' is declared but its value is never read.
+src/components/predictive/PredictiveDashboard.tsx(16,1): error TS6133: 'Button' is declared but its value is never read.
+src/components/predictive/ScenarioSimulation.tsx(99,23): error TS7006: Parameter 'prev' implicitly has an 'any' type.
+src/components/predictive/ScenarioSimulation.tsx(339,29): error TS2339: Property 'overall_risk' does not exist on type 'ScenarioResult'.
+src/components/predictive/ScenarioSimulation.tsx(340,29): error TS2339: Property 'overall_risk' does not exist on type 'ScenarioResult'.
+src/components/predictive/ScenarioSimulation.tsx(343,31): error TS2339: Property 'overall_risk' does not exist on type 'ScenarioResult'.
+src/components/predictive/ScenarioSimulation.tsx(446,11): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/components/predictive/ScenarioSimulation.tsx(480,32): error TS2345: Argument of type '{}' is not assignable to parameter of type 'ScenarioResult'.
+  Property 'scenario' is missing in type '{}' but required in type 'ScenarioResult'.
+src/components/predictive/TrendAnalysis.tsx(7,3): error TS6133: 'Calendar' is declared but its value is never read.
+src/components/predictive/TrendAnalysis.tsx(14,1): error TS6133: 'Button' is declared but its value is never read.
+src/components/pwa/OfflineSyncStatus.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/pwa/PWAInstallBanner.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/reconciliation/VirtualTransactionList.tsx(3,1): error TS6133: 'motion' is declared but its value is never read.
+src/components/reports/ReportBuilder.tsx(2,25): error TS2307: Cannot find module 'react-dnd' or its corresponding type declarations.
+src/components/reports/ReportBuilder.tsx(3,30): error TS2307: Cannot find module 'react-dnd-html5-backend' or its corresponding type declarations.
+src/components/reports/ReportBuilder.tsx(4,29): error TS2307: Cannot find module 'react-dnd' or its corresponding type declarations.
+src/components/reports/ReportBuilder.tsx(7,3): error TS6133: 'PieChart' is declared but its value is never read.
+src/components/reports/ReportBuilder.tsx(8,3): error TS6133: 'LineChart' is declared but its value is never read.
+src/components/reports/ReportBuilder.tsx(11,3): error TS6133: 'Download' is declared but its value is never read.
+src/components/reports/ReportBuilder.tsx(14,3): error TS6133: 'Settings' is declared but its value is never read.
+src/components/reports/ReportBuilder.tsx(17,3): error TS6133: 'Move' is declared but its value is never read.
+src/components/reports/ReportBuilder.tsx(21,1): error TS6192: All imports in import declaration are unused.
+src/components/reports/ReportBuilder.tsx(98,7): error TS2322: Type '{ x: number; y: number; } | { x: number; y: number; width: number; height: number; }' is not assignable to type '{ x: number; y: number; width: number; height: number; }'.
+  Type '{ x: number; y: number; }' is missing the following properties from type '{ x: number; y: number; width: number; height: number; }': width, height
+src/components/reports/ReportBuilder.tsx(128,36): error TS7006: Parameter 'monitor' implicitly has an 'any' type.
+src/components/reports/ReportBuilder.tsx(141,15): error TS7006: Parameter 'monitor' implicitly has an 'any' type.
+src/components/reports/ReportBuilder.tsx(364,27): error TS2540: Cannot assign to 'current' because it is a read-only property.
+src/components/reports/ReportBuilder.tsx(438,76): error TS2322: Type 'string' is not assignable to type '"area" | "line" | "bar" | "pie" | undefined'.
+src/components/reports/ScheduledReports.tsx(7,3): error TS6133: 'Clock' is declared but its value is never read.
+src/components/reports/ScheduledReports.tsx(9,3): error TS6133: 'Download' is declared but its value is never read.
+src/components/reports/ScheduledReports.tsx(15,3): error TS6133: 'Users' is declared but its value is never read.
+src/components/reports/ScheduledReports.tsx(16,3): error TS6133: 'FileText' is declared but its value is never read.
+src/components/reports/ScheduledReports.tsx(17,3): error TS6133: 'BarChart3' is declared but its value is never read.
+src/components/reports/ScheduledReports.tsx(82,11): error TS2367: This comparison appears to be unintentional because the types '"weekly"' and '"monthly"' have no overlap.
+src/components/reports/ScheduledReports.tsx(85,22): error TS2345: Argument of type '{ name: string; template_id: string; schedule: { day_of_month?: number | undefined; day_of_week?: number | undefined; frequency: "weekly"; time: string; }; recipients: string[]; format: "pdf"; filters: {}; is_active: true; created_by: string; }' is not assignable to parameter of type 'Omit<ScheduledReport, "id" | "created_at" | "last_run" | "next_run">'.
+  Property 'template_name' is missing in type '{ name: string; template_id: string; schedule: { day_of_month?: number | undefined; day_of_week?: number | undefined; frequency: "weekly"; time: string; }; recipients: string[]; format: "pdf"; filters: {}; is_active: true; created_by: string; }' but required in type 'Omit<ScheduledReport, "id" | "created_at" | "last_run" | "next_run">'.
+src/components/reports/ScheduledReports.tsx(120,7): error TS2322: Type '"daily" | "weekly" | "monthly"' is not assignable to type '"weekly"'.
+  Type '"daily"' is not assignable to type '"weekly"'.
+src/components/reports/ScheduledReports.tsx(125,7): error TS2322: Type '"both" | "pdf" | "excel"' is not assignable to type '"pdf"'.
+  Type '"both"' is not assignable to type '"pdf"'.
+src/components/reports/ScheduledReports.tsx(138,11): error TS2367: This comparison appears to be unintentional because the types '"weekly"' and '"monthly"' have no overlap.
+src/components/reports/ScheduledReports.tsx(285,16): error TS2367: This comparison appears to be unintentional because the types '"weekly"' and '"monthly"' have no overlap.
+src/components/search/GlobalSearch.tsx(173,52): error TS2339: Property 'length' does not exist on type '{}'.
+src/components/search/GlobalSearch.tsx(199,45): error TS2339: Property 'facets' does not exist on type '{}'.
+src/components/search/GlobalSearch.tsx(201,49): error TS2339: Property 'facets' does not exist on type '{}'.
+src/components/search/GlobalSearch.tsx(240,41): error TS2339: Property 'hits' does not exist on type '{}'.
+src/components/search/GlobalSearch.tsx(242,30): error TS2339: Property 'hits' does not exist on type '{}'.
+src/components/search/GlobalSearch.tsx(243,31): error TS2339: Property 'hits' does not exist on type '{}'.
+src/components/search/GlobalSearch.tsx(274,42): error TS2339: Property 'hits' does not exist on type '{}'.
+src/components/search/GlobalSearch.tsx(274,71): error TS2339: Property 'length' does not exist on type '{}'.
+src/components/search/GlobalSearch.tsx(279,16): error TS18046: 'suggestions' is of type 'unknown'.
+src/components/search/GlobalSearch.tsx(344,33): error TS2339: Property 'length' does not exist on type '{}'.
+src/components/search/GlobalSearch.tsx(346,26): error TS2339: Property 'map' does not exist on type '{}'.
+src/components/visualization/ForceDirectedGraph.tsx(58,3): error TS6133: 'fitToContainer' is declared but its value is never read.
+src/components/visualization/ForceDirectedGraph.tsx(157,9): error TS2345: Argument of type 'DragBehavior<SVGCircleElement, NodeDatum, NodeDatum | SubjectPosition>' is not assignable to parameter of type '(selection: Selection<BaseType | SVGCircleElement, NodeDatum, SVGGElement, unknown>) => void'.
+  Types of parameters 'selection' and 'selection' are incompatible.
+    Type 'Selection<BaseType | SVGCircleElement, NodeDatum, SVGGElement, unknown>' is not assignable to type 'Selection<SVGCircleElement, NodeDatum, any, any>'.
+      Types of property 'select' are incompatible.
+        Type '{ <DescElement extends BaseType>(selector: string): Selection<DescElement, NodeDatum, SVGGElement, unknown>; <DescElement extends BaseType>(selector: null): Selection<null, undefined, SVGGElement, unknown>; <DescElement extends BaseType>(selector: ValueFn<...>): Selection<...>; }' is not assignable to type '{ <DescElement extends BaseType>(selector: string): Selection<DescElement, NodeDatum, any, any>; <DescElement extends BaseType>(selector: null): Selection<null, undefined, any, any>; <DescElement extends BaseType>(selector: ValueFn<...>): Selection<...>; }'.
+          Types of parameters 'selector' and 'selector' are incompatible.
+            Types of parameters 'groups' and 'groups' are incompatible.
+              Type '(BaseType | SVGCircleElement)[] | ArrayLike<BaseType | SVGCircleElement>' is not assignable to type 'SVGCircleElement[] | ArrayLike<SVGCircleElement>'.
+                Type '(BaseType | SVGCircleElement)[]' is not assignable to type 'SVGCircleElement[] | ArrayLike<SVGCircleElement>'.
+                  Type '(BaseType | SVGCircleElement)[]' is not assignable to type 'SVGCircleElement[]'.
+                    Type 'BaseType | SVGCircleElement' is not assignable to type 'SVGCircleElement'.
+                      Type 'null' is not assignable to type 'SVGCircleElement'.
+src/components/visualization/SankeyFlow.tsx(74,30): error TS2322: Type 'SankeyLink[]' is not assignable to type 'LinkDataItem[]'.
+  Type 'SankeyLink' is not assignable to type 'LinkDataItem'.
+    Types of property 'source' are incompatible.
+      Type 'string | number' is not assignable to type 'number'.
+        Type 'string' is not assignable to type 'number'.
+src/hooks/usePWA.ts(115,32): error TS2339: Property 'sync' does not exist on type 'ServiceWorkerRegistration'.

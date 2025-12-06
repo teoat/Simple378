@@ -9,9 +9,21 @@ import {
   Target,
   Zap,
   RefreshCw,
-  Download,
-  Eye
+  Download
 } from 'lucide-react';
+
+interface CommunityResponse {
+  communities: Community[];
+}
+
+interface CentralityResponse {
+  results: CentralityResult[];
+}
+
+interface ShortestPathResponse {
+  path?: string[];
+  distance: number;
+}
 import { api } from '../../lib/api';
 
 interface GraphNode {
@@ -67,12 +79,14 @@ export function GraphAnalytics({
     path: string[];
     distance: number;
   } | null>(null);
+  const [sourceId, setSourceId] = useState<string>('');
+  const [targetId, setTargetId] = useState<string>('');
 
   // Analyze graph for communities
   const analyzeCommunities = async () => {
     setIsAnalyzing(true);
     try {
-      const response = await api.post('/analysis/graph/communities', {
+      const response = await api.post<CommunityResponse>('/analysis/graph/communities', {
         nodes: graphData.nodes,
         edges: graphData.edges
       });
@@ -92,7 +106,7 @@ export function GraphAnalytics({
   const calculateCentrality = async () => {
     setIsAnalyzing(true);
     try {
-      const response = await api.post('/analysis/graph/centrality', {
+      const response = await api.post<CentralityResponse>('/analysis/graph/centrality', {
         nodes: graphData.nodes,
         edges: graphData.edges,
         metric: selectedMetric
@@ -111,7 +125,7 @@ export function GraphAnalytics({
   // Find shortest path
   const findShortestPath = async (sourceId: string, targetId: string) => {
     try {
-      const response = await api.post('/analysis/graph/shortest-path', {
+      const response = await api.post<ShortestPathResponse>('/analysis/graph/shortest-path', {
         source_id: sourceId,
         target_id: targetId
       });
@@ -173,12 +187,12 @@ export function GraphAnalytics({
     const edgeCount = graphData.edges.length;
     const avgDegree = nodeCount > 0 ? (2 * edgeCount) / nodeCount : 0;
 
-    const nodeTypes = {};
+    const nodeTypes: Record<string, number> = {};
     graphData.nodes.forEach(node => {
       nodeTypes[node.type] = (nodeTypes[node.type] || 0) + 1;
     });
 
-    const edgeTypes = {};
+    const edgeTypes: Record<string, number> = {};
     graphData.edges.forEach(edge => {
       edgeTypes[edge.type] = (edgeTypes[edge.type] || 0) + 1;
     });
@@ -370,6 +384,7 @@ export function GraphAnalytics({
                   value={selectedMetric}
                   onChange={(e) => setSelectedMetric(e.target.value as any)}
                   className="px-2 py-1 text-sm border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900"
+                  aria-label="Select centrality metric"
                 >
                   <option value="degree">Degree</option>
                   <option value="betweenness">Betweenness</option>
@@ -400,7 +415,8 @@ export function GraphAnalytics({
               </div>
             ) : (
               <div className="space-y-2">
-                {centralityResults.slice(0, 10).map((result, index) => (
+                {centralityResults.slice(0, 10).map((result) => (
+
                   <div
                     key={result.node_id}
                     onClick={() => onNodeHighlight?.(result.node_id)}
@@ -445,8 +461,13 @@ export function GraphAnalytics({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Source Node</label>
-              <select className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900">
-                <option>Select source...</option>
+              <select
+                value={sourceId}
+                onChange={(e) => setSourceId(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900"
+                aria-label="Select source node"
+              >
+                <option value="">Select source...</option>
                 {graphData.nodes.map(node => (
                   <option key={node.id} value={node.id}>{node.name}</option>
                 ))}
@@ -454,15 +475,24 @@ export function GraphAnalytics({
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Target Node</label>
-              <select className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900">
-                <option>Select target...</option>
+              <select
+                value={targetId}
+                onChange={(e) => setTargetId(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900"
+                aria-label="Select target node"
+              >
+                <option value="">Select target...</option>
                 {graphData.nodes.map(node => (
                   <option key={node.id} value={node.id}>{node.name}</option>
                 ))}
               </select>
             </div>
             <div className="flex items-end">
-              <Button className="w-full">
+              <Button
+                className="w-full"
+                onClick={() => findShortestPath(sourceId, targetId)}
+                disabled={!sourceId || !targetId || sourceId === targetId}
+              >
                 Find Shortest Path
               </Button>
             </div>

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text, select, func, desc, and_, or_, Index
 from sqlalchemy.orm import selectinload
 from app.db.models import Subject, Transaction, AuditLog, ActionType
-from app.models.mens_rea import AnalysisResult
+from app.db.models import AnalysisResult
 
 class DatabaseOptimizer:
     """

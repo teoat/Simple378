@@ -7,20 +7,22 @@ services:
     ports:
       - "8000:8000"
     command: >
-      bash -c "poetry run alembic upgrade head && \
-               uvicorn app.main:app --host 0.0.0.0 --port 8000"
+      bash -c "uvicorn app.main:app --host 0.0.0.0 --port 8000"
     env_file:
       - .env.production
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - DATABASE_URL=postgresql+asyncpg://fraud_admin_prod:FraudProd2024_Secure_Password_32_Chars_Long!@db:5432/fraud_detection_prod
       - REDIS_HOST=cache
       - REDIS_PORT=6379
       - REDIS_DB=0
-      - REDIS_URL=redis://cache:6379/0
-      - QDRANT_URL=http://vector_db:6333
+      - REDIS_URL=${REDIS_URL}
+      - QDRANT_URL=${QDRANT_URL}
       - DB_ECHO=false
       - CORS_ORIGINS=${CORS_ORIGINS}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SECRET_KEY=${SECRET_KEY}
     depends_on:
       - db
       - cache
@@ -55,12 +57,10 @@ services:
     restart: unless-stopped
 
   frontend:
-    build: 
+    build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: fraud_frontend
-    ports:
-      - "8080:8080"
     environment:
       - VITE_API_URL=${API_URL}
     depends_on:

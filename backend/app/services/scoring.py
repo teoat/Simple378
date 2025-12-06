@@ -1,5 +1,5 @@
 from typing import List, Dict, Any
-from app.models.mens_rea import AnalysisResult
+from app.db.models import AnalysisResult
 
 class ScoringService:
     def __init__(self):

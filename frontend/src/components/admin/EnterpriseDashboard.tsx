@@ -1,14 +1,12 @@
-import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
-import { Button } from '../ui/Button';
 import { useMonitoring, useSLA } from '../../hooks/useMonitoring';
 
 /**
  * Admin dashboard for enterprise monitoring, alerts, and SLA tracking
  */
 export function EnterpriseDashboard() {
-  const { metrics, alerts, isHealthy, sendCustomMetric } = useMonitoring();
-  const { slaStatus, getSLAPercentage } = useSLA();
+  const { metrics, alerts, isHealthy } = useMonitoring();
+  const { getSLAPercentage } = useSLA();
 
   const serviceList = ['API', 'Database', 'Cache', 'Search', 'Storage'];
 

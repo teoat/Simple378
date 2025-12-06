@@ -10,7 +10,7 @@ import json
 
 from app.api import deps
 from app.db.models import Subject, Transaction, AuditLog
-from app.models.mens_rea import AnalysisResult
+from app.db.models import AnalysisResult
 from app.services.reporting import ReportService
 
 router = APIRouter()

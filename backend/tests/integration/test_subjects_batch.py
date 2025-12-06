@@ -6,7 +6,7 @@ import uuid
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models import Subject
-from app.models.mens_rea import AnalysisResult
+from app.db.models import AnalysisResult
 from app.core.security import create_access_token
 
 

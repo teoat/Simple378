@@ -14,7 +14,7 @@ import {
   Info
 } from 'lucide-react';
 
-interface EntityNode {
+interface EntityNode extends d3.SimulationNodeDatum {
   id: string;
   name: string;
   type: 'subject' | 'bank' | 'vendor' | 'account' | 'document' | 'person' | 'company';

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import desc, func
 from app.db.models import Subject, Transaction
-from app.models.mens_rea import AnalysisResult
+from app.db.models import AnalysisResult
 from app.services.ai.llm_service import LLMService
 
 class PredictiveModeler:

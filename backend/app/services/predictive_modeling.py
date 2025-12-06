@@ -613,5 +613,5 @@ Return your analysis as JSON with these fields:
 
 
 # Import here to avoid circular imports
-from app.models.mens_rea import AnalysisResult
+from app.db.models import AnalysisResult
 from uuid import UUID

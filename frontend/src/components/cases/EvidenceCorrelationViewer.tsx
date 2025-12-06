@@ -5,12 +5,7 @@ import {
   FileText,
   Link,
   Search,
-  Filter,
-  Eye,
-  Download,
-  AlertTriangle,
-  CheckCircle,
-  Clock
+  Eye
 } from 'lucide-react';
 
 interface Evidence {
@@ -32,6 +27,7 @@ interface Transaction {
   amount: number;
   description: string;
   category: string;
+  correlation_score?: number;
 }
 
 interface EvidenceCorrelationProps {
@@ -119,7 +115,7 @@ export function EvidenceCorrelationViewer({
       });
 
       // Sort by correlation score
-      correlationMap[evidence.id].sort((a, b) => (b as any).correlation_score - (a as any).correlation_score);
+      correlationMap[evidence.id].sort((a, b) => (b.correlation_score || 0) - (a.correlation_score || 0));
     });
 
     return correlationMap;
@@ -333,11 +329,11 @@ export function EvidenceCorrelationViewer({
                               ${transaction.amount.toLocaleString()}
                             </span>
                             <span className={`text-xs px-2 py-1 rounded ${
-                              (transaction as any).correlation_score > 0.7 ? 'bg-green-100 text-green-700' :
-                              (transaction as any).correlation_score > 0.5 ? 'bg-amber-100 text-amber-700' :
+                              (transaction.correlation_score || 0) > 0.7 ? 'bg-green-100 text-green-700' :
+                              (transaction.correlation_score || 0) > 0.5 ? 'bg-amber-100 text-amber-700' :
                               'bg-blue-100 text-blue-700'
                             }`}>
-                              {(transaction as any).correlation_score * 100}% match
+                              {((transaction.correlation_score || 0) * 100).toFixed(0)}% match
                             </span>
                           </div>
                           <p className="text-sm text-slate-700 dark:text-slate-300">

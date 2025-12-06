@@ -2,8 +2,7 @@ import asyncio
 import random
 from datetime import datetime, timedelta
 from app.db.session import AsyncSessionLocal
-from app.db.models import Subject
-from app.models.mens_rea import AnalysisResult
+from app.db.models import Subject, AnalysisResult
 
 import uuid
 
@@ -43,7 +42,7 @@ async def seed_data():
             session.add(analysis)
             
             # Create indicators
-            from app.models.mens_rea import Indicator
+            from app.db.models import Indicator
             indicator = Indicator(
                 id=uuid.uuid4(),
                 analysis_result_id=analysis.id,
