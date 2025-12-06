@@ -385,17 +385,39 @@ class AIOrchestrator:
         graph_result, fraud_result = results
 
         # Filter out exceptions; pass None for failed agents
-        graph_output = None if isinstance(graph_result, Exception) else graph_result
-        fraud_output = None if isinstance(fraud_result, Exception) else fraud_result
+        self.client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
-        return self.synthesize(graph_output, fraud_output)
-
-class AIOrchestrator:
-    async def analyze_case(self, case_id):
-        # Coordinate multiple AI agents
-        graph_agent = self.create_graph_agent()
-        fraud_agent = self.create_fraud_agent()
-        
+    async def generate(self, prompt, max_tokens=1000, timeout=30, retries=3):
+        last_error = None
+        for attempt in range(retries):
+            try:
+                response = await asyncio.wait_for(
+                    self.client.messages.create(
+                        model="claude-3-5-sonnet-20241022",
+                        max_tokens=max_tokens,
+                        messages=[{"role": "user", "content": prompt}]
+                    ),
+                    timeout=timeout
+                )
+                content = getattr(response, "content", None) or []
+                # Support both list of objects with .text and plain strings
+                if isinstance(content, list) and content:
+                    first = content[0]
+                    if hasattr(first, "text"):
+                        return first.text or ""
+                    if isinstance(first, str):
+                        return first
+                return ""
+            except Exception as e:
+                last_error = e
+                await asyncio.sleep(min(2 ** attempt, 5))
+        # Log and return safe fallback
+        try:
+            import logging
+            logging.exception("LLM generate failed after retries", exc_info=last_error)
+        except Exception:
+            pass
+        return ""
         graph_result, fraud_result = await asyncio.gather(
             graph_agent.run(case_id),
             fraud_agent.run(case_id)
