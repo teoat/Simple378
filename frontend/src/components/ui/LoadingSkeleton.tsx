@@ -24,9 +24,13 @@ export function LoadingSkeleton({
     card: 'h-32 rounded-xl',
   };
 
+  const resolvedSize =
+    variant === 'circular'
+      ? (width || height)
+      : undefined;
   const skeletonStyle = {
-    width: width,
-    height: height || (variant === 'circular' ? width : undefined),
+    width: variant === 'circular' ? resolvedSize : width,
+    height: variant === 'circular' ? resolvedSize : (height),
   };
 
   const skeletons = Array.from({ length: count }, (_, i) => (
