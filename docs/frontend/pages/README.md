@@ -118,53 +118,55 @@ Each page documentation follows a consistent structure:
 
 ---
 
-## Page Workflow
+## User Journey Workflow
 
-The pages follow a logical investigation workflow:
+This workflow outlines the logical path for a Fraud Analyst using the platform, from initial access to case resolution.
 
-```
-┌─────────────┐
-│  1. LOGIN   │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│  2. CASES   │  (List & Detail combined)
-└──────┬──────┘
-       │
-       ├───────────────────┬───────────────────┐
-       │                   │                   │
-       ▼                   ▼                   ▼
-┌─────────────┐     ┌─────────────┐    ┌─────────────┐
-│3. INGESTION │     │4. CATEGORIZE│    │5. RECONCILE │
-└─────────────┘     └─────────────┘    └──────┬──────┘
-       │                   │                   │
-       └───────────────────┼───────────────────┘
-                           │
-                           ▼
-                    ┌─────────────┐
-                    │ 6. DASHBOARD│  (Overview after data processing)
-                    └──────┬──────┘
-                           │
-                           ▼
-                    ┌─────────────┐
-                    │7. ADJUDICATE│
-                    └──────┬──────┘
-                           │
-                           ▼
-                    ┌─────────────┐
-                    │8. VISUALIZE │
-                    └──────┬──────┘
-                           │
-                           ▼
-                    ┌─────────────┐
-                    │ 9. SUMMARY  │
-                    └─────────────┘
-```
+### Phase 1: Authentication & Entry
+
+*   **Goal:** Secure access to the platform.
+*   **Page:** [Login](./01_LOGIN.md) (`/login`)
+*   **Action:** User enters credentials. System authenticates via OAuth/JWT and redirects to Dashboard.
+
+### Phase 2: Triage & Monitoring
+
+*   **Goal:** Assess system status and identify high-priority items.
+*   **Page:** [Dashboard](./02_DASHBOARD.md) (`/dashboard`)
+*   **Key Insights:** Check "High Risk Subjects" and "Active Cases" metrics. Monitor "Recent Activity" feed for immediate alerts.
+*   **Decisions:**
+    *   *Structured Work:* Go to **Case Management**.
+    *   *Rapid Review:* Go to **Adjudication**.
+    *   *Data Import:* Go to **Forensics**.
+
+### Phase 3: Case Selection
+
+*   **Goal:** Select a specific subject or alert for investigation.
+*   **Path A (Deep Dive):** [Case List](./03_CASES.md) (`/cases`) - Filter/Search for specific entities.
+*   **Path B (Rapid Fire):** [Adjudication Queue](./06_ADJUDICATION_QUEUE.md) (`/adjudication`) - Review pending alerts in a split-pane view.
+
+### Phase 4: Investigation (Deep Dive)
+
+*   **Goal:** Analyze evidence to determine if fraud occurred.
+*   **Page:** [Case Detail](./03_CASES.md) (`/cases/:id`)
+*   **Steps:**
+    1.  **Overview:** Review Summary and AI Insights.
+    2.  **Analysis:** Check Graph Analysis for relationships and Financials for fund flows.
+    3.  **Timeline:** Review chronological events.
+    4.  **Evidence:** Upload or review attached proofs.
+
+### Phase 5: Resolution
+
+*   **Goal:** Make a formal decision.
+*   **Action:**
+    *   **Approve:** Confirm fraud (Status -> Confirmed).
+    *   **Escalate:** Flag for senior review.
+    *   **Reject:** Mark as False Positive (in Adjudication).
+
+*   **Post-Action:** Metrics update in real-time. Action is logged in [Settings](./11_SETTINGS.md) Audit Log.
 
 **Supporting Pages:**
-- **10. Frenly AI** - Available globally across all pages
-- **11. Settings** - Accessible from user menu
+- **[Frenly AI](./10_FRENLY_AI_ASSISTANT.md):** Available globally for guidance.
+- **[Settings](./11_SETTINGS.md):** For profile and system configuration.
 
 
 
@@ -179,21 +181,21 @@ The pages follow a logical investigation workflow:
 - 11_SETTINGS.md (Security tab)
 
 **Data Management:**
-- 03_INGESTION_MAPPING.md (Ingestion & Field Mapping)
-- 04_TRANSACTION_CATEGORIZATION.md (Classification/Forensics)
-- 05_RECONCILIATION.md (Matching)
+- 04_INGESTION.md (Ingestion & Field Mapping)
+- 05_FORENSICS.md (Forensics & Analysis)
+- 07_RECONCILIATION.md (Transaction Matching)
 
 **Analysis & Visualization:**
-- 02_CASES.md (Entity graph, timeline, evidence)
+- 03_CASES.md (Case Management)
 - 08_VISUALIZATION.md (Charts, fraud detection)
 - 10_FRENLY_AI_ASSISTANT.md (AI insights)
 
 **Decision Making:**
-- 07_ADJUDICATION.md (Alert review)
+- 06_ADJUDICATION_QUEUE.md (Decision Workflow)
 - 10_FRENLY_AI_ASSISTANT.md (AI reasoning)
 
 **Reporting:**
-- 06_DASHBOARD.md (Metrics overview, pipeline health)
+- 02_DASHBOARD.md (System Metrics)
 - 09_SUMMARY.md (Final reports)
 
 ---
@@ -214,12 +216,14 @@ Related architecture documentation:
 Shared components used across pages:
 
 ### Layout Components
+
 - `AppLayout` - Main application shell
 - `Sidebar` - Navigation sidebar
 - `Header` - Top navigation bar
 - `Breadcrumbs` - Navigation trail
 
 ### UI Components
+
 - `Button` - Primary action buttons
 - `Card` - Content containers
 - `Table` - Data tables
@@ -228,6 +232,7 @@ Shared components used across pages:
 - `Toast` - Notifications
 
 ### Chart Components
+
 - `LineChart` - Trend visualization
 - `PieChart` - Category breakdown
 - `BarChart` - Comparisons
@@ -235,6 +240,7 @@ Shared components used across pages:
 - `NetworkGraph` - Entity relationships
 
 ### Form Components
+
 - `Input` - Text input fields
 - `Select` - Dropdown selection
 - `DatePicker` - Date selection
@@ -249,16 +255,21 @@ Shared components used across pages:
 ### Unit Tests
 - Component rendering
 - User interactions
+- `Dashboard.test.tsx` - Metric calculations
 - State management
 - Utility functions
 
 ### Integration Tests
+
 - API integration
 - Multi-component workflows
 - Data flow between components
 
 ### E2E Tests
 - Complete user workflows
+- `dashboard.spec.ts` - Critical path
+workflows
+
 - Cross-page navigation
 - Real API interactions
 
@@ -282,7 +293,6 @@ All pages must meet **WCAG 2.1 Level AA** standards:
 ### Testing Tools
 - axe DevTools
 - WAVE browser extension
-- Lighthouse accessibility audit
 - Screen reader testing (NVDA, JAWS)
 
 ---
@@ -334,17 +344,17 @@ When adding or updating page documentation:
 ## Quick Links
 
 ### Most Referenced Pages
-- [Cases (List & Detail)](./02_CASES.md) - Central investigation hub
-- [Dashboard](./06_DASHBOARD.md) - Metrics overview after data processing
-- [Frenly AI Assistant](./10_FRENLY_AI_ASSISTANT.md) - AI system documentation
-- [Visualization](./08_VISUALIZATION.md) - Charts and analytics
-- [Ingestion & Mapping](./03_INGESTION_MAPPING.md) - Data upload and field mapping
+- [Dashboard](./02_DASHBOARD.md) - Overview & Metrics
+- [Cases](./03_CASES.md) - Case Management
+- [Ingestion](./04_INGESTION.md) - Data Ingestion
+- [Forensics](./05_FORENSICS.md) - Forensics & Analysis
+- [Adjudication](./06_ADJUDICATION_QUEUE.md) - Decision Workflow
 
 ### Recently Updated
-- [02_CASES.md](./02_CASES.md) - Combined List & Detail Dec 6, 2025
-- [03_INGESTION_MAPPING.md](./03_INGESTION_MAPPING.md) - Created Dec 6, 2025
-- [06_DASHBOARD.md](./06_DASHBOARD.md) - Moved after Reconciliation Dec 6, 2025
-- [08_VISUALIZATION.md](./08_VISUALIZATION.md) - Major update Dec 6, 2025
+- [README.md](./README.md) - Updated structure Dec 6, 2025
+- [05_FORENSICS.md](./05_FORENSICS.md) - Renumbered Dec 6, 2025
+- [06_ADJUDICATION_QUEUE.md](./06_ADJUDICATION_QUEUE.md) - Renumbered Dec 6, 2025
+- [07_RECONCILIATION.md](./07_RECONCILIATION.md) - Renumbered Dec 6, 2025
 
 ---
 
@@ -352,6 +362,7 @@ When adding or updating page documentation:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| **5.0.0** | Dec 6, 2025 | Standardized numbering: 02 Dashboard, 03 Cases, 04 Ingestion, 05 Forensics, 06 Adjudication, 07 Reconciliation. |
 | **4.0.0** | Dec 6, 2025 | Final workflow organization: Dashboard moved to #6 (after Reconciliation), reflecting data processing flow |
 | **3.0.0** | Dec 6, 2025 | Reorganized structure: Combined Cases (List+Detail) into #3, added Ingestion & Mapping as #4, renumbered all pages |
 | **2.0.0** | Dec 6, 2025 | Added numbering, Summary page, enhanced Visualization & Reconciliation |

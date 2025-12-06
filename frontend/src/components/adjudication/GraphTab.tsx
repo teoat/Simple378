@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import ForceGraph2D from 'react-force-graph-2d';
-import { api } from '../../lib/api';
+import { apiRequest } from '../../lib/api';
 import { Loader2 } from 'lucide-react';
 
 interface GraphTabProps {
@@ -21,7 +21,7 @@ export function GraphTab({ subjectId }: GraphTabProps) {
   
   const { data: graphData, isLoading, error } = useQuery({
     queryKey: ['graph', subjectId],
-    queryFn: () => api.getGraph(subjectId),
+    queryFn: () => apiRequest(`/graph/${subjectId}`),
     enabled: !!subjectId,
   });
 

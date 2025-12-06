@@ -11,7 +11,9 @@
 The Financial Visualization page provides comprehensive interactive financial charts and data visualizations for fraud detection analysis. Users can explore cash flow trends, expense breakdowns, balance sheet summaries, milestone tracking, and receive AI-generated insights about financial patterns and anomalies.
 
 **Key Features:**
+
 - 💸 **Cashflow Balance Analysis** - Split-view categorization of transactions
+
 - 🏁 **Phase & Milestone Tracking** - Project lifecycle and fund release management
 - 🕵️‍♂️ **Fraud Detection** - Anomaly comparison and peer benchmarking
 - 📊 **Interactive Charts** - Entity graphs, timelines, heatmaps
@@ -24,7 +26,9 @@ The Financial Visualization page provides comprehensive interactive financial ch
 
 ### Desktop View (≥1024px)
 
-```
+
+```text
+
 ┌──────────────────────────────────────────────────────────────────────┐
 │  📈 Financial Visualization    [Date Range ▼] [Case ▼] [Export ▼]   │
 ├──────────────────────────────────────────────────────────────────────┤
@@ -409,41 +413,61 @@ This view provides dedicated tools to **"compare to find fraud"**, highlighting 
 
 ### Chart Types Implemented
 
+
 #### 1. Entity Relationship Graph ✅
+
+
 **Location:** Case Detail Page - Graph Tab  
 **Technology:** React Flow
 
 **Features:**
+
 - Interactive node-based graph
+
 - Progressive loading (depth-based expansion)
 - Multiple node types: Subject, Account, Bank
 - Edge weight indicates transaction amount
 - Click to expand neighbors
 
+
 #### 2. Dashboard Charts ✅
+
+
 **Location:** Dashboard Page  
 **Technology:** Recharts
 
 **Chart Types:**
+
 - Bar Chart: Cases by status distribution
+
 - Line Chart: Case creation trends over time
 - Pie Chart: Risk level distribution
 - Area Chart: Alert trends
 
+
 #### 3. Timeline Visualization ✅
+
+
 **Location:** Case Detail Page - Timeline Tab
 
 **Features:**
+
 - Scrollable timeline with date markers
+
 - Event clustering by date
 - Transaction details on hover
 - Filtering by event type
 
+
 #### 4. Balance Sheet Treemap 📋
+
+
 **Status:** Planned
 
 **Features:**
+
 - Hierarchical view of financial structure
+
 - Click to drill down into categories
 - Color-coded by health indicators
 
@@ -533,11 +557,15 @@ Predicts the exact "Day Zero" when funds will deplete based on current accelerat
 Interactive sliders to adjust key variables and see the ripple effect on the project.
 
 **Scenario Examples:**
+
 - "What if we delay Phase 3 by 20 days?"
+
 - "What if inflation raises materials cost by 8%?"
 
 **Outcomes:**
+
 - Cash pooling interest impact
+
 - Project margin threshold warnings
 
 ### 3. 📉 Vendor Dependency Risk
@@ -573,7 +601,7 @@ Simulates the collapse of a key node in the supply chain.
 | `ExpenseCategoryPanel` | Expense breakdown panel | 🚧 In Progress |
 | `WaterfallChart` | Visual flow diagram | 📋 Planned |
 
-### Milestone Components
+### Milestone Components (Tracking)
 
 | Component | Purpose | Implementation |
 |-----------|---------|----------------|
@@ -836,7 +864,8 @@ const { data, hasNextPage, fetchNextPage } = useInfiniteQuery({
 
 ## Related Files
 
-```
+```text
+
 frontend/src/
 ├── pages/
 │   └── FinancialVisualization.tsx      # Main page (planned)
@@ -870,38 +899,67 @@ backend/
 
 ## Future Enhancements
 
-### Phase 2 (Q1 2026)
+### Phase 1: Core Implementation (Immediate)
+
+- [ ] Create FinancialVisualization.tsx page with full layout
+- [ ] Implement cashflow balance split-view system
+- [ ] Build milestone tracker with phase management
+- [ ] Add fraud detection panels and anomaly comparison
+- [ ] Integrate Recharts for interactive visualizations
+- [ ] Connect AI insights panel to Frenly AI
+- [ ] Add real-time WebSocket data updates
+- [ ] Implement export functionality (PDF/CSV)
+- [ ] Build interactive filters and date range controls
+- [ ] Optimize performance with virtual scrolling and lazy loading
+- [ ] Ensure responsive design and accessibility compliance
+- [ ] Create comprehensive testing suite
+
+### Phase 2: Advanced Features (Q1 2026)
 
 - [ ] 3D graph visualization for complex networks
 - [ ] Time-based animation (replay transactions)
 - [ ] Clustering algorithms (community detection)
 - [ ] Comparative graphs (before/after intervention)
 - [ ] Geospatial visualization on maps
+- [ ] Scenario simulation with burn rate prediction
+- [ ] What-if analysis sliders for variable adjustment
+- [ ] Vendor stress testing and dependency risk modeling
 
-### Phase 3 (Q2 2026)
+### Phase 3: Deduction & Intelligence (Q2 2026)
 
-- [ ] Sankey diagrams for flow-of-funds
+- [ ] Sankey diagrams for flow-of-funds analysis
 - [ ] Network analysis metrics dashboard
 - [ ] ML-powered layout optimization
 - [ ] Real-time streaming data visualization
 - [ ] Collaborative annotation tools
-
-### Phase 4 (Q3 2026)
-
-- [ ] Burn rate simulator with day-zero prediction
-- [ ] What-if scenario analysis with sliders
-- [ ] Vendor stress testing simulation
 - [ ] Entity link analysis (kickback detection)
 - [ ] Geospatial geofencing for expense validation
+- [ ] Temporal behavioral heatmaps
+- [ ] Invoice sequence forensics (shell company detection)
+- [ ] Threshold avoidance histogram analysis
+- [ ] Shared attribute overlap detection
+
+### Phase 4: Predictive Analytics (Q3 2026)
+
+- [ ] Advanced logical deduction views
+- [ ] Predictive fraud pattern recognition
+- [ ] Automated anomaly alerting
+- [ ] Risk scoring model visualization
+- [ ] Compliance monitoring dashboards
+- [ ] Multi-entity portfolio analysis
+- [ ] Historical trend extrapolation
+- [ ] Benchmarking against industry standards
 
 ---
 
 ## Related Documentation
 
-- [Case Detail Page](./CASE_DETAIL.md) - Entity graph integration
-- [Dashboard](./DASHBOARD.md) - KPI charts
-- [Frenly AI Assistant](./FRENLY_AI_ASSISTANT.md) - AI insights integration
-- [Adjudication Queue](./ADJUDICATION_QUEUE.md) - Risk scoring visualization
+- [Reconciliation](./07_RECONCILIATION.md) - Previous step
+- [Summary Reports](./09_SUMMARY.md) - Next step
+- [Cases](./03_CASES.md) - Entity graph integration
+- [Dashboard](./02_DASHBOARD.md) - KPI charts
+- [Frenly AI Assistant](./10_FRENLY_AI_ASSISTANT.md) - AI insights integration
+- [Adjudication Queue](./06_ADJUDICATION_QUEUE.md) - Risk scoring visualization
 
 ---
 

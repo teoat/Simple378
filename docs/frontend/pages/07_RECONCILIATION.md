@@ -8,16 +8,21 @@
 
 ## Overview
 
-The Reconciliation page compares ingested data with existing system records to identify matches, new entries, and conflicts. Users can configure matching algorithms, manually review discrepancies, and handle complex financial scenarios including batch payments, split payments, and multi-currency transactions.
+The Reconciliation page compares ingested data with existing system records to identify matches, new entries, and conflicts. Side panel for inspecting record data. Users can configure matching algorithms, manually review discrepancies, and handle complex financial scenarios including batch payments, split payments, and multi-currency transactions.
 
 **Key Features:**
 - 🔄 **Auto-Reconciliation** - Algorithm-based matching with configurable thresholds
+
 - 📊 **Match Rate KPIs** - Visual success indicators
 - ⚠️ **Conflict Detection** - Identify and resolve discrepancies
+
+
+- 💸 **Transaction Matching** - Automate expense-to-transaction pairing
 - 🖱️ **Drag-and-Drop Matching** - Manual transaction pairing
 - 🧠 **ML-Based Matching** - Pattern recognition for ghost transactions
 - 💱 **Multi-Currency Support** - FX rate variance handling (planned)
 - 🔢 **Advanced Grouping** - Many-to-one and one-to-many matching (planned)
+
 
 ---
 
@@ -25,7 +30,9 @@ The Reconciliation page compares ingested data with existing system records to i
 
 ### Desktop View (≥1024px)
 
-```
+```text
+
+
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ 🔄 Reconciliation                                 [Unmatched: 5]  [Pending: 2]│
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -76,10 +83,11 @@ The Reconciliation page compares ingested data with existing system records to i
 
 ## Components
 
-### ReconciliationKPI (`components/reconciliation/ReconciliationKPI.tsx`)
+### KPI Cards (`components/reconciliation/ReconciliationKPI.tsx`)
 Visual KPI cards showing match statistics.
 
 **Props:**
+
 ```typescript
 interface ReconciliationKPIProps {
   matchRate: number;      // 0-100
@@ -90,13 +98,19 @@ interface ReconciliationKPIProps {
 ```
 
 **Features:**
+
 - Progress bar visualization
+
 - Color-coded status (green >85%, yellow 70-85%, red <70%)
 - Animated count-up on load
 - Click to filter view
 
+
+
 ### ConflictTable (`components/reconciliation/ConflictTable.tsx`)
+
 Table displaying records requiring manual review.
+
 
 **Props:**
 ```typescript
@@ -117,13 +131,17 @@ interface Conflict {
 ```
 
 **Features:**
+
 - Sortable columns
+
 - Inline resolution actions
 - Bulk operations (select multiple)
-- Direct link to adjudication queue
 
 ### DragDropMatcher (`components/reconciliation/DragDropMatcher.tsx`)
+
+
 Manual matching interface with drag-and-drop.
+
 
 **Props:**
 ```typescript
@@ -136,16 +154,22 @@ interface DragDropMatcherProps {
 ```
 
 **Features:**
+
 - Drag expense to transaction
+
 - Multi-select with Shift+Click
 - Visual drop zones
 - Undo last match
 - Smart grouping suggestions
 
 ### ThresholdSlider (`components/reconciliation/ThresholdSlider.tsx`)
+
+
 Confidence threshold adjustment control.
 
+
 **Props:**
+
 ```typescript
 interface ThresholdSliderProps {
   value: number;          // 0-1
@@ -155,7 +179,9 @@ interface ThresholdSliderProps {
 ```
 
 **Features:**
+
 - Visual threshold indicator
+
 - Recommended value marker
 - Real-time preview of match count
 - Preset buttons (Strict/Balanced/Permissive)
@@ -191,12 +217,15 @@ interface MatchConfig {
 
 #### Matching Algorithms
 
+
 | Algorithm | Description | Use Case | Implementation |
+
 |-----------|-------------|----------|----------------|
 | **Exact Match** | 100% identical | Tax ID, Account Number | ✅ Implemented |
 | **Fuzzy Match** | Similar strings (Levenshtein) | Names, Addresses | ✅ Implemented |
 | **Phonetic** | Sound-alike matching (Soundex) | Names with variations | ✅ Implemented |
 | **Date Fuzzy** | Format tolerance | Different date formats | ✅ Implemented |
+- [ ] Flag duplicates across different sources
 | **Amount Range** | Within tolerance (±5%) | Financial amounts | ✅ Implemented |
 
 #### Confidence Threshold
@@ -496,11 +525,14 @@ const detectMirrorTransactions = (
 
 **Status:** 📋 Planned
 
+
+
 ### 7. 🔄 Recurring Series Recognition
 
 Detect regular subscription or lease payments.
 
 **Pattern:** Same Amount + Same Description + Monthly Interval (±3 days).
+
 
 **Action:** Auto-create a "Recurring Rule" (e.g., "Adobe Creative Cloud"). Future matches are auto-confirmed with 99% confidence.
 
@@ -608,12 +640,18 @@ Users can manually match records by dragging:
 
 ### Basic Matching Flow
 
+
+
+
 1. **Drag** an expense item from left panel
 2. **Drop** on matching bank transaction in right panel
 3. **Confirm** the match in dialog
-4. Items move to "Matched" section
+4. **Items** move to "Matched" section
 
 ### Smart Grouping Drag (Many-to-One)
+
+
+
 
 - Hold `Shift` to select multiple items
 - Drag group onto a single target transaction
@@ -621,6 +659,7 @@ Users can manually match records by dragging:
 - Creates batch match if valid
 
 **Implementation:**
+
 ```typescript
 const handleBatchDrop = (
   selectedExpenses: Expense[],
@@ -640,6 +679,8 @@ const handleBatchDrop = (
 
 ### Split Payment Drag (One-to-Many)
 
+
+
 - Drag a transaction onto an "Open Invoice"
 - Triggers split payment dialog
 - User confirms partial payment
@@ -647,9 +688,13 @@ const handleBatchDrop = (
 
 ---
 
+
+
 ## KPI Cards
 
 | Metric | Description | Target | Color Coding |
+
+
 |--------|-------------|--------|--------------|
 | **Match Rate** | % successfully matched | >85% | Green >85%, Yellow 70-85%, Red <70% |
 | **New Records** | Records not in system | <15% | Green <10%, Yellow 10-20%, Red >20% |
@@ -695,7 +740,9 @@ System   Existing
 
 **Conflict Actions:**
 
+
 | Action | Description | Result |
+
 |--------|-------------|--------|
 | **Accept Source** | Use ingested data | System record updated |
 | **Reject Source** | Keep existing data | Ingested record marked invalid |
@@ -708,7 +755,7 @@ System   Existing
 
 ### Auto-Reconciliation
 
-```typescript
+```json
 POST /api/v1/reconciliation/auto-reconcile
 Content-Type: application/json
 
@@ -733,7 +780,7 @@ Response (200):
 
 ### Get Reconciliation Results
 
-```typescript
+```json
 GET /api/v1/reconciliation/results/:jobId
 
 Response (200):
@@ -752,7 +799,7 @@ Response (200):
 
 ### Manual Match
 
-```typescript
+```json
 POST /api/v1/reconciliation/match
 Content-Type: application/json
 
@@ -773,7 +820,7 @@ Response (200):
 
 ### Batch Match (Many-to-One)
 
-```typescript
+```json
 POST /api/v1/reconciliation/batch-match
 Content-Type: application/json
 
@@ -840,12 +887,12 @@ const createMatch = useMutation({
 
 ### Optimization Strategies
 
-- **Batch Processing:** 1000 records at a time
-- **Background Jobs:** Large datasets processed asynchronously
-- **Progress Tracking:** WebSocket updates for long-running jobs
-- **Optimistic UI:** Immediate feedback for manual matches
-- **Caching:** Match results cached for 5 minutes
-- **Lazy Loading:** Conflict table virtualized for large datasets
+-   **Batch Processing:** 1000 records at a time
+-   **Background Jobs:** Large datasets processed asynchronously
+-   **Progress Tracking:** WebSocket updates for long-running jobs
+-   **Optimistic UI:** Immediate feedback for manual matches
+-   **Caching:** Match results cached for 5 minutes
+-   **Lazy Loading:** Conflict table virtualized for large datasets
 
 **Performance Targets:**
 
@@ -888,22 +935,22 @@ const createMatch = useMutation({
 ## Testing
 
 ### Unit Tests
-- ✅ Matching algorithm logic
-- ✅ Threshold calculation
-- ✅ Batch match validation
-- ✅ FX rate conversion
+-   ✅ Matching algorithm logic
+-   ✅ Threshold calculation
+-   ✅ Batch match validation
+-   ✅ FX rate conversion
 
 ### Integration Tests
-- ✅ API endpoint integration
-- ✅ WebSocket progress updates
-- ✅ Manual match workflow
-- ✅ Conflict resolution flow
+-   ✅ API endpoint integration
+-   ✅ WebSocket progress updates
+-   ✅ Manual match workflow
+-   ✅ Conflict resolution flow
 
 ### E2E Tests
-- Run auto-reconciliation and verify results
-- Drag-and-drop manual matching
-- Batch match multiple expenses
-- Export reconciliation report
+-   Run auto-reconciliation and verify results
+-   Drag-and-drop manual matching
+-   Batch match multiple expenses
+-   Export reconciliation report
 
 ---
 
@@ -938,33 +985,37 @@ backend/
 ## Future Enhancements
 
 ### Phase 2 (Q1 2026)
-- [ ] ML-based ghost matching
-- [ ] Multi-currency FX support
-- [ ] Temporal tolerance windows
-- [ ] Recurring series auto-detection
-- [ ] Force balancing with suspense accounts
+-   [ ] ML-based ghost matching
+-   [ ] Multi-currency FX support
+-   [ ] Temporal tolerance windows
+-   [ ] Connect to QuickBooks/Xero
+-   [ ] Recurring series auto-detection
+-   [ ] Force balancing with suspense accounts
+-   [ ] Keyboard shortcuts for rapid matching
+-   [ ] Split screen matching
 
 ### Phase 3 (Q2 2026)
-- [ ] Many-to-one batch matching
-- [ ] One-to-many split payments
-- [ ] Inter-account mirror detection
-- [ ] Advanced pattern recognition
-- [ ] Predictive matching suggestions
+-   [ ] Many-to-one batch matching
+-   [ ] One-to-many split payments
+-   [ ] Inter-account mirror detection
+-   [ ] Advanced pattern recognition
+-   [ ] Predictive matching based on historical user behavior
 
 ### Phase 4 (Q3 2026)
-- [ ] Real-time reconciliation
-- [ ] Blockchain-based audit trail
-- [ ] Advanced ML models
-- [ ] Integration with accounting systems
-- [ ] Mobile reconciliation app
+-   [ ] Real-time reconciliation
+-   [ ] Blockchain-based audit trail
+-   [ ] Advanced ML models
+-   [ ] Integration with accounting systems
+-   [ ] Mobile reconciliation app
 
 ---
 
 ## Related Documentation
 
-- [Adjudication Queue](./06_ADJUDICATION_QUEUE.md) - Previous step
-- [Forensics](./05_FORENSICS.md) - Data source
-- [Visualization](./08_VISUALIZATION.md) - Match analytics
+-   [Adjudication Queue](./06_ADJUDICATION_QUEUE.md) - For conflict escalation workflow
+-   [Ingestion](./04_INGESTION.md) - Previous step
+-   [Forensics](./05_FORENSICS.md) - Data source
+-   [Visualization](./08_VISUALIZATION.md) - Match analytics
 
 ---
 

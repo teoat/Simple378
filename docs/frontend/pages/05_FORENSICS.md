@@ -14,7 +14,9 @@ The Forensics page provides a comprehensive interface for uploading, analyzing, 
 
 ## Layout
 
-```
+
+```text
+
 ┌─────────────────────────────────────────────────────────────┐
 │ Header: "Forensics & Ingestion"        [📊 CSV Import]     │
 ├─────────────────────────────────────────────────────────────┤
@@ -61,14 +63,22 @@ The Forensics page provides a comprehensive interface for uploading, analyzing, 
 
 ## Features
 
+
 ### File Upload
+
+
 - Multi-file upload support
 - Drag-and-drop interface
 - Real-time upload progress
 - File type validation
 
+
 ### Processing Pipeline
+
+
+
 | Stage | Description |
+
 |-------|-------------|
 | Upload | File transfer |
 | Virus Scan | ClamAV malware detection |
@@ -77,8 +87,13 @@ The Forensics page provides a comprehensive interface for uploading, analyzing, 
 | Forensics | Manipulation detection |
 | Indexing | Full-text search indexing |
 
+
 ### Forensic Flags
+
+
+
 | Severity | Description |
+
 |----------|-------------|
 | 🔴 Critical | Strong evidence of tampering |
 | 🟠 Warning | Potential anomaly detected |
@@ -99,7 +114,8 @@ The Forensics page provides a comprehensive interface for uploading, analyzing, 
 
 ## Related Files
 
-```
+```text
+
 frontend/src/
 ├── pages/Forensics.tsx
 └── components/ingestion/
@@ -119,3 +135,11 @@ frontend/src/
 - [ ] ML-based anomaly detection
 - [ ] Document comparison view
 - [ ] Cloud storage connectors
+
+---
+
+## Related Documentation
+
+- [Ingestion](./04_INGESTION.md) - Previous step
+- [Adjudication Queue](./06_ADJUDICATION_QUEUE.md) - Next step
+

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import login, mens_rea, adjudication, ingestion, audit, graph, ai, forensics, orchestration, subjects, compliance, dashboard, cases, reconciliation, websocket, users
+from app.api.v1.endpoints import login, mens_rea, adjudication, ingestion, audit, graph, ai, forensics, orchestration, subjects, compliance, dashboard, cases, reconciliation, websocket, users, summary
 
 api_router = APIRouter()
 
@@ -26,3 +26,4 @@ api_router.include_router(reconciliation.router, prefix="/reconciliation", tags=
 api_router.include_router(evidence.router, prefix="/evidence", tags=["evidence"])  # Generic evidence access
 api_router.include_router(websocket.router, tags=["websocket"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
+api_router.include_router(summary.router, prefix="/summary", tags=["summary"])

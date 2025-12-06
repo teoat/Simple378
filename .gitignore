@@ -1,10 +1,43 @@
+# Dependencies
 node_modules
 __pycache__/
 *.pyc
-.env
-.DS_Store
 venv/
 .venv/
+
+# Build outputs
 dist/
 build/
 *.egg-info/
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+PASSWORDS_REFERENCE.md
+*_PASSWORDS.md
+*.gpg
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+*.tmp
+.cache/

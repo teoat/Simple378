@@ -1,8 +1,8 @@
 # Final Summary & Reporting
 
-**Route:** `/summary/:caseId`  
-**Component:** `src/pages/FinalSummary.tsx`  
-**Status:** 📋 Planned
+**Route:** `/summary/:caseId`
+**Component:** `src/pages/FinalSummary.tsx`
+**Status:** ✅ Implemented
 
 ---
 
@@ -11,6 +11,7 @@
 The Final Summary page consolidates all case information into a comprehensive executive summary. Users can review key metrics, generate professional PDF reports, and close or archive completed cases. This page serves as the final step in the fraud investigation workflow, providing a complete narrative of the investigation from ingestion through adjudication.
 
 **Key Features:**
+
 - 📊 **Executive Summary** - Consolidated metrics and findings
 - 📄 **PDF Report Generation** - Professional, court-ready documents
 - 🗄️ **Case Archival** - Close and archive workflow
@@ -24,7 +25,7 @@ The Final Summary page consolidates all case information into a comprehensive ex
 
 ### Desktop View (≥1024px)
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ 📄 Case Summary Report                                  Related: CASE-001   │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -76,7 +77,7 @@ The Final Summary page consolidates all case information into a comprehensive ex
 │  │  │ [Static Chart Preview] │  │ [Static Chart Preview] │            │ │
 │  │  └─────────────────────────┘  └─────────────────────────┘            │ │
 │  │                                                                        │ │
-│  └───────────────────────────────────────────────────────────────────────┘ │
+│  │  └───────────────────────────────────────────────────────────────────────┘ │
 │                                                                             │
 │  ╔═══════════════════════════════════════════════════════════════════════╗ │
 │  ║ ACTIONS                                                               ║ │
@@ -95,9 +96,9 @@ The Final Summary page consolidates all case information into a comprehensive ex
 ## Components
 
 ### SuccessBanner (`components/summary/SuccessBanner.tsx`)
-Visual completion indicator at the top of the page.
 
 **Props:**
+
 ```typescript
 interface SuccessBannerProps {
   status: 'success' | 'partial' | 'failed';
@@ -108,15 +109,16 @@ interface SuccessBannerProps {
 ```
 
 **Features:**
+
 - Animated checkmark on success
 - Color-coded status (green/yellow/red)
 - Data quality percentage
 - Resolution time display
 
 ### SummaryCard (`components/summary/SummaryCard.tsx`)
-Metric display cards for each workflow stage.
 
 **Props:**
+
 ```typescript
 interface SummaryCardProps {
   title: string;
@@ -131,14 +133,15 @@ interface SummaryCardProps {
 ```
 
 **Card Types:**
+
 - **Ingestion Card** - Records, files, completion status
 - **Reconciliation Card** - Match rate, new records, rejections
 - **Adjudication Card** - Resolved count, avg time, completion
 
 ### KeyFindings (`components/summary/KeyFindings.tsx`)
-AI-generated summary of investigation findings.
 
 **Props:**
+
 ```typescript
 interface KeyFindingsProps {
   findings: Finding[];
@@ -156,15 +159,16 @@ interface Finding {
 ```
 
 **Features:**
+
 - Bullet point list of key findings
 - AI-generated from case data
 - Editable by user
 - Categorized by type and severity
 
 ### ChartEmbed (`components/summary/ChartEmbed.tsx`)
-Static chart snapshots from visualization page.
 
 **Props:**
+
 ```typescript
 interface ChartEmbedProps {
   chartType: 'risk_distribution' | 'timeline' | 'network' | 'cashflow';
@@ -175,15 +179,16 @@ interface ChartEmbedProps {
 ```
 
 **Embedded Charts:**
+
 - Risk distribution pie chart
 - Transaction timeline
 - Entity relationship graph
 - Cashflow analysis
 
 ### PDFGenerator (`components/summary/PDFGenerator.tsx`)
-Report generation component.
 
 **Props:**
+
 ```typescript
 interface PDFGeneratorProps {
   caseId: string;
@@ -193,15 +198,16 @@ interface PDFGeneratorProps {
 ```
 
 **Features:**
+
 - Multiple report templates
 - Progress indicator during generation
 - Auto-download on completion
 - Preview before download option
 
 ### ActionButtons (`components/summary/ActionButtons.tsx`)
-Export and case management actions.
 
 **Props:**
+
 ```typescript
 interface ActionButtonsProps {
   caseId: string;
@@ -219,17 +225,19 @@ interface ActionButtonsProps {
 ### Summary Sections
 
 #### 1. Success Banner
+
 **Purpose:** Visual indicator of case completion status
 
 **Metrics Displayed:**
+
 - Case status (Success/Partial/Failed)
 - Data quality score (0-100%)
 - Time to resolution (days)
 - Case ID reference
 
 **Status Indicators:**
+
 - ✅ **Success:** Green banner, 95%+ data quality
-- ⚠️ **Partial:** Yellow banner, 80-94% data quality
 - ❌ **Failed:** Red banner, <80% data quality
 
 #### 2. Executive Summary Cards
@@ -241,9 +249,11 @@ interface ActionButtonsProps {
 | **Adjudication** | Records resolved, avg time, completion % | Complete if all alerts resolved |
 
 #### 3. Key Findings
+
 AI-generated bullet points summarizing:
 
 **Finding Types:**
+
 - **Pattern Detection:** "Identified 15 high-risk mirroring patterns involving 3 entities"
 - **Amount Summary:** "Total flagged amount: $4.8M"
 - **Confirmations:** "3 confirmed fraudulent transactions referred to authorities"
@@ -251,11 +261,12 @@ AI-generated bullet points summarizing:
 - **Recommendations:** "Recommended enhanced monitoring for 2 vendor accounts"
 
 **Generation Logic:**
+
 ```typescript
 const generateFindings = async (caseId: string): Promise<Finding[]> => {
   const caseData = await api.getCaseData(caseId);
   const aiAnalysis = await api.getAIAnalysis(caseId);
-  
+
   return [
     {
       type: 'pattern',
@@ -268,17 +279,21 @@ const generateFindings = async (caseId: string): Promise<Finding[]> => {
 ```
 
 #### 4. Visualizations
+
 Embedded static charts from the visualization page:
 
 **Included Charts:**
+
 - **Risk Distribution** - Pie chart showing risk levels
 - **Transaction Timeline** - Line chart of transaction volume over time
 - **Entity Network Graph** - Force-directed graph of relationships
 - **Cashflow Analysis** - Waterfall chart of fund flows
 
 **Chart Rendering:**
+
 ```typescript
 // Convert interactive charts to static images for PDF
+
 const renderStaticChart = (chartType: string, data: any) => {
   return html2canvas(chartRef.current).then(canvas => {
     return canvas.toDataURL('image/png');
@@ -307,9 +322,11 @@ const renderStaticChart = (chartType: string, data: any) => {
 ### Report Templates
 
 #### Executive Template (2-3 pages)
+
 **Use Case:** C-suite briefing, board presentation
 
 **Includes:**
+
 - Cover page
 - Executive summary only
 - Top 5 findings
@@ -317,18 +334,22 @@ const renderStaticChart = (chartType: string, data: any) => {
 - Signature block
 
 #### Standard Template (8-12 pages)
+
 **Use Case:** Standard investigation report
 
 **Includes:**
+
 - All sections except detailed appendix
 - Summary transaction list (top 50)
 - Key visualizations
 - Full findings list
 
 #### Detailed Template (15-25 pages)
+
 **Use Case:** Full audit trail, legal proceedings
 
 **Includes:**
+
 - All sections
 - Complete transaction list
 - All visualizations
@@ -336,13 +357,14 @@ const renderStaticChart = (chartType: string, data: any) => {
 - Chain of custody log
 
 #### Compliance Template (10-15 pages)
+
 **Use Case:** Regulatory submission (SAR, STR)
 
 **Includes:**
+
 - Regulatory-specific format
 - Required fields per jurisdiction
 - Standardized terminology
-- Compliance checklist
 
 ### PDF Generation Process
 
@@ -392,15 +414,20 @@ const generatePDF = async (caseId: string, template: ReportTemplate) => {
 ### Primary Actions
 
 #### 1. Generate PDF Report
-**Trigger:** Click "Generate PDF Report" button  
-**Confirmation:** None  
+
+**Trigger:** Click "Generate PDF Report" button
+
+**Confirmation:** None
+
 **Process:**
+
 1. User selects template (Executive/Standard/Detailed/Compliance)
 2. System generates PDF (shows progress indicator)
 3. PDF opens in new tab
 4. Auto-download initiated
 
 **Implementation:**
+
 ```typescript
 const handleGeneratePDF = async () => {
   setGenerating(true);
@@ -420,9 +447,13 @@ const handleGeneratePDF = async () => {
 ```
 
 #### 2. Archive Case
-**Trigger:** Click "Archive Case" button  
-**Confirmation:** Yes (modal dialog)  
+
+**Trigger:** Click "Archive Case" button
+
+**Confirmation:** Yes (modal dialog)
+
 **Process:**
+
 1. Confirmation modal: "Are you sure you want to archive this case?"
 2. User confirms
 3. Case status updated to "Archived"
@@ -430,6 +461,7 @@ const handleGeneratePDF = async () => {
 5. Success toast notification
 
 **Confirmation Modal:**
+
 ```typescript
 <ConfirmDialog
   title="Archive Case?"
@@ -441,16 +473,24 @@ const handleGeneratePDF = async () => {
 ```
 
 #### 3. Start New Case
-**Trigger:** Click "Start New Case" button  
-**Confirmation:** None  
+
+**Trigger:** Click "Start New Case" button
+
+**Confirmation:** None
+
 **Process:**
+
 1. Navigate to case creation page
 2. Pre-fill template based on current case type
 
 #### 4. Email Report
-**Trigger:** Click "Email Report" button  
-**Confirmation:** Yes (email dialog)  
+
+**Trigger:** Click "Email Report" button
+
+**Confirmation:** Yes (email dialog)
+
 **Process:**
+
 1. Email dialog opens
 2. User enters recipients
 3. Selects report template
@@ -458,6 +498,7 @@ const handleGeneratePDF = async () => {
 5. System sends email with PDF attached
 
 **Email Dialog:**
+
 ```typescript
 interface EmailReportDialogProps {
   caseId: string;
@@ -466,18 +507,26 @@ interface EmailReportDialogProps {
 ```
 
 #### 5. Edit Summary
-**Trigger:** Click "Edit Summary" button  
-**Confirmation:** None  
+
+**Trigger:** Click "Edit Summary" button
+
+**Confirmation:** None
+
 **Process:**
+
 1. Key findings section becomes editable
 2. User modifies text
 3. Click "Save" to persist changes
 4. AI re-generates based on edits
 
 #### 6. Copy to Clipboard
-**Trigger:** Click "Copy to Clipboard" button  
-**Confirmation:** None  
+
+**Trigger:** Click "Copy to Clipboard" button
+
+**Confirmation:** None
+
 **Process:**
+
 1. Formats summary as plain text
 2. Copies to clipboard
 3. Toast notification: "Summary copied"
@@ -491,12 +540,14 @@ interface EmailReportDialogProps {
 A "scrollytelling" experience that walks stakeholders through the fraud timeline step-by-step.
 
 **Concept:**
+
 - **Narrative Arc:** Auto-generated narrative text: "It started with small withdrawals in January..."
 - **Visual Sync:** As user scrolls, side chart updates to highlight specific data points
 - **Annotations:** Clickable "Evidence" bubbles linking to source documents
 - **Chapters:** Investigation divided into chapters (Discovery, Analysis, Confirmation, Resolution)
 
 **Implementation:**
+
 ```typescript
 interface StoryChapter {
   id: string;
@@ -541,6 +592,7 @@ const StoryMode = ({ chapters }: { chapters: StoryChapter[] }) => {
 Generates a ZIP file compliant with digital forensics standards (e.g., ISO 27037).
 
 **Package Contents:**
+
 - **Chain of Custody Log:** Who touched the data and when
 - **Hash Verification:** MD5/SHA-256 hashes for all source files
 - **Self-Contained Viewer:** HTML report that runs offline without installation
@@ -549,7 +601,8 @@ Generates a ZIP file compliant with digital forensics standards (e.g., ISO 27037
 - **Certification:** Digital signature of investigator
 
 **File Structure:**
-```
+
+```text
 case_001_forensics_package.zip
 ├── index.html                    # Self-contained viewer
 ├── chain_of_custody.pdf          # Custody log
@@ -570,10 +623,11 @@ case_001_forensics_package.zip
 ```
 
 **Hash Verification:**
+
 ```typescript
 const generateForensicsPackage = async (caseId: string) => {
   const files = await api.getCaseFiles(caseId);
-  
+
   // Generate hashes
   const hashes = await Promise.all(
     files.map(async file => ({
@@ -603,6 +657,7 @@ const generateForensicsPackage = async (caseId: string) => {
 A final force-directed graph showing the "Web of Fraud".
 
 **Features:**
+
 - **Central Node:** The suspect or main account
 - **Edges:** Money flows (thickness = volume, color = risk)
 - **Clusters:** Detecting collusion rings or shell company groups
@@ -610,6 +665,7 @@ A final force-directed graph showing the "Web of Fraud".
 - **Interactive:** Click nodes for details, filter by relationship type
 
 **Graph Configuration:**
+
 ```typescript
 interface FraudNetworkNode {
   id: string;
@@ -634,12 +690,14 @@ interface FraudNetworkEdge {
 A cryptographic record of every action taken during the investigation.
 
 **Features:**
+
 - **Immutable Log:** "Analyst A ignored Match B at 2:00 PM"
 - **Replayability:** Ability to "undo" the investigation to any previous state
 - **Compliance:** Ready for external audit review
 - **Blockchain-inspired:** Hash chain linking all events
 
 **Audit Log Entry:**
+
 ```typescript
 interface AuditLogEntry {
   id: string;
@@ -673,6 +731,7 @@ const hashEntry = (entry: AuditLogEntry): string => {
 
 ```typescript
 GET /api/v1/summary/:caseId
+
 Response (200):
 {
   "caseId": "case_001",
@@ -701,6 +760,7 @@ Response (200):
 
 ```typescript
 GET /api/v1/summary/:caseId/findings
+
 Response (200):
 {
   "findings": [
@@ -716,7 +776,7 @@ Response (200):
 }
 ```
 
-### Report Generation
+### Report Generation API
 
 ```typescript
 POST /api/v1/summary/:caseId/report
@@ -781,6 +841,15 @@ Response (200):
 ---
 
 ## State Management
+
+Stores data for:
+
+- **Metrics:** `useQuery(['summary', caseId])`
+- **Findings:** `useQuery(['summary', caseId, 'findings'])`
+- **PDF Generation:** `useMutation` for `generateReport`
+- **Case Archival:** `useMutation` for `archiveCase`
+- **Email Report:** `useMutation` for `emailReport`
+- **Editing:** Local state for Key Findings edits
 
 ```typescript
 // Fetch summary data
@@ -882,6 +951,8 @@ The page includes print-specific CSS for professional output:
 | Color Contrast | WCAG AA compliant (4.5:1 minimum) |
 | Alternative Text | Descriptive alt text for charts |
 | Semantic HTML | Proper heading hierarchy (h1 → h2 → h3) |
+| Tab Order | Logical flow through cards and actions |
+| ARIA Live Regions | Status updates for PDF generation progress |
 
 ---
 
@@ -902,18 +973,23 @@ The page includes print-specific CSS for professional output:
 ## Testing
 
 ### Unit Tests
+
+- Unit tests for metric calculations
+- Component snapshot tests
 - ✅ Summary data calculation
 - ✅ Finding generation logic
 - ✅ PDF template rendering
 - ✅ Chart static rendering
 
 ### Integration Tests
+
 - ✅ API endpoint integration
 - ✅ Report generation flow
 - ✅ Email sending
 - ✅ Case archival workflow
 
 ### E2E Tests
+
 - Generate PDF and verify download
 - Archive case and verify redirect
 - Email report and verify sent status
@@ -929,16 +1005,19 @@ The page includes print-specific CSS for professional output:
 - **Email Sending:** < 2 seconds
 
 **Optimizations:**
+
 - Pre-generate static charts during case closure
 - Cache summary data for 5 minutes
 - Lazy-load chart images
 - Background PDF generation with progress indicator
+- PDF generation in web worker (to avoid UI freeze)
+- Image optimization for embedded charts
 
 ---
 
 ## Related Files
 
-```
+```text
 frontend/src/
 ├── pages/
 │   └── FinalSummary.tsx                # Main page (planned)
@@ -968,36 +1047,35 @@ backend/
 
 ## Future Enhancements
 
-### Phase 2 (Q1 2026)
-- [ ] Interactive story mode with scrollytelling
-- [ ] Multi-language report templates
-- [ ] Custom branding options
-- [ ] Report scheduling (auto-generate weekly)
-- [ ] Collaborative editing of findings
+### Phase 1: Core Implementation (Immediate)
+- [ ] Implement interactive story mode with scrollytelling narrative
+- [ ] Add court-admissible forensics package with hash verification
+- [ ] Build link analysis visual summary graph
+- [ ] Create complete audit trail with cryptographic hash chain
+- [ ] Integrate multi-language report templates
+- [ ] Add custom branding options for reports
+- [ ] Implement report scheduling and auto-generation
+- [ ] Enable collaborative editing of findings
 
-### Phase 3 (Q2 2026)
-- [ ] Court-admissible forensics package
-- [ ] Link analysis visual summary
-- [ ] Complete audit trail with hash chain
-- [ ] Video summary generation (AI narration)
-- [ ] Integration with case management systems
-
-### Phase 4 (Q3 2026)
+### Phase 2: Advanced Features (Q1 2026)
+- [ ] Video summary generation with AI narration
+- [ ] Integration with external case management systems
 - [ ] Predictive case outcome modeling
-- [ ] Automated SAR/STR filing
+- [ ] Automated SAR/STR regulatory filing
 - [ ] Real-time collaboration on reports
 - [ ] Advanced data visualization library
 - [ ] Mobile app for report viewing
+- [ ] Blockchain-based immutable audit trails
 
 ---
 
 ## Related Documentation
 
-- [Case Detail](./CASE_DETAIL.md) - Investigation workflow
-- [Visualization](./VISUALIZATION.md) - Chart generation
-- [Dashboard](./DASHBOARD.md) - Metrics overview
-- [Adjudication Queue](./ADJUDICATION_QUEUE.md) - Decision workflow
-- [Frenly AI Assistant](./FRENLY_AI_ASSISTANT.md) - AI findings generation
+- [Visualization](./08_VISUALIZATION.md) - Previous step
+- [Cases](./03_CASES.md) - Investigation workflow
+- [Dashboard](./02_DASHBOARD.md) - Metrics overview
+- [Adjudication Queue](./06_ADJUDICATION_QUEUE.md) - Decision workflow
+- [Frenly AI Assistant](./10_FRENLY_AI_ASSISTANT.md) - AI findings generation
 
 ---
 

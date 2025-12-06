@@ -20,7 +20,7 @@ export function FileUploader({ onUpload, showProcessing = false, uploadId }: Fil
 
   // WebSocket integration for processing updates
   useWebSocket('/ws', {
-    onMessage: (message) => {
+    onMessage: (message: any) => {
       if (message.type === 'upload_progress' && message.payload?.upload_id === uploadId) {
         setProgress(message.payload.progress || 0);
       } else if (message.type === 'processing_stage' && message.payload?.upload_id === uploadId) {

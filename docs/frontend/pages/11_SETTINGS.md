@@ -161,9 +161,19 @@ frontend/src/
 
 ## Future Enhancements
 
-- [ ] Profile avatar upload
-- [ ] Language/locale settings
+### Phase 1: Core Implementation (Immediate)
+- [ ] Implement complete settings page with General/Security/Audit tabs
+- [ ] Add profile management (name/email editing, avatar upload)
+- [ ] Build theme system (Light/Dark/System toggle with persistence)
+- [ ] Create notification settings with real-time preference updates
+- [ ] Implement security features (password change, 2FA, session management)
+- [ ] Build audit log viewer with search/filter/export capabilities
+
+### Phase 2: Advanced Features (Q1 2026)
+- [ ] Profile avatar upload with image processing
+- [ ] Language/locale settings with internationalization
 - [ ] Keyboard shortcut customization
-- [ ] API key management
+- [ ] API key management for integrations
 - [ ] Data export (GDPR compliance)
-- [ ] Account deletion option
+- [ ] Account deletion option with data cleanup
+- [ ] Advanced audit log analytics and reporting

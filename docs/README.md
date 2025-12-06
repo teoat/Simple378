@@ -11,7 +11,7 @@
 |----------|-------------|----------|
 | 🚀 **Quick Reference** | Build commands, daily workflows | [BUILD_QUICK_REFERENCE.md](./BUILD_QUICK_REFERENCE.md) |
 | 🧪 **Testing** | Testing and quality standards | [TESTING_AND_QUALITY_STANDARDS.md](./TESTING_AND_QUALITY_STANDARDS.md) |
-| 🗺️ **User Journey** | User workflow documentation | [USER_JOURNEY_WORKFLOW.md](./USER_JOURNEY_WORKFLOW.md) |
+
 
 ---
 
@@ -22,7 +22,6 @@ docs/
 ├── README.md                           ← You are here (Index)
 ├── BUILD_QUICK_REFERENCE.md            ← Quick build commands
 ├── TESTING_AND_QUALITY_STANDARDS.md    ← Testing guidelines
-├── USER_JOURNEY_WORKFLOW.md            ← User journey documentation
 │
 ├── architecture/                       ← System architecture & design
 │   ├── 00_master_plan.md
@@ -59,7 +58,6 @@ docs/
 │
 ├── frontend/                           ← Frontend Documentation
 │   ├── FRONTEND_DEVELOPMENT_GUIDELINES.md  ← Development guidelines
-│   ├── FRONTEND_PAGES.md               ← Page specifications
 │   ├── pages/                          ← Individual page docs
 │   └── archive/                        ← Archived frontend docs
 │
@@ -145,21 +143,22 @@ Frontend development documentation.
 | Document | Purpose |
 |----------|---------|
 | [FRONTEND_DEVELOPMENT_GUIDELINES.md](./frontend/FRONTEND_DEVELOPMENT_GUIDELINES.md) | Development standards |
-| [FRONTEND_PAGES.md](./frontend/FRONTEND_PAGES.md) | Page specifications overview |
 | [pages/README.md](./frontend/pages/README.md) | **Page documentation index** |
 
 **Individual Page Documentation:**
 
 | Page | Route | Documentation |
 |------|-------|---------------|
-| Login | `/login` | [LOGIN.md](./frontend/pages/LOGIN.md) |
-| Dashboard | `/dashboard` | [DASHBOARD.md](./frontend/pages/DASHBOARD.md) |
-| Case List | `/cases` | [CASE_LIST.md](./frontend/pages/CASE_LIST.md) |
-| Case Detail | `/cases/:id` | [CASE_DETAIL.md](./frontend/pages/CASE_DETAIL.md) |
-| Adjudication Queue | `/adjudication` | [ADJUDICATION_QUEUE.md](./frontend/pages/ADJUDICATION_QUEUE.md) |
-| Reconciliation | `/reconciliation` | [RECONCILIATION.md](./frontend/pages/RECONCILIATION.md) |
-| Forensics | `/forensics` | [FORENSICS.md](./frontend/pages/FORENSICS.md) |
-| Settings | `/settings` | [SETTINGS.md](./frontend/pages/SETTINGS.md) |
+| Login | `/login` | [01_LOGIN.md](./frontend/pages/01_LOGIN.md) |
+| Dashboard | `/dashboard` | [02_DASHBOARD.md](./frontend/pages/02_DASHBOARD.md) |
+| Case List | `/cases` | [03_CASES.md](./frontend/pages/03_CASES.md) |
+| Case Detail | `/cases/:id` | [03_CASES.md](./frontend/pages/03_CASES.md) |
+| Ingestion & Forensics | `/ingestion` | [04_INGESTION.md](./frontend/pages/04_INGESTION.md) |
+| Adjudication Queue | `/adjudication` | [06_ADJUDICATION_QUEUE.md](./frontend/pages/06_ADJUDICATION_QUEUE.md) |
+| Reconciliation | `/reconciliation` | [07_RECONCILIATION.md](./frontend/pages/07_RECONCILIATION.md) |
+| Visualization | `/visualization` | [08_VISUALIZATION.md](./frontend/pages/08_VISUALIZATION.md) |
+| Summary | `/summary/:id` | [09_SUMMARY.md](./frontend/pages/09_SUMMARY.md) |
+| Settings | `/settings` | [11_SETTINGS.md](./frontend/pages/11_SETTINGS.md) |
 
 ### 🤖 AI Copilot
 Copilot configuration and usage guides.

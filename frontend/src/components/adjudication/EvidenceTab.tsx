@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { FileText, Image, File, Loader2 } from 'lucide-react';
-import { api } from '../../lib/api';
+import { apiRequest } from '../../lib/api';
 
 interface EvidenceTabProps {
   alertId: string;
@@ -9,7 +9,7 @@ interface EvidenceTabProps {
 export function EvidenceTab({ alertId }: EvidenceTabProps) {
   const { data: evidence, isLoading, error } = useQuery({
     queryKey: ['evidence', alertId],
-    queryFn: () => api.getEvidenceForAnalysis(alertId),
+    queryFn: () => apiRequest(`/evidence/analysis/${alertId}`),
     enabled: !!alertId,
   });
 
@@ -49,7 +49,7 @@ export function EvidenceTab({ alertId }: EvidenceTabProps) {
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Supporting Evidence</h3>
       <div className="grid grid-cols-2 gap-4">
-        {evidence.map((item) => {
+        {evidence.map((item: any) => {
           const fileType = item.filename?.split('.').pop()?.toLowerCase() || 'file';
           const isPdf = fileType === 'pdf';
           const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(fileType);

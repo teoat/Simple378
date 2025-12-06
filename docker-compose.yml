@@ -32,16 +32,20 @@ services:
   mcp-server:
     build: ./mcp-server
     container_name: fraud_mcp_server
-    command: "node dist/index.js"
+    ports:
+      - "8080:8080"
+    command: "uvicorn server:app --host 0.0.0.0 --port 8080"
     volumes:
       - ./mcp-server:/app
     env_file:
       - .env
     environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - REDIS_URL=${REDIS_URL:-redis://cache:6379/0}
       - BACKEND_URL=${BACKEND_URL:-http://backend:8000}
       - COORDINATION_TTL=${COORDINATION_TTL:-3600}
     depends_on:
+      - db
       - cache
       - backend
     networks:
@@ -51,7 +55,7 @@ services:
     build: ./frontend
     container_name: fraud_frontend
     ports:
-      - "8080:8080"
+      - "5173:5173"
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -68,7 +72,7 @@ services:
     image: postgres:16-alpine
     container_name: fraud_db
     ports:
-      - "5433:5432"
+      - "5432:5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -92,7 +96,7 @@ services:
     image: redis:7-alpine
     container_name: fraud_redis
     ports:
-      - "6380:6379"
+      - "6379:6379"
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
@@ -115,8 +119,8 @@ services:
       - "9000:9000"
       - "9001:9001"
     environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-fraud_storage_admin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-M1n10_Fr4ud_St0r4g3_2025_K3y_8pLmN7vX}
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data

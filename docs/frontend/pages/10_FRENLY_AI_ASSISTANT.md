@@ -787,26 +787,44 @@ backend/
 
 ## Future Enhancements
 
-### Phase 2 (Q1 2026)
+### Phase 1: Core Implementation (Immediate)
+- [ ] Implement multi-persona analysis display with confidence scores
+- [ ] Add feedback buttons (👍👎) on all AI messages
+- [ ] Implement typing indicators during AI responses
+- [ ] Add proactive suggestions with actionable buttons
+- [ ] Create risk scoring visualization with confidence badges
+- [ ] Implement message persistence across sessions
+- [ ] Add advanced chat features (timestamps, auto-scroll, clear conversation)
+- [ ] Display detected fraud patterns with explanations
+- [ ] Integrate contextual AI panels across pages
+- [ ] Optimize for mobile responsiveness
+
+### Phase 2: Advanced Features (Q1 2026)
 - [ ] Voice interaction (speech-to-text/text-to-speech)
 - [ ] Document upload and analysis directly in chat
 - [ ] Image recognition for evidence interpretation
 - [ ] Keyboard shortcut customization
 - [ ] Advanced conversation analytics
+- [ ] Message streaming for real-time responses
+- [ ] Response caching and performance optimization
 
-### Phase 3 (Q2 2026)
+### Phase 3: Collaboration & Integration (Q2 2026)
 - [ ] Collaborative AI (team discussion threads with Frenly)
 - [ ] Shared AI insights across team
 - [ ] Collective learning from team feedback
 - [ ] Integration with Slack/Teams
 - [ ] Email summary generation
+- [ ] Multi-user real-time conversations
+- [ ] Team knowledge sharing
 
-### Phase 4 (Q3 2026)
+### Phase 4: Predictive Intelligence (Q3 2026)
 - [ ] Predictive fraud trend forecasting
 - [ ] Proactive investigation recommendations
 - [ ] Risk prediction models
 - [ ] Mobile app integration
 - [ ] Advanced persona customization
+- [ ] Automated case prioritization
+- [ ] Fraud prevention insights
 
 ---
 

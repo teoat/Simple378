@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../lib/api';
+import { apiRequest } from '../../lib/api';
 import { Modal } from '../ui/Modal';
 import toast from 'react-hot-toast';
 
@@ -9,13 +9,21 @@ interface NewCaseModalProps {
   onClose: () => void;
 }
 
+interface CreateCaseData {
+  subject_name: string;
+  description: string;
+}
+
 export function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
   const [subjectName, setSubjectName] = useState('');
   const [description, setDescription] = useState('');
   const queryClient = useQueryClient();
 
   const createCaseMutation = useMutation({
-    mutationFn: api.createCase,
+    mutationFn: (data: CreateCaseData) => apiRequest('/cases', {
+       method: 'POST',
+       body: JSON.stringify(data)
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cases'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Sparkles, AlertTriangle, Loader2 } from 'lucide-react';
-import { api } from '../../lib/api';
+import { apiRequest } from '../../lib/api';
 
 interface AIReasoningTabProps {
   subjectId: string;
@@ -9,7 +9,7 @@ interface AIReasoningTabProps {
 export function AIReasoningTab({ subjectId }: AIReasoningTabProps) {
   const { data: aiAnalysis, isLoading, error } = useQuery({
     queryKey: ['ai-analysis', subjectId],
-    queryFn: () => api.getAIAnalysis(subjectId),
+    queryFn: () => apiRequest(`/ai/analysis/${subjectId}`),
     enabled: !!subjectId,
   });
   if (isLoading) {

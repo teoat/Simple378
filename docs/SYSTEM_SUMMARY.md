@@ -259,16 +259,16 @@ cd frontend && npm install && npm run dev
 ### Frontend Pages Documentation
 See [docs/frontend/pages/README.md](./frontend/pages/README.md) for complete index:
 
-1. [Login Page](./frontend/pages/LOGIN.md)
-2. [Dashboard](./frontend/pages/DASHBOARD.md)
-3. [Case List](./frontend/pages/CASE_LIST.md)
-4. [Case Detail](./frontend/pages/CASE_DETAIL.md)
-5. [Adjudication Queue](./frontend/pages/ADJUDICATION_QUEUE.md)
-6. [Reconciliation](./frontend/pages/RECONCILIATION.md)
-7. [Forensics & Ingestion](./frontend/pages/FORENSICS.md)
-8. [Transaction Categorization](./frontend/pages/TRANSACTION_CATEGORIZATION.md)
-9. [Visualization Features](./frontend/pages/VISUALIZATION.md)
-10. [Settings](./frontend/pages/SETTINGS.md)
+1. [Login Page](./frontend/pages/01_LOGIN.md)
+2. [Dashboard](./frontend/pages/02_DASHBOARD.md)
+3. [Case List](./frontend/pages/03_CASES.md)
+4. [Case Detail](./frontend/pages/03_CASES.md)
+5. [Adjudication Queue](./frontend/pages/06_ADJUDICATION_QUEUE.md)
+6. [Reconciliation](./frontend/pages/07_RECONCILIATION.md)
+7. [Forensics & Ingestion](./frontend/pages/05_FORENSICS.md)
+8. [Data Ingestion](./frontend/pages/04_INGESTION.md)
+9. [Visualization Features](./frontend/pages/08_VISUALIZATION.md)
+10. [Settings](./frontend/pages/11_SETTINGS.md)
 
 ### Developer Documentation
 - [Architecture Overview](./architecture/01_system_architecture.md)

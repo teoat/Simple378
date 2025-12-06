@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Send, Bot, MessageSquare } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { cn } from '../../lib/utils';
-import { api } from '../../lib/api';
+import { apiRequest } from '../../lib/api';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -17,8 +17,8 @@ export function AIAssistant() {
   ]);
 
   const sendMessageMutation = useMutation({
-    mutationFn: (msg: string) => api.sendChatMessage(msg),
-    onSuccess: (response) => {
+    mutationFn: (msg: string) => apiRequest('/ai/chat', { method: 'POST', body: JSON.stringify({ message: msg }) }),
+    onSuccess: (response: any) => {
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: response.response 

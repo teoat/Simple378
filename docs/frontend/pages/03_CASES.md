@@ -13,7 +13,9 @@ The Cases section provides comprehensive case management capabilities, from brow
 
 ---
 
-# Part 1: Case List
+
+## Part 1: Case List
+
 
 ## Case List Layout
 
@@ -60,10 +62,15 @@ The Cases section provides comprehensive case management capabilities, from brow
 
 ---
 
+---
+
 ## Search & Filtering
 
+
 ### Search Functionality
+
 - **Database Search:** Traditional SQL search (LIKE queries)
+
 - **Meilisearch:** Full-text search with typo tolerance, instant results
 - **Search Fields:** Case ID, subject name, description, analyst name
 - **Debounce:** 300ms delay before API call
@@ -77,8 +84,11 @@ The Cases section provides comprehensive case management capabilities, from brow
 | Date Range | Custom date picker (created date) |
 | Analyst | Dropdown of team members |
 
+
 ### Sortable Columns
+
 - Case ID (default: descending)
+
 - Subject name
 - Risk score
 - Status
@@ -96,9 +106,11 @@ The Cases section provides comprehensive case management capabilities, from brow
 
 ---
 
+
 ## Case List Components
 
 | Component | Purpose |
+
 |-----------|---------|
 | `CaseSearch` | Search input with debounce and mode toggle |
 | `CaseFilters` | Filter controls for status, risk, date |
@@ -112,7 +124,9 @@ The Cases section provides comprehensive case management capabilities, from brow
 ## Case List API Endpoints
 
 ### List Cases
+
 ```typescript
+
 GET /api/v1/cases?page=1&per_page=10&status=active&sort_by=created_at&sort_order=desc
 
 Response (200):
@@ -141,7 +155,9 @@ Response (200):
 ```
 
 ### Search Cases (Meilisearch)
+
 ```typescript
+
 GET /api/v1/cases/search?q=acme&page=1&per_page=10
 
 Response (200):
@@ -154,7 +170,9 @@ Response (200):
 ```
 
 ### Bulk Delete
+
 ```typescript
+
 DELETE /api/v1/cases/bulk
 Content-Type: application/json
 
@@ -171,7 +189,9 @@ Response (200):
 
 ---
 
-# Part 2: Case Detail
+
+## Part 2: Case Detail
+
 
 ## Case Detail Layout
 
@@ -207,7 +227,9 @@ Response (200):
 
 ## Case Detail Tabs
 
+
 ### 1. Overview Tab
+
 Primary summary view with key case information.
 
 ```text
@@ -229,7 +251,9 @@ Primary summary view with key case information.
 └────────────────────────────────────────────────────────────────┘
 ```
 
+
 ### 2. Graph Analysis Tab
+
 Interactive network visualization of entity relationships.
 
 ```text
@@ -251,7 +275,9 @@ Interactive network visualization of entity relationships.
 └────────────────────────────────────────────────────────────────┘
 ```
 
+
 ### 3. Timeline Tab
+
 Chronological event history.
 
 ```text
@@ -273,7 +299,9 @@ Chronological event history.
 └────────────────────────────────────────────────────────────────┘
 ```
 
+
 ### 4. Financials Tab
+
 Financial flow visualization with Sankey diagram.
 
 ```text
@@ -298,7 +326,9 @@ Financial flow visualization with Sankey diagram.
 └────────────────────────────────────────────────────────────────┘
 ```
 
+
 ### 5. Evidence Tab
+
 Multi-media evidence library with intelligent processing and cross-referencing.
 
 ```text
@@ -357,7 +387,9 @@ Multi-media evidence library with intelligent processing and cross-referencing.
 | **📸 Photos** | OCR, EXIF/GPS extraction, object detection | Receipt matching, location mapping |
 
 **Smart Features:**
+
 - **Cross-Media Search:** Find "John Smith $50k" across all evidence types
+
 - **Auto-Linking:** AI connects related evidence automatically
 - **Contradiction Detection:** Flags inconsistencies between evidence items
 - **Timeline Integration:** All evidence plotted chronologically
@@ -379,8 +411,11 @@ Multi-media evidence library with intelligent processing and cross-referencing.
 | Approve | Mark case as reviewed | Supervisor, Admin |
 | Archive | Move to archive | Admin |
 
+
 ### Real-time Updates
+
 - Case status changes
+
 - New evidence uploads
 - Note additions
 - Risk score updates
@@ -402,7 +437,9 @@ Multi-media evidence library with intelligent processing and cross-referencing.
 ## Case Detail API Endpoints
 
 ### Get Case Detail
+
 ```typescript
+
 GET /api/v1/cases/:id
 
 Response (200):
@@ -433,7 +470,9 @@ Response (200):
 ```
 
 ### Get Case Graph
+
 ```typescript
+
 GET /api/v1/cases/:id/graph
 
 Response (200):
@@ -448,7 +487,9 @@ Response (200):
 ```
 
 ### Get Case Timeline
+
 ```typescript
+
 GET /api/v1/cases/:id/timeline
 
 Response (200):
@@ -466,7 +507,9 @@ Response (200):
 ```
 
 ### Upload Evidence
+
 ```typescript
+
 POST /api/v1/cases/:id/evidence
 Content-Type: multipart/form-data
 
@@ -485,7 +528,9 @@ Response (201):
 ## Keyboard Shortcuts
 
 ### Case List
+
 | Key | Action |
+
 |-----|--------|
 | `/` | Focus search input |
 | `Esc` | Clear search, deselect all |
@@ -494,7 +539,9 @@ Response (201):
 | `Delete` | Delete selected (with confirmation) |
 
 ### Case Detail
+
 | Key | Action |
+
 |-----|--------|
 | `1` | Switch to Overview tab |
 | `2` | Switch to Graph tab |
@@ -526,7 +573,9 @@ Response (201):
 ## Responsive Behavior
 
 ### Case List
+
 | Breakpoint | Layout Change |
+
 |------------|---------------|
 | ≥1280px | Full table with all columns |
 | ≥1024px | Hide analyst column |
@@ -534,7 +583,9 @@ Response (201):
 | <768px | Stacked cards, expandable details |
 
 ### Case Detail
+
 | Breakpoint | Layout Change |
+
 |------------|---------------|
 | ≥1280px | Full layout with side panels |
 | ≥1024px | Stacked sections, full graph |
@@ -557,7 +608,9 @@ Response (201):
 ## Testing
 
 ### Unit Tests
+
 - Search input debouncing
+
 - Filter state management
 - Sorting logic
 - Pagination controls
@@ -566,7 +619,9 @@ Response (201):
 - Graph node/edge rendering
 
 ### E2E Tests
+
 - Full search flow (both modes)
+
 - Filter combination scenarios
 - Bulk selection and deletion
 - Navigation to case detail
@@ -608,7 +663,9 @@ frontend/src/
 ## Future Enhancements
 
 ### Case List
+
 - [ ] Saved search/filter presets
+
 - [ ] Column visibility customization
 - [ ] Case comparison view (side-by-side)
 - [ ] Inline editing for status changes
@@ -616,7 +673,9 @@ frontend/src/
 - [ ] Export to Excel with formatting
 
 ### Case Detail
+
 - [ ] Collaborative annotations on graphs
+
 - [ ] Timeline filtering by event type
 - [ ] Financial anomaly highlighting
 - [ ] Side-by-side case comparison

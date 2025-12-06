@@ -77,30 +77,40 @@ The Ingestion & Mapping page is the entry point for new data into the system. Us
 
 ## Ingestion Steps
 
+
 ### Step 1: Source Selection
+
 - Choose data source type
 - File Upload (most common)
 - Database Connection
 - API Feed
 
+
 ### Step 2: Upload / Connect
+
 - **File Upload:** Drag-and-drop zone with validation
 - **Database:** Connection string, credentials
 - **API:** Endpoint URL, authentication
 
+
 ### Step 3: Mapping
+
 - View detected fields
 - Map source → target fields
 - Define transformations
 - Handle data type conversions
 
+
 ### Step 4: Preview
+
 - Show first 10 rows
 - Validation messages
 - Data quality indicators
 - Fix errors before commit
 
+
 ### Step 5: Confirm
+
 - Summary of upload
 - Start ingestion process
 - Real-time progress tracking
@@ -120,7 +130,9 @@ graph LR
     B -->|Lookups| E[Standardized Category]
 ```
 
+
 ### Mapping Logic
+
 - **Direct Matching:** 1-to-1 link (e.g., "Date" -> `transaction_date`)
 - **Combined Fields:** Merge two columns (e.g., "First Name" + "Last Name" -> `full_name`)
 - **Conditional Formatting:** Flip signs based on "Type" column (Debit/Credit)
@@ -248,19 +260,27 @@ Advanced handling for complex, non-standard layouts.
 
 Automated statistical analysis run immediately upon ingestion to detect anomalies in the raw dataset.
 
-**Benford's Law Analysis**
+#### Benford's Law Analysis
+
+
 - Checks if the leading digits follow the natural distribution (Newcomb–Benford law)
 - Deviations often indicate fabricated data
 
-**Round-Number Density**
+
+#### Round-Number Density
+
 - Flags excessive use of round numbers (e.g., $5,000.00)
 - May indicate manual estimation or kickbacks rather than actual expenses
 
-**Velocity/Structuring (Smurfing)**
+
+#### Velocity/Structuring (Smurfing)
+
 - Detects bursts of small transactions just below reporting thresholds (e.g., typically $10,000)
 - Identifies patterns within a short window
 
-**Temporal Anomalies**
+
+#### Temporal Anomalies
+
 - Identifies business transactions occurring at unusual times (e.g., 3:00 AM)
 - Flags transactions on non-working days (Weekends/Holidays)
 
@@ -268,18 +288,65 @@ Automated statistical analysis run immediately upon ingestion to detect anomalie
 
 Heuristic logic to infer values for redacted items in bank statements.
 
-**Sequence Gap Logic**
+#### Sequence Gap Logic
+
+
 - If Cheque #101 is $50 and #103 is $50, and total withdrawal is $150, inferred #102 is ~$50
 
-**Reference Reconstruction**
+
+#### Reference Reconstruction
+
 - Use partial distinct metadata (e.g., "TRX-***-99") to match against known counter-parties with similar patterns
 
-**Running Balance Math**
+
+#### Running Balance Math
+
 - Calculate the precise value of a redacted transaction by computing `Balance_Before - Balance_After = Transaction_Amount`
 
-**Heuristic Balance Reconstruction**
+
+#### Heuristic Balance Reconstruction
+
 - If ending balance is missing, categorizes transactions (Income/Expense/Transfer)
 - Infers the final balance deviation based on historical cash flow patterns
+
+### 8. 🛠️ Complete Implementation Roadmap
+
+Core functionality to build the ingestion system from scratch.
+
+**Phase 1: Basic Upload & Mapping**
+- Implement 5-step wizard UI with progress pipeline.
+- File upload with drag-and-drop and validation.
+- Basic field mapping interface (manual source-target linking).
+- Data preview table with first 10 rows.
+- Simple CSV parsing and column detection.
+
+**Phase 2: Advanced Processing**
+- OCR integration for PDF/image text extraction.
+- Metadata parsing and virus scanning.
+- Data type conversions and basic transformations.
+- WebSocket real-time progress updates.
+- Error handling and retry logic.
+
+**Phase 3: AI & Automation**
+- ML-based auto-mapping with confidence scoring.
+- Automated data hygiene rules (date/number standardization).
+- Forensic analysis (Benford's Law, anomaly detection).
+- Mapping template save/load functionality.
+- Multi-file stitching with gap detection.
+
+**Phase 4: Enterprise Features**
+- Database connection support (SQL/NoSQL).
+- API feed configuration (REST/GraphQL).
+- Redaction gap analysis and inference.
+- Bulk template management and sharing.
+- Advanced data transformation rules.
+
+**Phase 5: Optimization & Scale**
+- Chunked upload for large files.
+- Background processing and queuing.
+- Performance optimizations (lazy loading, caching).
+- Real-time collaboration on mappings.
+- Integration with external data sources.
 
 ---
 
@@ -342,12 +409,16 @@ Heuristic logic to infer values for redacted items in bank statements.
 ## Testing
 
 ### Unit Tests
+
+
 - File validation logic
 - Mapping transformation functions
 - Data type conversion
 - Template save/load
 
 ### E2E Tests
+
+
 - Complete upload flow
 - CSV mapping wizard
 - Error handling scenarios

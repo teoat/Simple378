@@ -14,7 +14,7 @@ interface AnalysisResult {
   created_at: string;
 }
 
-export default function AdjudicationQueue() {
+export const AdjudicationQueue = () => {
   const [cases, setCases] = useState<AnalysisResult[]>([]);
   const [loading, setLoading] = useState(true);
 

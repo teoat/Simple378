@@ -357,6 +357,15 @@ frontend/src/
 
 ## Future Enhancements
 
+- [ ] Implement split-view interface (alert list + detail panel)
+- [ ] Add keyboard navigation and alert selection handling
+- [ ] Build context tabs (Context, AI Reasoning, History, Graph)
+- [ ] Create decision panel with Approve/Reject/Escalate buttons
+- [ ] Integrate real API endpoints for queue and decisions
+- [ ] Add WebSocket real-time updates and collaboration
+- [ ] Implement sorting/filtering by priority, date, amount, status
+- [ ] Add optimistic UI updates with undo functionality
+- [ ] Implement full keyboard shortcuts (a/r/e decisions, 1-4 tabs)
 - [ ] Bulk decision mode (multi-select)
 - [ ] Decision templates / quick responses
 - [ ] Analyst performance metrics
@@ -364,3 +373,6 @@ frontend/src/
 - [ ] Voice notes for comments
 - [ ] Comparison view for similar alerts
 - [ ] Customizable decision reasons dropdown
+- [ ] AI reasoning display with confidence scores
+- [ ] History and graph tabs implementation
+- [ ] Real-time collaboration features (alert locking)
