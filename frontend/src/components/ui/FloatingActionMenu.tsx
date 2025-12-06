@@ -88,6 +88,9 @@ export function FloatingActionMenu({ actions, className }: FloatingActionMenuPro
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setIsOpen(false);
+        }}
         className={cn(
           'w-14 h-14 rounded-full shadow-2xl backdrop-blur-md',
           'flex items-center justify-center transition-all',
@@ -96,6 +99,8 @@ export function FloatingActionMenu({ actions, className }: FloatingActionMenuPro
             : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:shadow-blue-500/50'
         )}
         aria-label="Quick actions"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
       >
         <Plus className="w-7 h-7 text-white" />
       </motion.button>
