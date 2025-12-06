@@ -581,12 +581,26 @@ async def get_cases(
 ```python
 class CaseCreate(BaseModel):
     subject_name: str = Field(min_length=1, max_length=255)
-    description: Optional[str] = Field(max_length=1000)
-```
+    async def global_exception_handler(request, exc):
+        # Generate a correlation ID for tracing without exposing sensitive info
+        error_id = uuid.uuid4().hex
 
-### 4. Exception Handling
-```python
-@app.exception_handler(Exception)
+        # Log sanitized context and the exception
+        safe_headers = {k: v for k, v in request.headers.items() if k.lower() not in {"authorization", "cookie", "set-cookie"}}
+        logger.error(
+            "unhandled_exception",
+            error_id=error_id,
+            path=request.url.path,
+            method=request.method,
+            headers=safe_headers,
+            exc_info=exc
+        )
+
+        # Return a generic message with the error_id for support
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error", "error_id": error_id}
+        )
 async def global_exception_handler(request, exc):
     logger.error("unhandled_exception", exc_info=exc)
     return JSONResponse(
