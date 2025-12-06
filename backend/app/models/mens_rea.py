@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, ForeignKey, DateTime, JSON
+from sqlalchemy import Column, String, Float, ForeignKey, DateTime, JSON, Integer, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID
@@ -71,7 +71,7 @@ class SearchTemplate(Base):
     query = Column(String, nullable=False)
     search_type = Column(String, default="semantic")
     filters = Column(JSON, default={})
-    is_public = Column(JSON, default=False)  # Allow team sharing
+    is_public = Column(Boolean, default=False)  # Allow team sharing
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -89,7 +89,7 @@ class SearchAnnotation(Base):
     annotation_type = Column(String, nullable=False)  # note, highlight, tag, comment
     content = Column(String, nullable=False)
     position = Column(JSON, nullable=True)  # Position data for highlights
-    is_private = Column(JSON, default=True)  # Private to user or shared
+    is_private = Column(Boolean, default=True)  # Private to user or shared
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -106,7 +106,7 @@ class SearchSession(Base):
     description = Column(String, nullable=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     case_id = Column(UUID(as_uuid=True), nullable=True)  # Associated case
-    is_active = Column(JSON, default=True)
+    is_active = Column(Boolean, default=True)
     participant_ids = Column(JSON, default=[])  # List of user IDs
     session_data = Column(JSON, default={})  # Shared filters, results, etc.
     created_at = Column(DateTime(timezone=True), server_default=func.now())
