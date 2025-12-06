@@ -135,6 +135,39 @@ async def finish_import(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
 
+@router.post("/{upload_id}/auto-map")
+async def auto_map_fields(
+    upload_id: str,
+    current_user = Depends(require_permission(Permission.INGESTION_UPLOAD))
+):
+    """
+    Step 2: Auto-suggest field mappings based on column names and sample data.
+    """
+    try:
+        from app.services.auto_mapper import AutoMapper
+        
+        # Get headers and sample data
+        headers = IngestionService.detect_csv_headers(upload_id)
+        sample_data = IngestionService.preview_mapping(upload_id, {}, limit=10)
+        
+        # Get suggestions
+        suggestions = AutoMapper.suggest_mapping(headers, sample_data if sample_data else None)
+        
+        # Calculate confidence for each suggestion
+        confidence_scores = {}
+        for target, source in suggestions.items():
+            confidence_scores[target] = AutoMapper.calculate_confidence(
+                target, source, sample_data if sample_data else None
+            )
+        
+        return {
+            "suggestions": suggestions,
+            "confidence": confidence_scores,
+            "available_fields": headers
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Auto-mapping failed: {str(e)}")
+
 @router.post("/{upload_id}/analyze-redactions")
 async def analyze_redactions(
     upload_id: str,

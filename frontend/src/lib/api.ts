@@ -494,17 +494,13 @@ export const api = {
       body: JSON.stringify({ mapping, start_balance: startBalance, end_balance: endBalance }),
     }),
 
-      body: JSON.stringify({ mapping, start_balance: startBalance, end_balance: endBalance }),
-    }),
-    endBalance?: number
-  ) =>
+  autoMapFields: (uploadId: string) =>
     request<{
-      gaps: Array<{ type: string; inferred_value: string; confidence: number; context: string }>;
-      balance_findings: Array<{ type: string; inferred_value: number; confidence: number; context: string }>;
-      total_analyzed: number;
-    }>(`/ingestion/${uploadId}/analyze-redactions`, {
+      suggestions: Record<string, string>;
+      confidence: Record<string, number>;
+      available_fields: string[];
+    }>(`/ingestion/${uploadId}/auto-map`, {
       method: 'POST',
-      body: JSON.stringify({ mapping, start_balance: startBalance, end_balance: endBalance }),
     }),
 
   // Visualization

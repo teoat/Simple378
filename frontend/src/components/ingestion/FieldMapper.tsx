@@ -1,18 +1,61 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DndContext, DragOverlay, useDraggable, useDroppable, DragEndEvent } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowRight, GripVertical, Check } from 'lucide-react';
+import { ArrowRight, GripVertical, Check, Sparkles } from 'lucide-react';
 import { FieldMapping } from '../../types/ingestion';
+import { api } from '../../lib/api';
+import { toast } from 'react-hot-toast';
 
 interface FieldMapperProps {
   sourceFields: string[];
   targetFields: string[];
   mappings: FieldMapping[];
   onMappingChange: (mappings: FieldMapping[]) => void;
+  uploadId?: string;
 }
 
-export function FieldMapper({ sourceFields, targetFields, mappings, onMappingChange }: FieldMapperProps) {
+export function FieldMapper({ sourceFields, targetFields, mappings, onMappingChange, uploadId }: FieldMapperProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [autoSuggestions, setAutoSuggestions] = useState<Record<string, string>>({});
+  const [confidence, setConfidence] = useState<Record<string, number>>({});
+  const [isAutoMapping, setIsAutoMapping] = useState(false);
+
+  useEffect(() => {
+    // Auto-fetch suggestions when component mounts if uploadId is available
+    if (uploadId && sourceFields.length > 0 && mappings.length === 0) {
+      handleAutoMap();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uploadId, sourceFields]);
+
+  const handleAutoMap = async () => {
+    if (!uploadId) return;
+    
+    try {
+      setIsAutoMapping(true);
+      const result = await api.autoMapFields(uploadId);
+      setAutoSuggestions(result.suggestions);
+      setConfidence(result.confidence);
+      
+      // Auto-apply high-confidence suggestions (>= 0.7)
+      const highConfidenceMappings: FieldMapping[] = [];
+      Object.entries(result.suggestions).forEach(([target, source]) => {
+        if (result.confidence[target] >= 0.7) {
+          highConfidenceMappings.push({ targetField: target, sourceField: source });
+        }
+      });
+      
+      if (highConfidenceMappings.length > 0) {
+        onMappingChange(highConfidenceMappings);
+        toast.success(`Auto-mapped ${highConfidenceMappings.length} fields with high confidence`);
+      }
+    } catch (error) {
+      console.error('Auto-mapping failed:', error);
+      toast.error('Auto-mapping failed');
+    } finally {
+      setIsAutoMapping(false);
+    }
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -54,10 +97,22 @@ export function FieldMapper({ sourceFields, targetFields, mappings, onMappingCha
 
         {/* Target Fields */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-700 dark:text-slate-200 mb-4 flex items-center justify-between">
-             <span>System Fields</span>
-             <span className="text-xs font-normal text-slate-400">Required</span>
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+              <span>System Fields</span>
+              <span className="text-xs font-normal text-slate-400">Required</span>
+            </h3>
+            {uploadId && (
+              <button
+                onClick={handleAutoMap}
+                disabled={isAutoMapping}
+                className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-sm rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Sparkles className="w-4 h-4" />
+                {isAutoMapping ? 'Analyzing...' : 'Auto-Map'}
+              </button>
+            )}
+          </div>
           <div className="space-y-3">
             {targetFields.map(field => {
               const mapping = mappings.find(m => m.targetField === field);

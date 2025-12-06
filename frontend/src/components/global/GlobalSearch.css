@@ -1,0 +1,65 @@
+/* Base styles for cmdk */
+[cmdk-root] {
+  max-width: 640px;
+  width: 100%;
+}
+
+[cmdk-input] {
+  outline: none;
+  border: none;
+  background: transparent;
+}
+
+[cmdk-item] {
+  content-visibility: auto;
+  cursor: pointer;
+  user-select: none;
+  scroll-margin: 8px;
+  outline: none;
+}
+
+[cmdk-item][aria-selected="true"] {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+[cmdk-item][aria-disabled="true"] {
+  color: var(--gray6);
+  cursor: not-allowed;
+}
+
+[cmdk-group-heading] {
+  user-select: none;
+  font-weight: 500;
+  font-size: 0.75rem;
+  color: var(--gray11);
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+[cmdk-list] {
+  height: min(300px, var(--cmdk-list-height));
+  max-height: 400px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  transition: 100ms ease;
+  transition-property: height;
+}
+
+[cmdk-separator] {
+  height: 1px;
+  width: 100%;
+  background: var(--gray5);
+  margin: 4px 0;
+}
+
+[cmdk-empty] {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-center;
+  height: 64px;
+  white-space: pre-wrap;
+  color: var(--gray11);
+}

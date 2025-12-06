@@ -8,6 +8,7 @@ import { AuthGuard } from './components/auth/AuthGuard';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AppShell } from './components/layout/AppShell';
 import { AIAssistant } from './components/ai/AIAssistant';
+import { GlobalSearch } from './components/global/GlobalSearch';
 
 // Lazy load route components for code splitting
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
@@ -16,13 +17,18 @@ const CaseList = lazy(() => import('./pages/CaseList').then(m => ({ default: m.C
 const CaseDetail = lazy(() => import('./pages/CaseDetail').then(m => ({ default: m.CaseDetail })));
 const Reconciliation = lazy(() => import('./pages/Reconciliation').then(m => ({ default: m.Reconciliation })));
 const Ingestion = lazy(() => import('./pages/Ingestion').then(m => ({ default: m.Ingestion })));
-const Categorization = lazy(() => import('./pages/Categorization').then(m => ({ default: m.Categorization })));
+const TransactionCategorization = lazy(() => import('./pages/TransactionCategorization').then(m => ({ default: m.TransactionCategorization })));
 const Visualization = lazy(() => import('./pages/Visualization').then(m => ({ default: m.Visualization })));
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const AdjudicationQueue = lazy(() => import('./pages/AdjudicationQueue').then(m => ({ default: m.AdjudicationQueue })));
 const SemanticSearch = lazy(() => import('./pages/SemanticSearch').then(m => ({ default: m.SemanticSearch })));
 const SearchAnalytics = lazy(() => import('./pages/SearchAnalytics').then(m => ({ default: m.SearchAnalytics })));
 const Summary = lazy(() => import('./pages/Summary').then(m => ({ default: m.Summary })));
+
+// Error Pages
+const NotFound = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
+const Forbidden = lazy(() => import('./pages/Forbidden').then(m => ({ default: m.Forbidden })));
+const ServerError = lazy(() => import('./pages/ServerError').then(m => ({ default: m.ServerError })));
 
 // Loading fallback component
 function PageLoader() {
@@ -45,6 +51,12 @@ function App() {
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/login" element={<Login />} />
+                
+                {/* Error Pages */}
+                <Route path="/403" element={<Forbidden />} />
+                <Route path="/500" element={<ServerError />} />
+                
+                {/* Protected Routes */}
                 <Route
                   element={
                     <AuthGuard>
@@ -60,14 +72,20 @@ function App() {
                    <Route path="/adjudication" element={<AdjudicationQueue />} />
                    <Route path="/reconciliation" element={<Reconciliation />} />
                    <Route path="/ingestion" element={<Ingestion />} />
-                   <Route path="/categorization" element={<Categorization />} />
+                   <Route path="/categorization" element={<TransactionCategorization />} />
                    <Route path="/visualization" element={<Visualization />} />
                    <Route path="/search" element={<SemanticSearch />} />
                   <Route path="/analytics" element={<SearchAnalytics />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
+                
+                {/* 404 - Must be last */}
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
+            
+            {/* Global Components */}
+            <GlobalSearch />
             <AIAssistant />
             <Toaster position="top-right" />
           </AuthProvider>
