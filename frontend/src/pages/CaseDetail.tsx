@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, lazy, Suspense } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useHotkeys } from 'react-hotkeys-hook';
@@ -7,12 +7,14 @@ import { api } from '../lib/api';
 import { cn } from '../lib/utils';
 import { Clock, FileText, Network, DollarSign, ChevronLeft, Shield, AlertTriangle, CheckCircle, Download, Edit } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { EntityGraph } from '../components/visualizations/EntityGraph';
-import { Timeline } from '../components/visualizations/Timeline';
-import { FinancialSankey } from '../components/visualizations/FinancialSankey';
 import { RiskBar } from '../components/cases/RiskBar';
 import { StatusBadge } from '../components/cases/StatusBadge';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
+
+// Lazy load heavy visualization components to reduce initial bundle size
+const EntityGraph = lazy(() => import('../components/visualizations/EntityGraph').then(m => ({ default: m.EntityGraph })));
+const Timeline = lazy(() => import('../components/visualizations/Timeline').then(m => ({ default: m.Timeline })));
+const FinancialSankey = lazy(() => import('../components/visualizations/FinancialSankey').then(m => ({ default: m.FinancialSankey })));
 
 const tabs = [
   { name: 'Overview', id: 'overview', icon: FileText },
@@ -21,6 +23,18 @@ const tabs = [
   { name: 'Financials', id: 'financials', icon: DollarSign },
   { name: 'Evidence', id: 'evidence', icon: Shield },
 ];
+
+// Loading skeleton for visualization components
+function VisualizationSkeleton() {
+  return (
+    <div className="flex items-center justify-center h-full min-h-[400px]">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">Loading visualization...</p>
+      </div>
+    </div>
+  );
+}
 
 export function CaseDetail()  {
   const { id } = useParams<{ id: string }>();
@@ -260,7 +274,9 @@ export function CaseDetail()  {
 
                   <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Recent Activity</h3>
-                    <Timeline />
+                    <Suspense fallback={<VisualizationSkeleton />}>
+                      <Timeline />
+                    </Suspense>
                   </div>
                 </div>
 
@@ -313,19 +329,25 @@ export function CaseDetail()  {
 
             {activeTab === 'Graph Analysis' && (
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 h-[600px]">
-                <EntityGraph />
+                <Suspense fallback={<VisualizationSkeleton />}>
+                  <EntityGraph />
+                </Suspense>
               </div>
             )}
 
             {activeTab === 'Financials' && (
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4">
-                <FinancialSankey />
+                <Suspense fallback={<VisualizationSkeleton />}>
+                  <FinancialSankey />
+                </Suspense>
               </div>
             )}
 
             {activeTab === 'Timeline' && (
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
-                <Timeline />
+                <Suspense fallback={<VisualizationSkeleton />}>
+                  <Timeline />
+                </Suspense>
               </div>
             )}
 

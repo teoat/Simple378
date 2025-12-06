@@ -107,6 +107,26 @@ export function CaseList() {
   const isLoading = isSearchLoading || isRegularLoading;
   const queryClient = useQueryClient();
 
+  // Prefetch next page for better UX
+  // Note: 'data' is intentionally not in dependencies to avoid refetching on every data change
+  // We only want to prefetch when page/filter params change
+  useEffect(() => {
+    if (!debouncedSearchQuery.trim() && data && page < (data.pages || 1)) {
+      // Prefetch next page
+      queryClient.prefetchQuery({
+        queryKey: ['cases', { status: statusFilter !== 'all' ? statusFilter : undefined, page: page + 1, limit, sortBy, sortOrder }],
+        queryFn: () => api.getCases({ 
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          page: page + 1,
+          limit,
+          sortBy: sortBy || undefined,
+          sortOrder: sortBy ? sortOrder : undefined,
+        }),
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, data?.pages, statusFilter, sortBy, sortOrder, limit, debouncedSearchQuery, queryClient]);
+
   const deleteCasesMutation = useMutation({
     mutationFn: async (ids: string[]) => {
       await Promise.all(ids.map(id => api.deleteCase(id)));

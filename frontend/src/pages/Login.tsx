@@ -4,11 +4,11 @@ import { LoginForm } from '../components/auth/LoginForm';
 export function Login() {
   return (
     <div className="flex min-h-screen flex-1 bg-slate-50 dark:bg-slate-950 relative overflow-hidden">
-      {/* Background Effects */}
+      {/* Optimized Background Effects - Using will-change and reduced blur */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl mix-blend-multiply animate-blob" />
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl mix-blend-multiply animate-blob animation-delay-2000" />
-        <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl mix-blend-multiply animate-blob animation-delay-4000" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-2xl mix-blend-multiply animate-blob will-change-transform" />
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-2xl mix-blend-multiply animate-blob animation-delay-2000 will-change-transform" />
+        <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-pink-500/20 rounded-full blur-2xl mix-blend-multiply animate-blob animation-delay-4000 will-change-transform" />
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
       </div>
 

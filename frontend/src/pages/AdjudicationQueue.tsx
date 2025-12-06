@@ -71,11 +71,12 @@ export function AdjudicationQueue() {
   } | null>(null);
 
   // Fetch adjudication queue
+  // Note: refetchInterval removed - relying on WebSocket for real-time updates
   const { data: queueData, isLoading, error } = useQuery({
     queryKey: ['adjudication-queue', page],
     queryFn: () => api.getAdjudicationQueue(page, 100), // Fetch 100 items per page
-    refetchInterval: 30000, // Refetch every 30 seconds
     placeholderData: (previousData) => previousData,
+    staleTime: 1000 * 60 * 5, // 5 minutes - data is fresh, rely on WebSocket for updates
   });
 
   // Map API data to alerts
