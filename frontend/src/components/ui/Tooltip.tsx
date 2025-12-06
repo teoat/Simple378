@@ -60,7 +60,6 @@ export function Tooltip({ content, children, position = 'top', delay = 300, clas
       onBlur={handleMouseLeave}
       className="relative inline-block"
       aria-describedby={isVisible ? tooltipId : undefined}
-      tabIndex={0}
     >
       {children}
 
