@@ -152,11 +152,24 @@ GET  /api/v1/adjudication/history   # Decision history
 **Race Condition Protection:**
 ```python
 # CRITICAL FIX: Prevents concurrent edits
-result = await db.execute(
-    select(AnalysisResult)
-    .where(AnalysisResult.id == analysis_id)
-    .with_for_update()  # ← Exclusive row lock
-)
+async with db.begin():  # start transactional scope
+    result = await db.execute(
+        select(AnalysisResult)
+        .where(AnalysisResult.id == analysis_id)
+        .with_for_update(skip_locked=True)
+    )
+    analysis = result.scalar_one_or_none()
+    if analysis is None:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+
+    # Optional optimistic check if versioning is present
+    # expected_version = analysis.version
+    # analysis.version = expected_version + 1
+
+    # apply decision updates atomically here
+    # analysis.adjudication_status = decision
+    # analysis.reviewed_at = datetime.utcnow()
+    # await db.flush()
 ```
 
 **WebSocket Events:**
