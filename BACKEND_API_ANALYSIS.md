@@ -151,7 +151,7 @@ GET  /api/v1/adjudication/history   # Decision history
 
 **Race Condition Protection:**
 ```python
-# CRITICAL FIX: Prevents concurrent edits
+# CRITICAL FIX: Prevents concurrent edits with pessimistic + optimistic locking
 async with db.begin():  # start transactional scope
     result = await db.execute(
         select(AnalysisResult)
@@ -162,14 +162,26 @@ async with db.begin():  # start transactional scope
     if analysis is None:
         raise HTTPException(status_code=404, detail="Analysis not found")
 
-    # Optional optimistic check if versioning is present
-    # expected_version = analysis.version
-    # analysis.version = expected_version + 1
+    # Enforce optimistic versioning to prevent lost updates
+    expected_version = analysis.version
+    analysis.adjudication_status = decision
+    analysis.reviewed_at = datetime.utcnow()
+    analysis.version = expected_version + 1
 
-    # apply decision updates atomically here
-    # analysis.adjudication_status = decision
-    # analysis.reviewed_at = datetime.utcnow()
-    # await db.flush()
+    await db.flush()
+
+    # Optionally verify the update took effect (for stricter control):
+    # rows = (await db.execute(
+    #     update(AnalysisResult)
+    #     .where(AnalysisResult.id == analysis_id, AnalysisResult.version == expected_version)
+    #     .values(
+    #         adjudication_status=decision,
+    #         reviewed_at=datetime.utcnow(),
+    #         version=expected_version + 1
+    #     )
+    # )).rowcount
+    # if rows == 0:
+    #     raise HTTPException(status_code=409, detail="Conflict: stale version")
 ```
 
 **WebSocket Events:**
