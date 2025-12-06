@@ -5,17 +5,21 @@ import { RecentActivity } from '../components/dashboard/RecentActivity';
 import { RiskDistributionChart } from '../components/dashboard/RiskDistributionChart';
 import { WeeklyActivityChart } from '../components/dashboard/WeeklyActivityChart';
 import { DashboardSkeleton } from '../components/dashboard/DashboardSkeleton';
-import { BarChart3, TrendingUp, Users, AlertCircle, Plus } from 'lucide-react';
+import { GradientCard } from '../components/ui/GradientCard';
+import { FloatingActionMenu } from '../components/ui/FloatingActionMenu';
+import { BarChart3, TrendingUp, Users, AlertCircle, Plus, FileText, Upload, Shield, UserPlus } from 'lucide-react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { PageErrorBoundary } from '../components/PageErrorBoundary';
 import { useMemo, useState } from 'react';
 import { NewCaseModal } from '../components/cases/NewCaseModal';
+import { useNavigate } from 'react-router-dom';
 
 export function Dashboard() {
   const [isNewCaseModalOpen, setIsNewCaseModalOpen] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { data: metrics, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: api.getDashboardMetrics,
@@ -57,7 +61,15 @@ export function Dashboard() {
 
   return (
     <PageErrorBoundary pageName="Dashboard">
-      <div className="min-h-screen bg-slate-50 p-6 dark:bg-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 p-6 relative overflow-hidden">
+      
+      {/* Decorative background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-blob" />
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-blob animation-delay-2000" />
+        <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-blob animation-delay-4000" />
+      </div>
+      
       {/* Screen reader live announcements */}
       <div
         role="status"
@@ -68,7 +80,7 @@ export function Dashboard() {
         {liveUpdateMessage}
       </div>
       
-      <div className="mx-auto max-w-7xl space-y-8">
+      <div className="mx-auto max-w-7xl space-y-8 relative z-10">
         {/* Header */}
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
@@ -124,23 +136,61 @@ export function Dashboard() {
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="h-[400px]">
-            <RiskDistributionChart />
-          </div>
-          <div className="h-[400px]">
-            <WeeklyActivityChart />
-          </div>
+          <GradientCard gradient="blue" className="p-6">
+            <div className="h-[400px]">
+              <RiskDistributionChart />
+            </div>
+          </GradientCard>
+          <GradientCard gradient="purple" className="p-6">
+            <div className="h-[400px]">
+              <WeeklyActivityChart />
+            </div>
+          </GradientCard>
         </div>
 
         {/* Recent Activity */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
-          <RecentActivity activities={activity ?? []} />
-        </motion.div>
+        <GradientCard gradient="green" className="p-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <RecentActivity activities={activity ?? []} />
+          </motion.div>
+        </GradientCard>
       </div>
+      
+      {/* Floating Action Menu */}
+      <FloatingActionMenu
+        actions={[
+          {
+            icon: FileText,
+            label: 'New Case',
+            onClick: () => setIsNewCaseModalOpen(true),
+            color: 'from-blue-500 to-cyan-500',
+          },
+          {
+            icon: Upload,
+            label: 'Upload Evidence',
+            onClick: () => navigate('/forensics'),
+            color: 'from-purple-500 to-pink-500',
+          },
+          {
+            icon: UserPlus,
+            label: 'Add Subject',
+            onClick: () => {
+              toast('Subject creation coming soon', { icon: '👤' });
+            },
+            color: 'from-green-500 to-emerald-500',
+          },
+          {
+            icon: Shield,
+            label: 'Adjudication Queue',
+            onClick: () => navigate('/adjudication'),
+            color: 'from-red-500 to-orange-500',
+          },
+        ]}
+      />
     </div>
     </PageErrorBoundary>
   );
