@@ -474,14 +474,20 @@ def detect_structuring(transactions):
 
 ### Utility Services (8 files)
 
-#### **graph_analyzer.py** - Graph analysis utilities
-#### **scoring.py** - Risk scoring algorithms
-#### **subject.py** - Subject data management
-#### **reporting.py** - Report generation
-#### **ingestion.py** - Data import utilities
-#### **forensics.py** - Forensic analysis
-#### **chain_of_custody.py** - Evidence tracking
-#### **offline.py** - Offline mode support
+    if "sub" not in data or not data["sub"]:
+        raise ValueError("JWT subject ('sub') is required")
+
+    now = datetime.utcnow()
+    expire_minutes = int(ACCESS_TOKEN_EXPIRE)
+    expire = now + timedelta(minutes=expire_minutes)
+
+    to_encode = data.copy()
+    to_encode.update({
+        "exp": expire,
+        "iat": now,
+        "nbf": now,
+        "jti": uuid.uuid4().hex,
+    })
 
 ---
 def create_access_token(data: dict) -> str:
