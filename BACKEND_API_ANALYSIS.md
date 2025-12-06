@@ -377,14 +377,13 @@ import logging
 
 class AIOrchestrator:
     async def analyze_case(self, case_id):
-        # Coordinate multiple AI agents
+        # Coordinate multiple AI agents with timeout and error isolation
         graph_agent = self.create_graph_agent()
         fraud_agent = self.create_fraud_agent()
-graph_result, fraud_result = await asyncio.gather(
-    asyncio.wait_for(graph_agent.run(case_id), timeout=30),
-    asyncio.wait_for(fraud_agent.run(case_id), timeout=30),
-    return_exceptions=False
-)
+
+        async def run_with_timeout(coro, timeout=30):
+            try:
+                return await asyncio.wait_for(coro, timeout=timeout)
             except Exception as e:
                 logging.exception("AI agent failed", exc_info=e)
                 return e
@@ -398,22 +397,10 @@ graph_result, fraud_result = await asyncio.gather(
         graph_result, fraud_result = results
 
         # Filter out exceptions; pass None for failed agents
-        self.client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+        graph_output = None if isinstance(graph_result, Exception) else graph_result
+        fraud_output = None if isinstance(fraud_result, Exception) else fraud_result
 
-    async def generate(self, prompt, max_tokens=1000, timeout=30, retries=3):
-        last_error = None
-        for attempt in range(retries):
-            try:
-                response = await asyncio.wait_for(
-                    self.client.messages.create(
-                        model="claude-3-5-sonnet-20241022",
-                        max_tokens=max_tokens,
-                        messages=[{"role": "user", "content": prompt}]
-                    ),
-                    timeout=timeout
-                )
-                content = getattr(response, "content", None) or []
-                # Support both list of objects with .text and plain strings
+        return self.synthesize(graph_output, fraud_output)
                 if isinstance(content, list) and content:
                     first = content[0]
                     if hasattr(first, "text"):
