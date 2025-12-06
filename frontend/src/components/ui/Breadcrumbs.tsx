@@ -22,9 +22,11 @@ export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
         <Home className="w-4 h-4" />
       </Link>
       
-      {items.map((item) => (
+      {items.map((item, index) => (
         <div key={item.href || item.label} className="flex items-center space-x-2">
-          <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-600" />
+          {index > 0 && (
+            <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-600" />
+          )}
           {item.href ? (
             <Link
               to={item.href}
@@ -33,7 +35,7 @@ export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
               {item.label}
             </Link>
           ) : (
-            <span className="text-slate-900 dark:text-white font-medium">
+            <span className="text-slate-900 dark:text-white font-medium" aria-current="page">
               {item.label}
             </span>
           )}
