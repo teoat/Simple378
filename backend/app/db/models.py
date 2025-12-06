@@ -12,6 +12,16 @@ class ConsentType(str, enum.Enum):
     LEGITIMATE_INTEREST = "legitimate_interest"
     LEGAL_OBLIGATION = "legal_obligation"
 
+class TransactionSourceType(str, enum.Enum):
+    INTERNAL = "internal"
+    EXTERNAL = "external"
+
+class MatchStatus(str, enum.Enum):
+    MATCHED = "matched"
+    UNMATCHED = "unmatched"
+    CONFLICT = "conflict"
+    PENDING = "pending"
+
 class ActionType(str, enum.Enum):
     VIEW = "view"
     EDIT = "edit"
@@ -77,6 +87,7 @@ class Transaction(Base):
     
     # Provenance
     source_bank = Column(String, nullable=False)
+    source_type = Column(Enum(TransactionSourceType), nullable=False, default=TransactionSourceType.EXTERNAL)
     source_file_id = Column(String, nullable=True)
     external_id = Column(String, nullable=True)
     
@@ -209,4 +220,21 @@ class EvidenceAnnotation(Base):
     position = Column(JSON) # page/timestamp/coordinates
     created_at = Column(DateTime, default=datetime.utcnow)
     
+    
     evidence = relationship("Evidence", back_populates="annotations")
+
+class Match(Base):
+    __tablename__ = "matches"
+    
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    internal_transaction_id = Column(Uuid, ForeignKey("transactions.id"), nullable=False)
+    external_transaction_id = Column(Uuid, ForeignKey("transactions.id"), nullable=False)
+    confidence = Column(Numeric, default=1.0)
+    status = Column(Enum(MatchStatus), default=MatchStatus.MATCHED)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    internal_transaction = relationship("Transaction", foreign_keys=[internal_transaction_id])
+    external_transaction = relationship("Transaction", foreign_keys=[external_transaction_id])

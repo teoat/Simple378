@@ -5,14 +5,14 @@
 
 import { useState, useRef } from 'react';
 import { Download, FileSpreadsheet, FileText, Image, ChevronDown, Loader2 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn } from '../../lib/utils';
 import {
   exportToCSV,
   exportDataToExcel,
   exportTableToPDF,
   exportChartToPNG,
   generateFilename,
-} from '../lib/exportUtils';
+} from '../../lib/exportUtils';
 
 // ============================================================================
 // Export Dropdown Button

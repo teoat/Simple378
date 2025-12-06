@@ -15,13 +15,24 @@ interface GraphNode {
   [key: string]: unknown;
 }
 
+interface GraphLink {
+  source: string;
+  target: string;
+  [key: string]: unknown;
+}
+
+interface GraphDataResponse {
+  nodes?: GraphNode[];
+  edges?: GraphLink[];
+}
+
 export function GraphTab({ subjectId }: GraphTabProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   
   const { data: graphData, isLoading, error } = useQuery({
     queryKey: ['graph', subjectId],
-    queryFn: () => apiRequest(`/graph/${subjectId}`),
+    queryFn: () => apiRequest<GraphDataResponse>(`/graph/${subjectId}`),
     enabled: !!subjectId,
   });
 

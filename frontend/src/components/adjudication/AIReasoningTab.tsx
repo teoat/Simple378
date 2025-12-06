@@ -6,10 +6,16 @@ interface AIReasoningTabProps {
   subjectId: string;
 }
 
+interface AIAnalysisResponse {
+  findings?: Record<string, string | number>;
+  verdict?: string;
+  confidence?: number;
+}
+
 export function AIReasoningTab({ subjectId }: AIReasoningTabProps) {
   const { data: aiAnalysis, isLoading, error } = useQuery({
     queryKey: ['ai-analysis', subjectId],
-    queryFn: () => apiRequest(`/ai/analysis/${subjectId}`),
+    queryFn: () => apiRequest<AIAnalysisResponse>(`/ai/analysis/${subjectId}`),
     enabled: !!subjectId,
   });
   if (isLoading) {

@@ -25,7 +25,10 @@ class Settings(BaseSettings):
     
     ANTHROPIC_API_KEY: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
-    
+
+    MEILISEARCH_URL: str = "http://localhost:7700"
+    MEILISEARCH_API_KEY: Optional[str] = None
+
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
     MAX_UPLOAD_FILE_SIZE_MB: int = 5 # Default to 5 MB
     

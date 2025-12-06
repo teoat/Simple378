@@ -1,24 +1,22 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   ArrowLeftRight, 
   Check, 
   X, 
   AlertTriangle, 
-  Filter,
-  Search,
-  ChevronDown,
-  ChevronUp,
   RefreshCw,
   Zap,
   Link2,
-  Unlink
+  Search 
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { VirtualTransactionList } from '../components/reconciliation/VirtualTransactionList';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import toast from 'react-hot-toast';
+import { api } from '../lib/api';
 
 // Types
 interface Transaction {
@@ -34,33 +32,7 @@ interface Transaction {
   confidence?: number;
 }
 
-interface Match {
-  internalId: string;
-  externalId: string;
-  confidence: number;
-  matchType: 'exact' | 'fuzzy' | 'manual';
-}
-
 type ReconciliationView = 'all' | 'matched' | 'unmatched' | 'conflicts';
-
-// Mock data
-const mockInternalTransactions: Transaction[] = [
-  { id: 'INT001', date: '2024-03-15', description: 'Vendor Payment - Acme Corp', amount: 15000, account: 'ACC-001', category: 'Operations', source: 'internal', matchStatus: 'matched', matchedWith: 'EXT001', confidence: 0.98 },
-  { id: 'INT002', date: '2024-03-14', description: 'Office Supplies', amount: 450.50, account: 'ACC-002', category: 'Supplies', source: 'internal', matchStatus: 'unmatched' },
-  { id: 'INT003', date: '2024-03-13', description: 'Consulting Fee - Smith LLC', amount: 8500, account: 'ACC-001', category: 'Services', source: 'internal', matchStatus: 'pending', matchedWith: 'EXT003', confidence: 0.72 },
-  { id: 'INT004', date: '2024-03-12', description: 'Equipment Purchase', amount: 25000, account: 'ACC-003', category: 'CapEx', source: 'internal', matchStatus: 'conflict', matchedWith: 'EXT004', confidence: 0.65 },
-  { id: 'INT005', date: '2024-03-11', description: 'Software License', amount: 1200, account: 'ACC-002', category: 'IT', source: 'internal', matchStatus: 'matched', matchedWith: 'EXT005', confidence: 0.95 },
-  { id: 'INT006', date: '2024-03-10', description: 'Travel Expense - Conference', amount: 3200, account: 'ACC-004', category: 'Travel', source: 'internal', matchStatus: 'unmatched' }
-];
-
-const mockExternalTransactions: Transaction[] = [
-  { id: 'EXT001', date: '2024-03-15', description: 'ACME CORP Payment', amount: 15000, account: 'BANK-001', category: 'Outgoing', source: 'external', matchStatus: 'matched', matchedWith: 'INT001', confidence: 0.98 },
-  { id: 'EXT002', date: '2024-03-14', description: 'STAPLES Purchase', amount: 445.00, account: 'BANK-001', category: 'Outgoing', source: 'external', matchStatus: 'unmatched' },
-  { id: 'EXT003', date: '2024-03-13', description: 'Smith Consulting Fee', amount: 8750, account: 'BANK-002', category: 'Outgoing', source: 'external', matchStatus: 'pending', matchedWith: 'INT003', confidence: 0.72 },
-  { id: 'EXT004', date: '2024-03-12', description: 'Tech Equipment Inc', amount: 24500, account: 'BANK-001', category: 'Outgoing', source: 'external', matchStatus: 'conflict', matchedWith: 'INT004', confidence: 0.65 },
-  { id: 'EXT005', date: '2024-03-11', description: 'Software License Adobe', amount: 1200, account: 'BANK-002', category: 'Outgoing', source: 'external', matchStatus: 'matched', matchedWith: 'INT005', confidence: 0.95 },
-  { id: 'EXT006', date: '2024-03-09', description: 'UNKNOWN TRANSFER', amount: 5000, account: 'BANK-003', category: 'Unknown', source: 'external', matchStatus: 'unmatched' }
-];
 
 export function Reconciliation() {
   const queryClient = useQueryClient();
@@ -68,32 +40,22 @@ export function Reconciliation() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInternal, setSelectedInternal] = useState<string | null>(null);
   const [selectedExternal, setSelectedExternal] = useState<string | null>(null);
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   // Fetch internal transactions
-  const { data: internalTransactions = mockInternalTransactions, isLoading: loadingInternal } = useQuery<Transaction[]>({
+  const { data: internalTransactions = [], isLoading: loadingInternal } = useQuery<Transaction[]>({
     queryKey: ['reconciliation', 'internal'],
-    queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return mockInternalTransactions;
-    }
+    queryFn: () => api.get<Transaction[]>('/reconciliation/transactions?source=internal')
   });
 
   // Fetch external transactions
-  const { data: externalTransactions = mockExternalTransactions, isLoading: loadingExternal } = useQuery<Transaction[]>({
+  const { data: externalTransactions = [], isLoading: loadingExternal } = useQuery<Transaction[]>({
     queryKey: ['reconciliation', 'external'],
-    queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return mockExternalTransactions;
-    }
+    queryFn: () => api.get<Transaction[]>('/reconciliation/transactions?source=external')
   });
 
   // Auto-reconciliation mutation
   const autoReconcileMutation = useMutation({
-    mutationFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      return { matched: 3, conflicts: 1 };
-    },
+    mutationFn: () => api.post<{ matched: number; conflicts: number }>('/reconciliation/auto-match', {}),
     onSuccess: (data) => {
       toast.success(`Auto-reconciliation complete: ${data.matched} matched, ${data.conflicts} conflicts`);
       queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
@@ -102,10 +64,8 @@ export function Reconciliation() {
 
   // Manual match mutation
   const manualMatchMutation = useMutation({
-    mutationFn: async ({ internalId, externalId }: { internalId: string; externalId: string }) => {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return { internalId, externalId, success: true };
-    },
+    mutationFn: ({ internalId, externalId }: { internalId: string; externalId: string }) => 
+      api.post('/reconciliation/match', { internal_id: internalId, external_id: externalId }),
     onSuccess: () => {
       toast.success('Transactions matched successfully');
       setSelectedInternal(null);
@@ -116,10 +76,7 @@ export function Reconciliation() {
 
   // Unmatch mutation
   const unmatchMutation = useMutation({
-    mutationFn: async (matchId: string) => {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      return { unmatchedId: matchId };
-    },
+    mutationFn: (transactionId: string) => api.delete(`/reconciliation/match/${transactionId}`),
     onSuccess: () => {
       toast.success('Match removed');
       queryClient.invalidateQueries({ queryKey: ['reconciliation'] });
@@ -127,7 +84,7 @@ export function Reconciliation() {
   });
 
   // Filter transactions based on view
-  const filterByView = (transactions: Transaction[]) => {
+  const filterByView = useCallback((transactions: Transaction[]) => {
     switch (view) {
       case 'matched':
         return transactions.filter(t => t.matchStatus === 'matched');
@@ -138,10 +95,10 @@ export function Reconciliation() {
       default:
         return transactions;
     }
-  };
+  }, [view]);
 
   // Search filter
-  const filterBySearch = (transactions: Transaction[]) => {
+  const filterBySearch = useCallback((transactions: Transaction[]) => {
     if (!searchQuery) return transactions;
     const query = searchQuery.toLowerCase();
     return transactions.filter(t => 
@@ -149,16 +106,16 @@ export function Reconciliation() {
       t.id.toLowerCase().includes(query) ||
       t.account.toLowerCase().includes(query)
     );
-  };
+  }, [searchQuery]);
 
   const filteredInternal = useMemo(() => 
     filterBySearch(filterByView(internalTransactions)),
-    [internalTransactions, view, searchQuery]
+    [internalTransactions, filterByView, filterBySearch]
   );
 
   const filteredExternal = useMemo(() => 
     filterBySearch(filterByView(externalTransactions)),
-    [externalTransactions, view, searchQuery]
+    [externalTransactions, filterByView, filterBySearch]
   );
 
   // Stats
@@ -168,28 +125,12 @@ export function Reconciliation() {
     matched: internalTransactions.filter(t => t.matchStatus === 'matched').length,
     unmatched: internalTransactions.filter(t => t.matchStatus === 'unmatched').length,
     conflicts: internalTransactions.filter(t => t.matchStatus === 'conflict' || t.matchStatus === 'pending').length,
-    matchRate: Math.round((internalTransactions.filter(t => t.matchStatus === 'matched').length / internalTransactions.length) * 100) || 0
-  }), [internalTransactions]);
+    matchRate: Math.round((internalTransactions.filter(t => t.matchStatus === 'matched').length / (internalTransactions.length || 1)) * 100) || 0
+  }), [internalTransactions, externalTransactions]);
 
   const handleManualMatch = () => {
     if (selectedInternal && selectedExternal) {
       manualMatchMutation.mutate({ internalId: selectedInternal, externalId: selectedExternal });
-    }
-  };
-
-  const getStatusBadge = (status: Transaction['matchStatus'], confidence?: number) => {
-    const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium';
-    switch (status) {
-      case 'matched':
-        return <span className={`${baseClasses} bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400`}>Matched</span>;
-      case 'unmatched':
-        return <span className={`${baseClasses} bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400`}>Unmatched</span>;
-      case 'pending':
-        return <span className={`${baseClasses} bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400`}>Review ({Math.round((confidence || 0) * 100)}%)</span>;
-      case 'conflict':
-        return <span className={`${baseClasses} bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400`}>Conflict</span>;
-      default:
-        return null;
     }
   };
 
@@ -216,7 +157,7 @@ export function Reconciliation() {
               Transaction Reconciliation
             </h1>
             <p className="text-slate-500 dark:text-slate-400 mt-2">
-              Match internal records with external bank statements
+              Use AI/ML to automatically match internal records with external bank statements
             </p>
           </div>
           <div className="flex gap-3">
@@ -226,7 +167,7 @@ export function Reconciliation() {
               disabled={autoReconcileMutation.isPending}
             >
               <Zap className={`h-4 w-4 mr-2 ${autoReconcileMutation.isPending ? 'animate-pulse' : ''}`} />
-              {autoReconcileMutation.isPending ? 'Processing...' : 'Auto-Reconcile'}
+              {autoReconcileMutation.isPending ? 'AI Matching...' : 'AI Auto-Match'}
             </Button>
             <Button 
               onClick={handleManualMatch}
@@ -280,7 +221,7 @@ export function Reconciliation() {
                 {(['all', 'matched', 'unmatched', 'conflicts'] as ReconciliationView[]).map((v) => (
                   <Button
                     key={v}
-                    variant={view === v ? 'default' : 'outline'}
+                    variant={view === v ? 'primary' : 'outline'}
                     size="sm"
                     onClick={() => setView(v)}
                   >
@@ -317,58 +258,18 @@ export function Reconciliation() {
                 <span className="text-sm text-slate-500">{filteredInternal.length} records</span>
               </div>
             </CardHeader>
-            <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
-              <AnimatePresence>
-                {filteredInternal.map((transaction) => (
-                  <motion.div
-                    key={transaction.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className={`p-4 rounded-lg border transition-all cursor-pointer ${
-                      selectedInternal === transaction.id
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : transaction.matchStatus === 'matched'
-                        ? 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/10'
-                        : 'border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700'
-                    }`}
-                    onClick={() => setSelectedInternal(selectedInternal === transaction.id ? null : transaction.id)}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-xs text-slate-500">{transaction.id}</span>
-                          {getStatusBadge(transaction.matchStatus, transaction.confidence)}
-                        </div>
-                        <p className="font-medium truncate">{transaction.description}</p>
-                        <p className="text-sm text-slate-500">{transaction.date} • {transaction.account}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-lg">${transaction.amount.toLocaleString()}</p>
-                        <p className="text-xs text-slate-500">{transaction.category}</p>
-                      </div>
-                    </div>
-                    {transaction.matchedWith && (
-                      <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                        <span className="text-xs text-slate-500">
-                          Matched with: <span className="font-mono">{transaction.matchedWith}</span>
-                        </span>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            unmatchMutation.mutate(transaction.id);
-                          }}
-                          className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
-                        >
-                          <Unlink className="h-3 w-3" /> Unmatch
-                        </button>
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              {filteredInternal.length === 0 && (
-                <div className="text-center py-12 text-slate-500">
+            <CardContent className="h-[600px] p-0">
+              {filteredInternal.length > 0 ? (
+                <VirtualTransactionList
+                   transactions={filteredInternal}
+                   selectedId={selectedInternal}
+                   onSelect={(id) => setSelectedInternal(selectedInternal === id ? null : id)}
+                   onUnmatch={(id) => unmatchMutation.mutate(id)}
+                   colorTheme="blue"
+                   height={600}
+                />
+              ) : (
+                <div className="text-center py-24 text-slate-500">
                   No transactions found
                 </div>
               )}
@@ -386,58 +287,18 @@ export function Reconciliation() {
                 <span className="text-sm text-slate-500">{filteredExternal.length} records</span>
               </div>
             </CardHeader>
-            <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
-              <AnimatePresence>
-                {filteredExternal.map((transaction) => (
-                  <motion.div
-                    key={transaction.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className={`p-4 rounded-lg border transition-all cursor-pointer ${
-                      selectedExternal === transaction.id
-                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                        : transaction.matchStatus === 'matched'
-                        ? 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/10'
-                        : 'border-slate-200 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700'
-                    }`}
-                    onClick={() => setSelectedExternal(selectedExternal === transaction.id ? null : transaction.id)}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-xs text-slate-500">{transaction.id}</span>
-                          {getStatusBadge(transaction.matchStatus, transaction.confidence)}
-                        </div>
-                        <p className="font-medium truncate">{transaction.description}</p>
-                        <p className="text-sm text-slate-500">{transaction.date} • {transaction.account}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-lg">${transaction.amount.toLocaleString()}</p>
-                        <p className="text-xs text-slate-500">{transaction.category}</p>
-                      </div>
-                    </div>
-                    {transaction.matchedWith && (
-                      <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                        <span className="text-xs text-slate-500">
-                          Matched with: <span className="font-mono">{transaction.matchedWith}</span>
-                        </span>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            unmatchMutation.mutate(transaction.id);
-                          }}
-                          className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
-                        >
-                          <Unlink className="h-3 w-3" /> Unmatch
-                        </button>
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              {filteredExternal.length === 0 && (
-                <div className="text-center py-12 text-slate-500">
+            <CardContent className="h-[600px] p-0">
+              {filteredExternal.length > 0 ? (
+                <VirtualTransactionList
+                   transactions={filteredExternal}
+                   selectedId={selectedExternal}
+                   onSelect={(id) => setSelectedExternal(selectedExternal === id ? null : id)}
+                   onUnmatch={(id) => unmatchMutation.mutate(id)}
+                   colorTheme="purple"
+                   height={600}
+                />
+              ) : (
+                <div className="text-center py-24 text-slate-500">
                   No transactions found
                 </div>
               )}

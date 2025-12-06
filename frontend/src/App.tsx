@@ -4,10 +4,14 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { queryClient } from './lib/queryClient';
 import { AuthProvider } from './context/AuthContext';
+import { AIProvider } from './context/AIContext';
 import { AuthGuard } from './components/auth/AuthGuard';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AppShell } from './components/layout/AppShell';
 import { AIAssistant } from './components/ai/AIAssistant';
+import { NetworkMonitor } from './components/NetworkMonitor';
+import { PWAInstallBanner } from './components/pwa/PWAInstallBanner';
+import { OfflineSyncStatus } from './components/pwa/OfflineSyncStatus';
 
 // Lazy load route components for code splitting
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
@@ -21,6 +25,13 @@ const AdjudicationQueue = lazy(() => import('./pages/AdjudicationQueue').then(m 
 const FinalSummary = lazy(() => import('./pages/FinalSummary').then(m => ({ default: m.FinalSummary })));
 const Ingestion = lazy(() => import('./pages/Ingestion').then(m => ({ default: m.Ingestion })));
 const Visualization = lazy(() => import('./pages/Visualization').then(m => ({ default: m.Visualization })));
+
+// Error Pages
+const NotFound = lazy(() => import('./pages/errors/NotFound').then(m => ({ default: m.NotFound })));
+const Forbidden = lazy(() => import('./pages/errors/Forbidden').then(m => ({ default: m.Forbidden })));
+const ServerError = lazy(() => import('./pages/errors/ServerError').then(m => ({ default: m.ServerError })));
+const Unauthorized = lazy(() => import('./pages/errors/Unauthorized').then(m => ({ default: m.Unauthorized })));
+const Offline = lazy(() => import('./pages/errors/Offline').then(m => ({ default: m.Offline })));
 
 // Loading fallback component
 function PageLoader() {
@@ -39,10 +50,23 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <Router>
+          <NetworkMonitor />
+          <PWAInstallBanner />
+          <OfflineSyncStatus />
           <AuthProvider>
+            <AIProvider>
             <Suspense fallback={<PageLoader />}>
               <Routes>
+                {/* Public routes */}
                 <Route path="/login" element={<Login />} />
+                
+                {/* Error pages (public) */}
+                <Route path="/401" element={<Unauthorized />} />
+                <Route path="/403" element={<Forbidden />} />
+                <Route path="/500" element={<ServerError />} />
+                <Route path="/offline" element={<Offline />} />
+                
+                {/* Protected routes */}
                 <Route
                   element={
                     <AuthGuard>
@@ -62,10 +86,14 @@ function App() {
                   <Route path="/ingestion" element={<Ingestion />} />
                   <Route path="/visualization/:caseId" element={<Visualization />} />
                 </Route>
+                
+                {/* Catch-all 404 route */}
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
             <AIAssistant />
             <Toaster position="top-right" />
+            </AIProvider>
           </AuthProvider>
         </Router>
       </QueryClientProvider>

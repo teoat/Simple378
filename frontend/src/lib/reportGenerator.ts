@@ -1,0 +1,468 @@
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import * as XLSX from 'xlsx';
+import { format } from 'date-fns';
+
+export interface ReportTemplate {
+  id: string;
+  name: string;
+  type: 'case_summary' | 'evidence_package' | 'financial_analysis' | 'compliance_report';
+  sections: ReportSection[];
+  styling: ReportStyling;
+}
+
+export interface ReportSection {
+  id: string;
+  title: string;
+  type: 'text' | 'table' | 'chart' | 'evidence' | 'signature';
+  content: any;
+  styling?: SectionStyling;
+}
+
+export interface ReportStyling {
+  fontFamily: string;
+  fontSize: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+  };
+  logo?: string;
+  headerText?: string;
+  footerText?: string;
+}
+
+export interface SectionStyling {
+  width?: string;
+  height?: string;
+  margin?: string;
+  padding?: string;
+  backgroundColor?: string;
+  border?: string;
+}
+
+export class ReportGenerator {
+  private templates: Map<string, ReportTemplate> = new Map();
+
+  constructor() {
+    this.initializeTemplates();
+  }
+
+  private initializeTemplates() {
+    // Case Summary Report
+    this.templates.set('case_summary', {
+      id: 'case_summary',
+      name: 'Case Summary Report',
+      type: 'case_summary',
+      styling: {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '12px',
+        colors: {
+          primary: '#1f2937',
+          secondary: '#6b7280',
+          accent: '#3b82f6'
+        },
+        headerText: 'FRAUD INVESTIGATION CASE SUMMARY',
+        footerText: 'Confidential - For Authorized Personnel Only'
+      },
+      sections: [
+        {
+          id: 'header',
+          title: 'Case Information',
+          type: 'text',
+          content: {
+            fields: ['case_id', 'subject_name', 'risk_score', 'status', 'created_date', 'last_updated']
+          }
+        },
+        {
+          id: 'executive_summary',
+          title: 'Executive Summary',
+          type: 'text',
+          content: {
+            template: 'This report summarizes the investigation findings for Case {case_id}. The subject {subject_name} has been assessed with a risk score of {risk_score}. Key findings include...'
+          }
+        },
+        {
+          id: 'financial_analysis',
+          title: 'Financial Analysis',
+          type: 'table',
+          content: {
+            headers: ['Transaction Date', 'Amount', 'Description', 'Category', 'Risk Level'],
+            dataSource: 'transactions'
+          }
+        },
+        {
+          id: 'evidence_summary',
+          title: 'Evidence Summary',
+          type: 'table',
+          content: {
+            headers: ['Evidence ID', 'Type', 'Description', 'Date Added', 'Relevance Score'],
+            dataSource: 'evidence'
+          }
+        },
+        {
+          id: 'recommendations',
+          title: 'Recommendations',
+          type: 'text',
+          content: {
+            template: 'Based on the analysis, the following actions are recommended...'
+          }
+        },
+        {
+          id: 'signature',
+          title: 'Investigator Signature',
+          type: 'signature',
+          content: {
+            fields: ['investigator_name', 'date', 'signature']
+          }
+        }
+      ]
+    });
+
+    // Evidence Package Report
+    this.templates.set('evidence_package', {
+      id: 'evidence_package',
+      name: 'Court-Admissible Evidence Package',
+      type: 'evidence_package',
+      styling: {
+        fontFamily: 'Times New Roman, serif',
+        fontSize: '12px',
+        colors: {
+          primary: '#1f2937',
+          secondary: '#6b7280',
+          accent: '#dc2626'
+        },
+        headerText: 'OFFICIAL EVIDENCE PACKAGE',
+        footerText: 'Chain of Custody Maintained - Court Admissible'
+      },
+      sections: [
+        {
+          id: 'chain_of_custody',
+          title: 'Chain of Custody',
+          type: 'table',
+          content: {
+            headers: ['Date/Time', 'Action', 'Person', 'Location', 'Notes'],
+            dataSource: 'audit_log'
+          }
+        },
+        {
+          id: 'evidence_list',
+          title: 'Evidence Inventory',
+          type: 'table',
+          content: {
+            headers: ['Item #', 'Description', 'Type', 'Collected By', 'Date', 'Storage Location'],
+            dataSource: 'evidence'
+          }
+        },
+        {
+          id: 'evidence_details',
+          title: 'Evidence Details',
+          type: 'evidence',
+          content: {
+            includeMetadata: true,
+            includeHashes: true
+          }
+        }
+      ]
+    });
+
+    // Financial Analysis Report
+    this.templates.set('financial_analysis', {
+      id: 'financial_analysis',
+      name: 'Financial Analysis Report',
+      type: 'financial_analysis',
+      styling: {
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '11px',
+        colors: {
+          primary: '#1f2937',
+          secondary: '#6b7280',
+          accent: '#059669'
+        },
+        headerText: 'FINANCIAL ANALYSIS REPORT',
+        footerText: 'Generated by AI-Powered Fraud Detection System'
+      },
+      sections: [
+        {
+          id: 'summary_metrics',
+          title: 'Summary Metrics',
+          type: 'table',
+          content: {
+            headers: ['Metric', 'Value', 'Period', 'Change'],
+            dataSource: 'financial_metrics'
+          }
+        },
+        {
+          id: 'transaction_flow',
+          title: 'Transaction Flow Analysis',
+          type: 'chart',
+          content: {
+            chartType: 'sankey',
+            dataSource: 'transaction_flows'
+          }
+        },
+        {
+          id: 'risk_patterns',
+          title: 'Risk Pattern Analysis',
+          type: 'table',
+          content: {
+            headers: ['Pattern Type', 'Frequency', 'Risk Impact', 'Evidence'],
+            dataSource: 'risk_patterns'
+          }
+        }
+      ]
+    });
+  }
+
+  async generatePDF(templateId: string, data: any, options: {
+    filename?: string;
+    includeCharts?: boolean;
+    watermark?: string;
+  } = {}): Promise<void> {
+    const template = this.templates.get(templateId);
+    if (!template) throw new Error('Template not found');
+
+    const pdf = new jsPDF();
+    let yPosition = 20;
+
+    // Add header
+    pdf.setFontSize(16);
+    pdf.setFont(template.styling.fontFamily.split(',')[0], 'bold');
+    pdf.text(template.styling.headerText || template.name, 20, yPosition);
+    yPosition += 20;
+
+    // Add timestamp
+    pdf.setFontSize(10);
+    pdf.setFont(template.styling.fontFamily.split(',')[0], 'normal');
+    pdf.text(`Generated: ${format(new Date(), 'PPP p')}`, 20, yPosition);
+    yPosition += 15;
+
+    // Process each section
+    for (const section of template.sections) {
+      if (yPosition > 250) { // New page if needed
+        pdf.addPage();
+        yPosition = 20;
+      }
+
+      // Section title
+      pdf.setFontSize(14);
+      pdf.setFont(template.styling.fontFamily.split(',')[0], 'bold');
+      pdf.text(section.title, 20, yPosition);
+      yPosition += 10;
+
+      // Section content
+      await this.renderSection(pdf, section, data, yPosition);
+      yPosition += this.getSectionHeight(section);
+    }
+
+    // Add footer
+    const pageCount = pdf.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(8);
+      pdf.setFont(template.styling.fontFamily.split(',')[0], 'italic');
+      pdf.text(template.styling.footerText || '', 20, 285);
+
+      if (options.watermark) {
+        pdf.saveGraphicsState();
+        pdf.setGState(new (pdf as any).GState({ opacity: 0.1 }));
+        pdf.setFontSize(48);
+        pdf.text(options.watermark, 105, 150, { angle: 45 });
+        pdf.restoreGraphicsState();
+      }
+    }
+
+    // Download
+    pdf.save(options.filename || `${template.name.replace(/\s+/g, '_')}.pdf`);
+  }
+
+  async generateExcel(templateId: string, data: any, options: {
+    filename?: string;
+    multipleSheets?: boolean;
+  } = {}): Promise<void> {
+    const template = this.templates.get(templateId);
+    if (!template) throw new Error('Template not found');
+
+    const workbook = XLSX.utils.book_new();
+
+    // Process each section
+    for (const section of template.sections) {
+      if (section.type === 'table') {
+        const worksheetData = this.prepareTableData(section, data);
+        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+
+        // Apply styling
+        if (worksheet['!cols']) {
+          worksheet['!cols'] = worksheetData[0].map(() => ({ width: 15 }));
+        }
+
+        XLSX.utils.book_append_sheet(workbook, worksheet, section.title.substring(0, 31));
+      }
+    }
+
+    // Download
+    XLSX.writeFile(workbook, options.filename || `${template.name.replace(/\s+/g, '_')}.xlsx`);
+  }
+
+  private async renderSection(pdf: jsPDF, section: ReportSection, data: any, yPosition: number): Promise<void> {
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+
+    switch (section.type) {
+      case 'text':
+        this.renderTextSection(pdf, section, data, yPosition);
+        break;
+      case 'table':
+        this.renderTableSection(pdf, section, data, yPosition);
+        break;
+      case 'evidence':
+        this.renderEvidenceSection(pdf, section, data, yPosition);
+        break;
+      case 'signature':
+        this.renderSignatureSection(pdf, section, data, yPosition);
+        break;
+    }
+  }
+
+  private renderTextSection(pdf: jsPDF, section: ReportSection, data: any, yPosition: number): void {
+    let content = section.content.template || section.content.text || '';
+
+    // Replace template variables
+    if (section.content.fields) {
+      section.content.fields.forEach((field: string) => {
+        const value = data[field] || 'N/A';
+        content += `${field.replace('_', ' ').toUpperCase()}: ${value}\n`;
+      });
+    } else {
+      // Replace template placeholders
+      Object.keys(data).forEach(key => {
+        content = content.replace(new RegExp(`{${key}}`, 'g'), data[key] || 'N/A');
+      });
+    }
+
+    const lines = pdf.splitTextToSize(content, 170);
+    pdf.text(lines, 20, yPosition);
+  }
+
+  private renderTableSection(pdf: jsPDF, section: ReportSection, data: any, yPosition: number): void {
+    const headers = section.content.headers;
+    const tableData = this.prepareTableData(section, data);
+
+    // Table headers
+    pdf.setFont('helvetica', 'bold');
+    headers.forEach((header: string, index: number) => {
+      pdf.text(header, 20 + (index * 35), yPosition);
+    });
+
+    // Table rows
+    pdf.setFont('helvetica', 'normal');
+    tableData.slice(1).forEach((row: any[], rowIndex: number) => {
+      if (yPosition + (rowIndex + 1) * 8 > 270) return; // Prevent overflow
+
+      row.forEach((cell, cellIndex) => {
+        const cellText = String(cell || '');
+        const truncatedText = cellText.length > 12 ? cellText.substring(0, 9) + '...' : cellText;
+        pdf.text(truncatedText, 20 + (cellIndex * 35), yPosition + (rowIndex + 1) * 8);
+      });
+    });
+  }
+
+  private renderEvidenceSection(pdf: jsPDF, section: ReportSection, data: any, yPosition: number): void {
+    const evidence = data.evidence || [];
+
+    evidence.forEach((item: any, index: number) => {
+      if (yPosition + (index * 15) > 270) return;
+
+      pdf.text(`Item ${index + 1}: ${item.filename}`, 20, yPosition + (index * 15));
+      pdf.text(`Type: ${item.type} | Size: ${this.formatFileSize(item.size)}`, 30, yPosition + (index * 15) + 5);
+
+      if (section.content.includeHashes && item.hash) {
+        pdf.text(`SHA-256: ${item.hash}`, 30, yPosition + (index * 15) + 10);
+      }
+    });
+  }
+
+  private renderSignatureSection(pdf: jsPDF, section: ReportSection, data: any, yPosition: number): void {
+    pdf.text('Investigator: ___________________________', 20, yPosition);
+    pdf.text('Date: ___________________________', 20, yPosition + 10);
+    pdf.text('Signature: ___________________________', 20, yPosition + 25);
+  }
+
+  private prepareTableData(section: ReportSection, data: any): any[][] {
+    const headers = section.content.headers;
+    const dataSource = section.content.dataSource;
+
+    let rows: any[] = [];
+
+    switch (dataSource) {
+      case 'transactions':
+        rows = (data.transactions || []).map((tx: any) => [
+          tx.date,
+          tx.amount,
+          tx.description,
+          tx.category,
+          tx.risk_level || 'Low'
+        ]);
+        break;
+      case 'evidence':
+        rows = (data.evidence || []).map((ev: any) => [
+          ev.id,
+          ev.type,
+          ev.description,
+          ev.upload_date,
+          ev.relevance_score || 'N/A'
+        ]);
+        break;
+      case 'audit_log':
+        rows = (data.audit_log || []).map((log: any) => [
+          log.timestamp,
+          log.action,
+          log.user,
+          log.location || 'N/A',
+          log.notes || ''
+        ]);
+        break;
+      case 'financial_metrics':
+        rows = [
+          ['Total Transactions', data.total_transactions || 0, 'All time', ''],
+          ['Total Amount', data.total_amount || 0, 'All time', ''],
+          ['High Risk Transactions', data.high_risk_count || 0, 'All time', ''],
+          ['Average Transaction', data.avg_transaction || 0, 'All time', '']
+        ];
+        break;
+      default:
+        rows = [];
+    }
+
+    return [headers, ...rows];
+  }
+
+  private getSectionHeight(section: ReportSection): number {
+    switch (section.type) {
+      case 'text': return 40;
+      case 'table': return 60;
+      case 'evidence': return 50;
+      case 'signature': return 40;
+      default: return 30;
+    }
+  }
+
+  private formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  getTemplates(): ReportTemplate[] {
+    return Array.from(this.templates.values());
+  }
+
+  getTemplate(id: string): ReportTemplate | undefined {
+    return this.templates.get(id);
+  }
+}
+
+// Export singleton instance
+export const reportGenerator = new ReportGenerator();

@@ -61,7 +61,7 @@ export function VirtualTable<T extends Record<string, unknown>>({
   sortKey,
   sortDirection,
   selectedRows,
-  onSelectRow,
+  // onSelectRow is available via props but not used in current implementation
   getRowId,
   className,
   emptyMessage = 'No data available',
@@ -175,7 +175,7 @@ export function VirtualTable<T extends Record<string, unknown>>({
             )}
           >
             <tr>
-              {columns.map((column, colIndex) => (
+              {columns.map((column) => (
                 <th
                   key={String(column.key)}
                   className={cn(

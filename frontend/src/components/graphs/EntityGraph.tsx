@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ZoomIn, ZoomOut, Maximize2, Download } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { GraphTools } from '../visualization/GraphTools';
 
 interface GraphNode {
   id: string;
@@ -163,122 +164,87 @@ export function EntityGraph({
 
   // Render the graph
   useEffect(() => {
+    if (!canvasRef.current || nodePositions.size === 0) return;
     const canvas = canvasRef.current;
-    if (!canvas || nodePositions.size === 0) return;
-
+    canvas.width = canvas.offsetWidth;
+    canvas.height = height;
+    
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-
+    
     // Clear
-    ctx.clearRect(0, 0, rect.width, rect.height);
-
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
     // Apply zoom
     ctx.save();
-    ctx.translate(rect.width / 2, rect.height / 2);
     ctx.scale(zoom, zoom);
-    ctx.translate(-rect.width / 2, -rect.height / 2);
-
+    
     // Draw edges
-    ctx.strokeStyle = '#cbd5e1';
     ctx.lineWidth = 2;
     edges.forEach(edge => {
-      const source = nodePositions.get(edge.source);
-      const target = nodePositions.get(edge.target);
-      if (!source || !target) return;
-
-      ctx.beginPath();
-      ctx.moveTo(source.x, source.y);
-      ctx.lineTo(target.x, target.y);
-      ctx.stroke();
-
-      // Draw edge label
-      if (edge.label) {
-        const midX = (source.x + target.x) / 2;
-        const midY = (source.y + target.y) / 2;
-        ctx.fillStyle = '#64748b';
-        ctx.font = '10px Inter, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(edge.label, midX, midY);
-      }
+        const p1 = nodePositions.get(edge.source);
+        const p2 = nodePositions.get(edge.target);
+        if (p1 && p2) {
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = '#cbd5e1'; // slate-300
+            ctx.stroke();
+        }
     });
 
     // Draw nodes
     nodes.forEach(node => {
-      const pos = nodePositions.get(node.id);
-      if (!pos) return;
-
-      const colors = NODE_COLORS[node.type];
-      const isSelected = selectedNode === node.id;
-
-      // Node circle
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, NODE_RADIUS, 0, 2 * Math.PI);
-      ctx.fillStyle = colors.fill;
-      ctx.fill();
-      ctx.strokeStyle = isSelected ? '#1e293b' : colors.stroke;
-      ctx.lineWidth = isSelected ? 4 : 2;
-      ctx.stroke();
-
-      // Node label
-      ctx.fillStyle = colors.text;
-      ctx.font = 'bold 11px Inter, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      
-      // Truncate long labels
-      let label = node.label;
-      if (label.length > 12) {
-        label = label.substring(0, 10) + '...';
-      }
-      ctx.fillText(label, pos.x, pos.y);
-
-      // Type label below
-      ctx.fillStyle = '#64748b';
-      ctx.font = '9px Inter, sans-serif';
-      ctx.fillText(node.type, pos.x, pos.y + NODE_RADIUS + 12);
+        const pos = nodePositions.get(node.id);
+        if (pos) {
+            const color = NODE_COLORS[node.type];
+            
+            // Node circle
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, NODE_RADIUS, 0, 2 * Math.PI);
+            ctx.fillStyle = color.fill;
+            ctx.fill();
+            ctx.strokeStyle = color.stroke;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Selection highlight
+            if (node.id === selectedNode) {
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+            
+            // Label
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = '12px sans-serif';
+            ctx.fillText(node.label.substring(0, 10), pos.x, pos.y);
+        }
     });
-
+    
     ctx.restore();
-  }, [nodePositions, edges, nodes, zoom, selectedNode]);
+  }, [nodePositions, edges, nodes, zoom, selectedNode, height]);
 
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+  const selectedNodeData = selectedNode ? nodes.find(n => n.id === selectedNode) : null;
 
-    // Check if clicked on a node
-    for (const [nodeId, pos] of nodePositions.entries()) {
-      const dx = x - pos.x * zoom;
-      const dy = y - pos.y * zoom;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      
-      if (dist <= NODE_RADIUS * zoom) {
-        setSelectedNode(nodeId);
-        return;
-      }
-    }
-
-    setSelectedNode(null);
-  };
-
-  const handleZoomIn = () => setZoom(z => Math.min(z + 0.2, 3));
-  const handleZoomOut = () => setZoom(z => Math.max(z - 0.2, 0.5));
+  const handleZoomIn = () => setZoom(prev => Math.min(prev * 1.2, 5));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev / 1.2, 0.1));
   const handleReset = () => setZoom(1);
 
-  const selectedNodeData = nodes.find(n => n.id === selectedNode);
+  const handleCanvasClick = () => {
+      // Placeholder for hit testing
+      // In a real implementation, we would check if click coords intersect with any node
+      setSelectedNode(null);
+  };
+
+  const [isSimulating, setIsSimulating] = useState(false);
 
   return (
     <div className="space-y-4">
+      {/* ... header ... */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
           Entity Relationship Graph
@@ -324,6 +290,11 @@ export function EntityGraph({
 
       {/* Graph canvas */}
       <div className="relative rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 overflow-hidden">
+        <GraphTools 
+             isSimulating={isSimulating}
+             onSimulationToggle={setIsSimulating}
+             onShortestPath={(source, target) => console.log('Find path', source, target)}
+        />
         <canvas
           ref={canvasRef}
           className="w-full cursor-pointer"
@@ -353,11 +324,11 @@ export function EntityGraph({
                     <span className="text-slate-500 dark:text-slate-400 capitalize">
                       {key}:
                     </span>
-                    <span className="font-medium text-slate-900 dark:text-slate-100">
-                      {typeof value === 'number' && key.includes('amount') || key.includes('balance')
-                        ? `$${value.toLocaleString()}`
-                        : value}
-                    </span>
+                      <span className="font-medium text-slate-900 dark:text-slate-100">
+                        {(typeof value === 'number' && (key.includes('amount') || key.includes('balance')))
+                          ? `$${value.toLocaleString()}`
+                          : value}
+                      </span>
                   </div>
                 ))}
               </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { evidenceApi, EvidenceType } from '../../lib/evidenceApi';
-import { FileText, MessageSquare, Video, Image as ImageIcon, Upload, Loader2, Download, Eye } from 'lucide-react';
+import { evidenceApi, EvidenceType, ProcessingStatus, type Evidence } from '../../lib/evidenceApi';
+import { FileText, MessageSquare, Video, Image as ImageIcon, Upload, Loader2, Download, Eye, PlayCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { toast } from 'react-hot-toast';
 
@@ -13,6 +13,8 @@ export function EvidenceLibrary({ caseId }: EvidenceLibraryProps) {
   const [filter, setFilter] = useState<EvidenceType | 'all'>('all');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedType, setSelectedType] = useState<EvidenceType>(EvidenceType.DOCUMENT);
+  const [processingId, setProcessingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: evidenceList, isLoading } = useQuery({
@@ -32,7 +34,7 @@ export function EvidenceLibrary({ caseId }: EvidenceLibraryProps) {
     setUploadProgress(0);
 
     try {
-      await evidenceApi.upload(caseId, file, (progress) => {
+      await evidenceApi.upload(caseId, file, selectedType, undefined, (progress) => {
         setUploadProgress(progress);
       });
       toast.success('Evidence uploaded successfully');
@@ -53,6 +55,20 @@ export function EvidenceLibrary({ caseId }: EvidenceLibraryProps) {
     [EvidenceType.CHAT]: MessageSquare,
     [EvidenceType.VIDEO]: Video,
     [EvidenceType.PHOTO]: ImageIcon,
+  };
+
+  const processEvidence = async (item: Evidence) => {
+    try {
+      setProcessingId(item.id);
+      await evidenceApi.process(item.id);
+      toast.success('Processing started and completed (stub)');
+      queryClient.invalidateQueries({ queryKey: ['evidence', caseId] });
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to process evidence');
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   return (
@@ -76,24 +92,38 @@ export function EvidenceLibrary({ caseId }: EvidenceLibraryProps) {
           ))}
         </div>
 
-        <div className="relative">
-          <input
-            type="file"
-            id="file-upload"
-            className="hidden"
-            onChange={handleFileUpload}
-            disabled={isUploading}
-          />
-          <label
-            htmlFor="file-upload"
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors shadow-sm font-medium",
-              isUploading && "opacity-50 cursor-not-allowed"
-            )}
+        <div className="flex items-center gap-3">
+          <select
+            value={selectedType}
+            onChange={(e) => setSelectedType(e.target.value as EvidenceType)}
+            className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
           >
-            {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            {isUploading ? `Uploading ${Math.round(uploadProgress)}%` : 'Upload Evidence'}
-          </label>
+            {Object.values(EvidenceType).map((type) => (
+              <option key={type} value={type} className="capitalize">
+                {type}
+              </option>
+            ))}
+          </select>
+
+          <div className="relative">
+            <input
+              type="file"
+              id="file-upload"
+              className="hidden"
+              onChange={handleFileUpload}
+              disabled={isUploading}
+            />
+            <label
+              htmlFor="file-upload"
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors shadow-sm font-medium",
+                isUploading && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              {isUploading ? `Uploading ${Math.round(uploadProgress)}%` : 'Upload Evidence'}
+            </label>
+          </div>
         </div>
       </div>
 
@@ -137,7 +167,7 @@ export function EvidenceLibrary({ caseId }: EvidenceLibraryProps) {
                       <div className="flex items-center gap-2 text-xs text-slate-500">
                         <span className="capitalize">{item.type}</span>
                         <span>•</span>
-                        <span>{formatBytes(item.size_bytes)}</span>
+                        <span>{formatBytes(item.size || 0)}</span>
                       </div>
                     </div>
                   </div>
@@ -145,11 +175,11 @@ export function EvidenceLibrary({ caseId }: EvidenceLibraryProps) {
                   {/* Status Indicator */}
                   <div className={cn(
                     "w-2 h-2 rounded-full",
-                    item.processing_status === 'completed' && "bg-emerald-500",
-                    item.processing_status === 'processing' && "bg-blue-500 animate-pulse",
-                    item.processing_status === 'failed' && "bg-red-500",
-                    item.processing_status === 'pending' && "bg-slate-300"
-                  )} title={`Status: ${item.processing_status}`} />
+                    item.status === ProcessingStatus.COMPLETED && "bg-emerald-500",
+                    item.status === ProcessingStatus.PROCESSING && "bg-blue-500 animate-pulse",
+                    item.status === ProcessingStatus.FAILED && "bg-red-500",
+                    item.status === ProcessingStatus.PENDING && "bg-slate-300"
+                  )} title={`Status: ${item.status}`} />
                 </div>
 
                 {/* Metadata Preview */}
@@ -168,7 +198,11 @@ export function EvidenceLibrary({ caseId }: EvidenceLibraryProps) {
                   )}
                   <div className="flex justify-between">
                     <span>Uploaded:</span>
-                    <span className="font-medium text-slate-900 dark:text-slate-200">{new Date(item.uploaded_at).toLocaleDateString()}</span>
+                    <span className="font-medium text-slate-900 dark:text-slate-200">{item.uploaded_at ? new Date(item.uploaded_at).toLocaleDateString() : '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Status:</span>
+                    <span className="font-medium capitalize text-slate-900 dark:text-slate-200">{item.status}</span>
                   </div>
                 </div>
 
@@ -178,7 +212,20 @@ export function EvidenceLibrary({ caseId }: EvidenceLibraryProps) {
                     <Eye className="w-4 h-4" />
                     Preview
                   </button>
-                  <button className="flex p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                  {item.status !== ProcessingStatus.COMPLETED && (
+                    <button
+                      onClick={() => processEvidence(item)}
+                      disabled={processingId === item.id}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {processingId === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlayCircle className="w-4 h-4" />}
+                      {processingId === item.id ? 'Processing…' : 'Process'}
+                    </button>
+                  )}
+                  <button 
+                    aria-label="Download"
+                    className="flex p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  >
                     <Download className="w-4 h-4" />
                   </button>
                 </div>

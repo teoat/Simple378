@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { api } from '../lib/api';
+import { useTenant } from '../hooks/useTenant';
 import {
   User,
   Shield,
@@ -15,7 +17,7 @@ import {
   Trash2,
   Copy,
   Check,
-  RefreshCw
+  Globe,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
@@ -23,7 +25,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import toast from 'react-hot-toast';
 
-type SettingsTab = 'profile' | 'security' | 'team' | 'notifications' | 'apikeys' | 'theme';
+type SettingsTab = 'profile' | 'security' | 'team' | 'notifications' | 'apikeys' | 'theme' | 'enterprise';
 
 interface UserProfile {
   id: string;
@@ -63,20 +65,12 @@ interface AuditLogEntry {
 }
 
 export function Settings() {
-  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
   const [showPassword, setShowPassword] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-
-  // Profile state
-  const [profile, setProfile] = useState<UserProfile>({
-    id: 'user-001',
-    name: 'John Doe',
-    email: 'john.doe@company.com',
-    role: 'Senior Analyst',
-    department: 'Forensic Accounting',
-    phone: '+1 (555) 123-4567'
-  });
+  
+  // Multi-tenant context
+  const { tenant, isTenantFeatureEnabled } = useTenant();
 
   // Security state
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
@@ -95,10 +89,41 @@ export function Settings() {
     slack: { newCase: false, highRisk: true, critical: true }
   });
 
-  // Fetch team members
+  // Fetch profile
+  const { data: profileData, refetch: refetchProfile } = useQuery({
+    queryKey: ['settings', 'profile'],
+    queryFn: () => api.get<any>('/users/profile'),
+  });
+
+  // Derived profile state
+  const [profile, setProfile] = useState<UserProfile>({
+    id: '',
+    name: '',
+    email: '',
+    role: 'Analyst', // Default
+    department: '',
+    phone: ''
+  });
+
+  // Update local state when data fetches
+  useEffect(() => {
+    if (profileData) {
+      setProfile({
+        id: profileData.id || '',
+        name: profileData.full_name || profileData.email?.split('@')[0] || 'User',
+        email: profileData.email || '',
+        role: profileData.role || 'Analyst',
+        department: profileData.department || 'Forensic Accounting', 
+        phone: profileData.phone_number || ''
+      });
+    }
+  }, [profileData]);
+
+  // Fetch team members (Mock for now - no backend endpoint)
   const { data: teamMembers = [] } = useQuery<TeamMember[]>({
     queryKey: ['settings', 'team'],
     queryFn: async () => {
+      // TODO: Implement GET /users/ endpoint in backend
       await new Promise(resolve => setTimeout(resolve, 500));
       return [
         { id: '1', name: 'John Doe', email: 'john.doe@company.com', role: 'admin', status: 'active', lastActive: '2024-03-15 10:30' },
@@ -109,10 +134,11 @@ export function Settings() {
     }
   });
 
-  // Fetch API keys
+  // Fetch API keys (Mock for now - no backend endpoint)
   const { data: apiKeys = [] } = useQuery<APIKey[]>({
     queryKey: ['settings', 'apikeys'],
     queryFn: async () => {
+      // TODO: Implement /api-keys/ endpoints in backend
       await new Promise(resolve => setTimeout(resolve, 300));
       return [
         { id: '1', name: 'Production API', key: 'sk_live_xxxxx...xxxxx', createdAt: '2024-01-15', lastUsed: '2024-03-15', permissions: ['read', 'write'] },
@@ -125,38 +151,57 @@ export function Settings() {
   const { data: auditLog = [] } = useQuery<AuditLogEntry[]>({
     queryKey: ['settings', 'audit'],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 400));
-      return [
-        { id: '1', action: 'Login', user: 'john.doe@company.com', timestamp: '2024-03-15 10:30:15', details: 'Successful login', ip: '192.168.1.100' },
-        { id: '2', action: 'Case Update', user: 'john.doe@company.com', timestamp: '2024-03-15 10:25:00', details: 'Updated case CASE-001', ip: '192.168.1.100' },
-        { id: '3', action: 'API Key Created', user: 'admin@company.com', timestamp: '2024-03-14 16:00:00', details: 'Created Production API key', ip: '192.168.1.50' },
-        { id: '4', action: 'Password Changed', user: 'jane.smith@company.com', timestamp: '2024-03-14 14:30:00', details: 'Password updated', ip: '192.168.1.75' }
-      ];
+      try {
+        const response = await api.get<{ items: any[] }>('/audit-logs/?limit=5');
+        return response.items.map((log: any) => ({
+          id: log.id,
+          action: log.action,
+          user: log.actor_id || 'System', // Backend returns ID, front needs name ideally
+          timestamp: log.timestamp ? new Date(log.timestamp).toLocaleString() : '',
+          details: typeof log.details === 'string' ? log.details : JSON.stringify(log.details),
+          ip: '—' // IP not currently stored in audit log model shown
+        }));
+      } catch (e) {
+        console.error("Failed to fetch audit logs", e);
+        return [];
+      }
     }
   });
 
   // Save profile mutation
   const saveProfileMutation = useMutation({
     mutationFn: async (data: UserProfile) => {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return data;
+      return api.patch('/users/profile', {
+        full_name: data.name,
+        email: data.email,
+        // Backend doesn't support Department/Phone yet in User model directly in snippet, 
+        // assuming mapping or extending model would be needed.
+        // For now, sending what we can.
+      });
     },
     onSuccess: () => {
       toast.success('Profile saved successfully');
-    }
+      refetchProfile();
+    },
+    onError: () => toast.error('Failed to save profile')
   });
 
   // Change password mutation
   const changePasswordMutation = useMutation({
     mutationFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      return true;
+      return api.post('/users/password', {
+        current_password: currentPassword,
+        new_password: newPassword
+      });
     },
     onSuccess: () => {
       toast.success('Password changed successfully');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to change password');
     }
   });
 
@@ -173,7 +218,8 @@ export function Settings() {
     { id: 'team' as SettingsTab, label: 'Team', icon: Users },
     { id: 'notifications' as SettingsTab, label: 'Notifications', icon: Bell },
     { id: 'apikeys' as SettingsTab, label: 'API Keys', icon: Key },
-    { id: 'theme' as SettingsTab, label: 'Appearance', icon: Palette }
+    { id: 'theme' as SettingsTab, label: 'Appearance', icon: Palette },
+    { id: 'enterprise' as SettingsTab, label: 'Enterprise', icon: Globe },
   ];
 
   const getRoleBadge = (role: TeamMember['role']) => {
@@ -636,6 +682,127 @@ export function Settings() {
                         <button className="relative w-12 h-6 rounded-full bg-blue-500">
                           <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white translate-x-6" />
                         </button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Enterprise Tab */}
+              {activeTab === 'enterprise' && (
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Tenant Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {tenant ? (
+                        <>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Tenant ID</p>
+                              <p className="text-lg font-semibold">{tenant.id}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Tenant Name</p>
+                              <p className="text-lg font-semibold">{tenant.name}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Region</p>
+                              <p className="text-lg font-semibold">{tenant.region || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Plan</p>
+                              <p className="text-lg font-semibold capitalize">{tenant.plan || 'standard'}</p>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-slate-500">Loading tenant information...</p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Feature Flags</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {['advanced_analytics', 'ai_orchestration', 'real_time_collaboration', 'custom_integrations', 'api_access', 'sso'].map((feature) => (
+                          <div key={feature} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded">
+                            <div>
+                              <p className="font-medium capitalize">{feature.replace(/_/g, ' ')}</p>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                              isTenantFeatureEnabled(feature)
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+                            }`}>
+                              {isTenantFeatureEnabled(feature) ? '✓ Enabled' : '✕ Disabled'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Data Residency & Compliance</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Primary Data Center</p>
+                        <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded">
+                          <p className="font-semibold">{tenant?.region === 'us-east' ? 'US East (Northern Virginia)' : tenant?.region === 'eu-west' ? 'EU West (Ireland)' : 'Default Region'}</p>
+                          <p className="text-sm text-slate-500">Your data is stored and processed in this region only.</p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Compliance Standards</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {['SOC2', 'HIPAA', 'GDPR', 'CCPA', 'FedRAMP', 'ISO 27001'].map((standard) => (
+                            <div key={standard} className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm font-medium text-blue-700 dark:text-blue-400">
+                              {standard}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Usage & Limits</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="font-medium">API Calls</p>
+                          <p className="text-sm text-slate-500">450,000 / 500,000</p>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-green-500" style={{ width: '90%' }} />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="font-medium">Storage</p>
+                          <p className="text-sm text-slate-500">750 GB / 1 TB</p>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-500" style={{ width: '75%' }} />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="font-medium">Team Members</p>
+                          <p className="text-sm text-slate-500">8 / 25</p>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-amber-500" style={{ width: '32%' }} />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>

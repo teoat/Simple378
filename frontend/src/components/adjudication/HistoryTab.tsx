@@ -6,10 +6,18 @@ interface HistoryTabProps {
   alertId: string;
 }
 
+interface HistoryItem {
+  id: string;
+  decision: string;
+  created_at: string;
+  reviewer_id: string;
+  reviewer_notes?: string;
+}
+
 export function HistoryTab({ alertId }: HistoryTabProps) {
   const { data: history, isLoading, error } = useQuery({
     queryKey: ['adjudication-history', alertId],
-    queryFn: () => apiRequest(`/adjudication/history/${alertId}`),
+    queryFn: () => apiRequest<HistoryItem[]>(`/adjudication/history/${alertId}`),
     enabled: !!alertId,
   });
 
@@ -48,7 +56,7 @@ export function HistoryTab({ alertId }: HistoryTabProps) {
     <div className="space-y-6">
       <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Activity History</h3>
       <div className="relative border-l border-slate-200 dark:border-slate-700 ml-3 space-y-6">
-        {history.map((item: any) => (
+        {history.map((item: HistoryItem) => (
           <div key={item.id} className="relative pl-6">
             <div className="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-white dark:border-slate-900" />
             <div className="flex justify-between items-start mb-1">

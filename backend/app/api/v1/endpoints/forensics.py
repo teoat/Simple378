@@ -7,11 +7,23 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.services.forensics import ForensicsService
+from app.services.entity_resolution import EntityResolutionService
 from app.api import deps
 from app.models import mens_rea as models
+from pydantic import BaseModel
+from typing import List, Dict, Any
+
+class EntityResolutionRequest(BaseModel):
+    entities: List[Dict[str, Any]]
+    context_data: Dict[str, Any] = None
+
+class EntityNetworkRequest(BaseModel):
+    entities: List[Dict[str, Any]]
+    transactions: List[Dict[str, Any]] = None
 
 router = APIRouter()
 forensics_service = ForensicsService()
+entity_service = EntityResolutionService()
 
 @router.post("/analyze", response_model=Any)
 async def analyze_file(
@@ -100,3 +112,49 @@ async def get_evidence_for_analysis(
         })
     
     return evidence
+
+@router.post("/entity-resolution", response_model=List[Dict[str, Any]])
+async def resolve_entities(
+    request: EntityResolutionRequest,
+    current_user: Any = Depends(deps.get_current_user)
+):
+    """
+    Use AI to resolve entities and identify potential duplicates or matches.
+    """
+    try:
+        matches = await entity_service.ai_entity_resolution(
+            entities=request.entities,
+            context_data=request.context_data
+        )
+
+        # Convert to dict format for JSON response
+        return [
+            {
+                "entity_id_a": match.entity_id_a,
+                "entity_name_a": match.entity_name_a,
+                "entity_id_b": match.entity_id_b,
+                "entity_name_b": match.entity_name_b,
+                "similarity_score": match.similarity_score,
+                "reason": match.reason
+            }
+            for match in matches
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Entity resolution failed: {str(e)}")
+
+@router.post("/entity-network", response_model=Dict[str, Any])
+async def analyze_entity_network(
+    request: EntityNetworkRequest,
+    current_user: Any = Depends(deps.get_current_user)
+):
+    """
+    Analyze entity relationships and build a network graph using AI.
+    """
+    try:
+        network = await entity_service.resolve_entity_network(
+            entities=request.entities,
+            transactions=request.transactions
+        )
+        return network
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Network analysis failed: {str(e)}")

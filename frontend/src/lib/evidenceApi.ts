@@ -19,11 +19,11 @@ export interface Evidence {
   case_id: string;
   type: EvidenceType;
   filename: string;
-  size_bytes: number;
-  mime_type: string;
-  uploaded_by: string;
-  uploaded_at: string;
-  processing_status: ProcessingStatus;
+  size?: number;
+  mime_type?: string;
+  uploaded_by?: string;
+  uploaded_at?: string;
+  status: ProcessingStatus;
   processed_at?: string;
   tags?: string[];
   metadata?: any;
@@ -60,24 +60,29 @@ export interface PhotoMetadata {
 }
 
 export const evidenceApi = {
-  upload: async (caseId: string, file: File, onProgress?: (progress: number) => void) => {
+  upload: async (
+    caseId: string,
+    file: File,
+    type: EvidenceType,
+    tags?: string[],
+    onProgress?: (progress: number) => void,
+  ) => {
     const formData = new FormData();
     formData.append('file', file);
-    
-    // Note: apiRequest uses fetch which doesn't natively support upload progress well without XMLHttpRequest.
-    // For now, we'll just do a simple POST. For progress, we'd need axios or bespoke XHR.
-    // We'll bypass apiRequest helper for upload to handle FormData correctly if needed, 
-    // but apiRequest sets Content-Type to JSON which breaks FormData.
-    
+    formData.append('type', type);
+    if (tags?.length) {
+      formData.append('tags', tags.join(','));
+    }
+
     const BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
-    const token = localStorage.getItem('token'); // Assuming auth token storage
-    
+    const token = localStorage.getItem('token');
+
     const xhr = new XMLHttpRequest();
-    
+
     return new Promise((resolve, reject) => {
-      xhr.open('POST', `${BASE_URL}/evidence/?case_id=${caseId}`);
+      xhr.open('POST', `${BASE_URL}/evidence/${caseId}/evidence`);
       if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-      
+
       if (onProgress) {
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
@@ -86,7 +91,7 @@ export const evidenceApi = {
           }
         };
       }
-      
+
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
           resolve(JSON.parse(xhr.responseText));
@@ -94,18 +99,26 @@ export const evidenceApi = {
           reject(new Error(xhr.statusText));
         }
       };
-      
+
       xhr.onerror = () => reject(new Error('Network Error'));
-      
+
       xhr.send(formData);
     });
   },
 
   list: async (caseId: string): Promise<Evidence[]> => {
-    return apiRequest(`/evidence/?case_id=${caseId}`);
+    return apiRequest(`/evidence/${caseId}/evidence`);
   },
 
   get: async (id: string): Promise<Evidence> => {
     return apiRequest(`/evidence/${id}`);
-  }
+  },
+
+  process: async (id: string): Promise<Evidence> => {
+    return apiRequest(`/evidence/${id}/process`, { method: 'POST' });
+  },
+
+  reprocess: async (id: string): Promise<Evidence> => {
+    return apiRequest(`/evidence/${id}/reprocess`, { method: 'POST' });
+  },
 };

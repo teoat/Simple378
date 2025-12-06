@@ -6,10 +6,17 @@ interface EvidenceTabProps {
   alertId: string;
 }
 
+interface EvidenceItem {
+  id: string;
+  filename: string;
+  file_type: string;
+  upload_date: string;
+}
+
 export function EvidenceTab({ alertId }: EvidenceTabProps) {
   const { data: evidence, isLoading, error } = useQuery({
     queryKey: ['evidence', alertId],
-    queryFn: () => apiRequest(`/evidence/analysis/${alertId}`),
+    queryFn: () => apiRequest<EvidenceItem[]>(`/evidence/analysis/${alertId}`),
     enabled: !!alertId,
   });
 
@@ -49,7 +56,7 @@ export function EvidenceTab({ alertId }: EvidenceTabProps) {
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Supporting Evidence</h3>
       <div className="grid grid-cols-2 gap-4">
-        {evidence.map((item: any) => {
+        {evidence.map((item: EvidenceItem) => {
           const fileType = item.filename?.split('.').pop()?.toLowerCase() || 'file';
           const isPdf = fileType === 'pdf';
           const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(fileType);

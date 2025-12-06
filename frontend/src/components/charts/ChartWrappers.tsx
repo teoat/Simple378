@@ -21,7 +21,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { Download, Maximize2 } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { exportChartToPNG, generateFilename } from '../../lib/exportUtils';
 
@@ -426,7 +426,7 @@ export const PieChartWrapper = forwardRef<ChartWrapperRef, PieChartWrapperProps>
               paddingAngle={2}
               label={
                 showLabels
-                  ? ({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`
+                  ? ({ name, percent }) => `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`
                   : undefined
               }
             >

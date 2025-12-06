@@ -16,10 +16,12 @@
     "@sentry/react": "^10.27.0",
     "@tanstack/react-query": "^5.90.11",
     "@tanstack/react-virtual": "^3.13.12",
+    "@types/d3": "^7.4.3",
     "@types/file-saver": "^2.0.7",
     "axios": "^1.6.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "d3": "^7.9.0",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.23.25",
     "html2canvas": "^1.4.1",
@@ -29,6 +31,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-force-graph-2d": "^1.29.0",
+    "react-hook-form": "^7.67.0",
     "react-hot-toast": "^2.6.0",
     "react-hotkeys-hook": "^5.2.1",
     "react-router-dom": "^6.22.0",
@@ -36,7 +39,8 @@
     "recharts": "^3.5.1",
     "socket.io-client": "^4.8.1",
     "tailwind-merge": "^2.6.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -49,6 +53,7 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^5.1.1",
+    "@vitest/coverage-v8": "^4.0.14",
     "autoprefixer": "^10.4.17",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",

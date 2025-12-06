@@ -50,7 +50,7 @@ export const FinalSummary: FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const result = await apiRequest(`/summary/${caseId}`);
+        const result = await apiRequest<CaseSummaryData>(`/summary/${caseId}`);
         setData(result);
       } catch (error) {
         toast.error('Failed to load case summary');
