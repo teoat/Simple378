@@ -27,3 +27,7 @@ def setup_logging():
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
     )
+
+
+def get_logger(name: str = None):
+    return structlog.get_logger(name)

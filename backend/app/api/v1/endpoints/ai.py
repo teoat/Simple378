@@ -9,7 +9,9 @@ from app.api import deps
 from app.core.rate_limit import limiter
 from app.services.ai.supervisor import app as ai_app
 from app.services.ai.persona_analyzer import get_persona_analyzer, Persona
-from app.models.mens_rea import Subject, AnalysisResult, Indicator
+from app.models.mens_rea import AnalysisResult, Indicator
+from app.db.models import Subject
+from app.services.cache_service import get_or_set
 
 router = APIRouter()
 
@@ -330,4 +332,122 @@ Be concise, helpful, and professional. Provide actionable guidance."""
         raise HTTPException(
             status_code=500,
             detail=f"AI chat failed: {str(e)}"
+        )
+
+
+@router.post("/feedback", response_model=Dict[str, Any])
+@limiter.limit("60/minute")
+async def save_ai_feedback(
+    request: Request,
+    message_id: str,
+    feedback: str,
+    conversation_context: Optional[str] = None,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user = Depends(deps.get_current_user)
+):
+    """
+    Save user feedback for AI responses.
+    
+    Helps improve AI accuracy through learning from user feedback.
+    """
+    from app.models.ai_feedback import AIFeedback, FeedbackType, AIMetric
+    
+    try:
+        if feedback not in ['positive', 'negative']:
+            raise HTTPException(
+                status_code=400,
+                detail="Feedback must be 'positive' or 'negative'"
+            )
+        
+        ai_feedback = AIFeedback(
+            user_id=current_user.id,
+            message_id=message_id,
+            feedback_type=FeedbackType(feedback),
+            conversation_context=conversation_context
+        )
+        
+        db.add(ai_feedback)
+        await db.commit()
+        
+        metric = AIMetric(
+            metric_type="feedback_received",
+            metric_value=1.0 if feedback == 'positive' else 0.0,
+            context=f"message_id:{message_id}"
+        )
+        db.add(metric)
+        await db.commit()
+        
+        return {
+            "status": "success",
+            "message": "Feedback saved successfully",
+            "feedback_id": str(ai_feedback.id)
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to save feedback: {str(e)}"
+        )
+
+
+@router.get("/metrics", response_model=Dict[str, Any])
+@limiter.limit("30/minute")
+async def get_ai_metrics(
+    request: Request,
+    days: int = 7,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user = Depends(deps.get_current_user)
+):
+    """Get AI performance metrics."""
+    from app.models.ai_feedback import AIFeedback, AIMetric, FeedbackType
+    from datetime import timedelta, datetime
+    from sqlalchemy import func
+    from sqlalchemy.future import select
+    
+    try:
+        async def fetch_metrics_data():
+            end_date = datetime.utcnow()
+            start_date = end_date - timedelta(days=days)
+            
+            feedback_stats = await db.execute(
+                select(
+                    AIFeedback.feedback_type,
+                    func.count(AIFeedback.id).label('count')
+                )
+                .where(AIFeedback.created_at >= start_date)
+                .group_by(AIFeedback.feedback_type)
+            )
+            feedback_results = feedback_stats.all()
+            
+            positive_count = sum(r.count for r in feedback_results if r.feedback_type == FeedbackType.POSITIVE)
+            negative_count = sum(r.count for r in feedback_results if r.feedback_type == FeedbackType.NEGATIVE)
+            total_feedback = positive_count + negative_count
+            
+            satisfaction_rate = (positive_count / total_feedback * 100) if total_feedback > 0 else 0
+            
+            return {
+                "period_days": days,
+                "feedback": {
+                    "positive": positive_count,
+                    "negative": negative_count,
+                    "total": total_feedback,
+                    "satisfaction_rate": round(satisfaction_rate, 2)
+                },
+                "stats": {
+                    "learning_enabled": True,
+                    "last_updated": end_date.isoformat()
+                }
+            }
+
+        # Cache for 5 minutes (300 seconds)
+        # Key format: ai_metrics:{days}
+        return await get_or_set(f"ai_metrics:{days}", fetch_metrics_data, ttl=300)
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch metrics: {str(e)}"
         )

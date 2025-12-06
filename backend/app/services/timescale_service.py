@@ -358,6 +358,17 @@ class TimescaleDBService:
             row = result.first()
             return dict(row._mapping) if row else {}
 
+    async def check_health(self) -> bool:
+        """Check database connectivity."""
+        try:
+            async with self.engine.connect() as conn:
+                await conn.execute(text("SELECT 1"))
+            return True
+        except Exception as e:
+            # logger is not imported in this file, so we just return False
+            # Ideally we should log the error
+            return False
+
 
 # Singleton instance
 _timescale_service = None

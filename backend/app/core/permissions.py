@@ -44,6 +44,9 @@ class Permission(str, Enum):
     # Reports
     REPORTS_READ = "reports:read"
     REPORTS_EXPORT = "reports:export"
+    
+    # Legacy/Compatibility
+    VIEW_DASHBOARD = "dashboard:view"
 
 
 class Role(str, Enum):

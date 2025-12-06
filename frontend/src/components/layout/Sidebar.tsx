@@ -10,6 +10,7 @@ import {
   BarChart3,
   Tag,
   PieChart,
+  Brain,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Logo } from './Logo';
@@ -24,6 +25,7 @@ const navigation = [
   { name: 'Visualization', href: '/visualization', icon: PieChart },
   { name: 'Semantic Search', href: '/search', icon: Search },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'AI Metrics', href: '/ai-metrics', icon: Brain },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 

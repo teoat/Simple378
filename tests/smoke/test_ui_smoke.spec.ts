@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const STAGING_URL = process.env.STAGING_URL || 'http://localhost:8080';
+const STAGING_URL = process.env.STAGING_URL || 'http://localhost:5173';
 const TEST_USER_EMAIL = process.env.TEST_USER_EMAIL || 'analyst@staging.example.com';
 const TEST_USER_PASSWORD = process.env.TEST_USER_PASSWORD || 'StagingTest123!';
 

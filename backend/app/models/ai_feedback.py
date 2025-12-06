@@ -1,11 +1,11 @@
-from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, ForeignKey
+from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, ForeignKey, Integer, Float
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
 from datetime import datetime
 import uuid
 
-from app.db.base_class import Base
+from app.db.session import Base
 
 
 class FeedbackType(str, enum.Enum):

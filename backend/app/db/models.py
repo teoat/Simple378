@@ -28,6 +28,10 @@ class User(Base):
     role = Column(String, default="analyst")
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # Relationships
+    ai_feedback = relationship("AIFeedback", back_populates="user", cascade="all, delete-orphan")
+    ai_conversations = relationship("AIConversation", back_populates="user", cascade="all, delete-orphan")
+
 
 
 class Subject(Base):

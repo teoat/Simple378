@@ -361,7 +361,7 @@ Provide your expert analysis following the JSON format specified."""
     
     def _generate_explanation(
         self,
-        analyses: List[PersonaAnalysis],format
+        analyses: List[PersonaAnalysis],
         majority_verdict: str,
         consensus_score: float
     ) -> str:

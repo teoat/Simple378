@@ -91,7 +91,7 @@ export function AIAssistant() {
     setMessage('');
   };
 
-  const handleFeedback = (messageId: string, feedback: 'positive' | 'negative') => {
+  const handleFeedback = async (messageId: string, feedback: 'positive' | 'negative') => {
     setMessages(prev => prev.map(msg =>
       msg.id === messageId ? { ...msg, feedback } : msg
     ));
@@ -103,8 +103,14 @@ export function AIAssistant() {
         : '👎 Thanks for the feedback. Frenly will improve!'
     );
 
-    // TODO: Send feedback to backend
-    // api.sendAIFeedback(messageId, feedback);
+    // Send feedback to backend
+    try {
+      const context = JSON.stringify(messages.slice(-5)); // Last 5 messages for context
+      await api.sendAIFeedback(messageId, feedback, context);
+    } catch (error) {
+      console.error('Failed to send feedback:', error);
+      // Don't show error to user - feedback was saved locally
+    }
   };
 
   const clearConversation = () => {

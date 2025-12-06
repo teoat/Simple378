@@ -285,7 +285,7 @@ async def get_case_summary(
 async def generate_case_pdf(
     case_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(require_permission(Permission.VIEW_CASES))
+    current_user = Depends(require_permission(Permission.CASES_READ))
 ):
     """
     Generate PDF report for the case.

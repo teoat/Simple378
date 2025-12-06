@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   backend:
     build: ./backend
@@ -22,15 +24,24 @@ services:
       - DB_ECHO=${DB_ECHO:-false}
       - CORS_ORIGINS=${CORS_ORIGINS}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      # Unified database - both OLTP and OLAP use same instance
       - TIMESCALE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - MEILI_URL=http://meilisearch:7700
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-masterKey123}
     depends_on:
-      - db
-      - cache
-      - vector_db
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_started
+      vector_db:
+        condition: service_started
     networks:
       - fraud_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   mcp-server:
     build: ./mcp-server
@@ -65,7 +76,16 @@ services:
       - backend
     networks:
       - fraud_net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
+  # ============================================================
+  # UNIFIED DATABASE: Single TimescaleDB instance
+  # Replaces both fraud_db and fraud_timescale
+  # ============================================================
   db:
     image: timescale/timescaledb:latest-pg16
     container_name: fraud_db
@@ -75,12 +95,22 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
-      # Performance Tuning (optimized for OLAP/time-series workload)
-      - POSTGRES_INITDB_ARGS=-c shared_buffers=2GB -c work_mem=50MB -c maintenance_work_mem=1GB -c max_connections=150 -c effective_cache_size=5500MB -c jit=on -c max_wal_size=4GB -c random_page_cost=1.1
+      # ============================================================
+      # CONSOLIDATED PERFORMANCE TUNING
+      # Balanced for both OLTP (transactions) and OLAP (analytics)
+      # ============================================================
+      - POSTGRES_INITDB_ARGS=-c shared_buffers=2GB -c work_mem=30MB -c maintenance_work_mem=1GB -c max_connections=250 -c effective_cache_size=5500MB -c jit=on -c random_page_cost=1.1 -c checkpoint_completion_target=0.9 -c wal_buffers=16MB
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./backend/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     networks:
       - fraud_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   vector_db:
     image: qdrant/qdrant:latest
@@ -91,17 +121,27 @@ services:
       - qdrant_data:/qdrant/storage
     networks:
       - fraud_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   cache:
     image: redis:7-alpine
     container_name: fraud_redis
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
     networks:
       - fraud_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   meilisearch:
     image: getmeili/meilisearch:v1.5
@@ -115,15 +155,22 @@ services:
       - meilisearch_data:/meili_data
     networks:
       - fraud_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: fraud_jaeger
     ports:
       - "16686:16686" # UI
-      - "4317:4317" # OTLP gRPC
+      - "4317:4317"   # OTLP gRPC
     networks:
       - fraud_net
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
 
 networks:
   fraud_net:
@@ -131,7 +178,10 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
   qdrant_data:
+    driver: local
   redis_data:
-
+    driver: local
   meilisearch_data:
+    driver: local

@@ -66,7 +66,7 @@ services:
     image: ghcr.io/${GITHUB_REPOSITORY}/frontend:${IMAGE_TAG:-staging}
     container_name: fraud_frontend_staging
     ports:
-      - "8080:8080"
+      - "5173:8080"
     environment:
       - NGINX_HOST=localhost
       - NGINX_PORT=8080
@@ -95,7 +95,7 @@ services:
     image: postgres:16-alpine
     container_name: fraud_db_staging
     ports:
-      - "5433:5432"
+      - "5432:5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -143,7 +143,7 @@ services:
     image: redis:7-alpine
     container_name: fraud_redis_staging
     ports:
-      - "6380:6379"
+      - "6379:6379"
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme}
     volumes:
       - redis_data:/data

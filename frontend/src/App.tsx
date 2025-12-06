@@ -23,6 +23,7 @@ const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.S
 const AdjudicationQueue = lazy(() => import('./pages/AdjudicationQueue').then(m => ({ default: m.AdjudicationQueue })));
 const SemanticSearch = lazy(() => import('./pages/SemanticSearch').then(m => ({ default: m.SemanticSearch })));
 const SearchAnalytics = lazy(() => import('./pages/SearchAnalytics').then(m => ({ default: m.SearchAnalytics })));
+const AIMetrics = lazy(() => import('./pages/AIMetrics').then(m => ({ default: m.AIMetrics })));
 const Summary = lazy(() => import('./pages/Summary').then(m => ({ default: m.Summary })));
 
 // Error Pages
@@ -76,6 +77,7 @@ function App() {
                    <Route path="/visualization" element={<Visualization />} />
                    <Route path="/search" element={<SemanticSearch />} />
                   <Route path="/analytics" element={<SearchAnalytics />} />
+                  <Route path="/ai-metrics" element={<AIMetrics />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
                 

@@ -585,6 +585,27 @@ export const api = {
       body: JSON.stringify({ message }),
     }),
 
+  sendAIFeedback: (messageId: string, feedback: 'positive' | 'negative', context?: string) =>
+    request<{ status: string; message: string; feedback_id: string }>('/ai/feedback', {
+      method: 'POST',
+      body: JSON.stringify({ message_id: messageId, feedback, conversation_context: context }),
+    }),
+
+  getAIMetrics: (days = 7) =>
+    request<{
+      period_days: number;
+      feedback: {
+        positive: number;
+        negative: number;
+        total: number;
+        satisfaction_rate: number;
+      };
+      stats: {
+        learning_enabled: boolean;
+        last_updated: string;
+      };
+    }>(`/ai/metrics?days=${days}`),
+
   // Adjudication
   getAdjudicationQueue: (page = 1, limit = 100, sortBy: 'risk_score' | 'created_at' | 'priority' = 'priority', sortOrder: 'asc' | 'desc' = 'desc') =>
     request<{

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models import Transaction
 from uuid import UUID
 import uuid
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 from app.core.config import settings
 from concurrent.futures import ProcessPoolExecutor
 import asyncio

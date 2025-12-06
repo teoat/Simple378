@@ -144,6 +144,15 @@ async def startup_event():
         logger.info("Redis cache connected")
     except Exception as e:
         logger.warning("Redis cache initialization failed", error=str(e))
+
+    # Initialize TimescaleDB
+    try:
+        from app.services.timescale_service import get_timescale_service
+        logger.info("Initializing TimescaleDB...")
+        await get_timescale_service().initialize_hypertables()
+        logger.info("TimescaleDB initialized successfully")
+    except Exception as e:
+        logger.error("TimescaleDB initialization failed", error=str(e))
     
     # Additional startup tasks
     logger.info("API startup complete")
