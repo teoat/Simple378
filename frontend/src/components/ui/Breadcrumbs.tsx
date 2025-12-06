@@ -16,13 +16,6 @@ export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
   return (
     <nav aria-label="Breadcrumb" className={cn('flex items-center space-x-2 text-sm', className)}>
       <Link
-        to="/"
-        aria-label="Home"
-        className="flex items-center text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
-      >
-        <Home className="w-4 h-4" />
-      </Link>
-
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
         return (
