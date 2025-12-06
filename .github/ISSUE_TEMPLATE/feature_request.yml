@@ -1,0 +1,178 @@
+name: Feature Request
+description: Suggest a new feature for the fraud detection system
+title: "[Feature]: "
+labels: ["enhancement", "needs-review"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible.
+        
+        **Note for Copilot Coding Agent:** Clear, detailed feature requests with acceptance criteria and affected files help ensure accurate implementation.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature Description
+      description: A clear and concise description of the feature you'd like to see
+      placeholder: Describe the feature...
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve?
+      placeholder: This feature would solve...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How should this feature work?
+      placeholder: Describe how the feature should work...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component Area
+      description: Which part of the system will this affect?
+      options:
+        - Frontend - UI/Components
+        - Frontend - State Management
+        - Backend - API Endpoints
+        - Backend - Database/Models
+        - Backend - AI/ML Services
+        - Backend - File Processing
+        - Infrastructure
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: files
+    attributes:
+      label: Affected Files/Components
+      description: List the files or components that will need to be created or modified
+      placeholder: |
+        New files:
+        - frontend/src/components/cases/CasePagination.tsx
+        
+        Modified files:
+        - frontend/src/components/cases/CaseList.tsx
+        - backend/app/api/v1/endpoints/cases.py
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: What specific requirements must be met for this feature to be considered complete?
+      options:
+        - label: Feature works as described
+          required: true
+        - label: Unit tests added for new functionality
+        - label: Integration tests pass
+        - label: Documentation updated
+        - label: Accessibility requirements met
+        - label: No breaking changes to existing features
+        - label: Performance impact acceptable (<100ms added latency)
+
+  - type: textarea
+    id: ui_mockup
+    attributes:
+      label: UI Mockup/Design (for frontend features)
+      description: Include sketches, wireframes, or descriptions of the UI
+      placeholder: |
+        Describe the UI or paste links to mockups...
+        
+        Example:
+        - Add a pagination component below the case list
+        - Shows "< Prev" and "Next >" buttons
+        - Displays current page number (e.g., "Page 2 of 10")
+    validations:
+      required: false
+
+  - type: textarea
+    id: api_spec
+    attributes:
+      label: API Specification (for backend features)
+      description: Define the API contract if applicable
+      placeholder: |
+        GET /api/v1/cases?page=1&limit=20
+        
+        Response:
+        {
+          "items": [...],
+          "total": 100,
+          "page": 1,
+          "pages": 5
+        }
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature?
+      options:
+        - Low - Nice to have
+        - Medium - Improves user experience
+        - High - Core functionality
+        - Critical - Blocker for other work
+    validations:
+      required: true
+
+  - type: textarea
+    id: test_requirements
+    attributes:
+      label: Testing Requirements
+      description: What tests should be added for this feature?
+      placeholder: |
+        Unit tests:
+        - Test pagination component renders correctly
+        - Test page navigation updates URL
+        
+        Integration tests:
+        - Test API returns correct page of results
+        - Test total count is accurate
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Approaches
+      description: Have you considered any alternative solutions?
+      placeholder: Alternative approaches considered...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or information about the feature
+      placeholder: Any additional information...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: copilot_suitable
+    attributes:
+      label: Copilot Agent Suitability
+      description: Check if this is a good task for Copilot coding agent
+      options:
+        - label: This task has clear, well-defined requirements
+        - label: This task follows existing patterns in the codebase
+        - label: This task is not security-critical
+        - label: This task does not require deep domain expertise
+        - label: This task has measurable acceptance criteria

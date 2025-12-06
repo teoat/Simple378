@@ -1,0 +1,105 @@
+{
+  "project_name": "Simple378",
+  "philosophy": {
+    "agentic": "Act as an intelligent partner. Plan, execute, and verify.",
+    "privacy_focused": "GDPR compliance, encryption, and audit logging are mandatory.",
+    "user_centric": "Prioritize user goals. Offer proactive solutions.",
+    "minimalism": "Do more with less. Avoid file sprawl."
+  },
+  "ssot_documentation": {
+    "principle": "Never duplicate information. Maintain one authoritative file for each concept.",
+    "update_vs_create": "NEVER create a new file if an existing one can be updated.",
+    "rules": [
+      "Update existing docs alongside code changes.",
+      "Consolidate information. Merge and delete redundant docs.",
+      "Check docs/ before writing new specifications."
+    ]
+  },
+  "coding_style": {
+    "naming_conventions": {
+      "python": "snake_case for variables/functions, PascalCase for classes, UPPER_CASE for constants.",
+      "typescript": "camelCase for variables/functions, PascalCase for Components/Interfaces.",
+      "filenames": "snake_case.py (Python), camelCase.ts or PascalCase.tsx (React Components)."
+    },
+    "structure": {
+      "srp": "Functions should do one thing. Keep them small (< 50 lines).",
+      "dry": "Extract common logic into utilities."
+    },
+    "comments": {
+      "python": "Google-style docstrings for complex functions/classes.",
+      "general": "Comments should explain the WHY, not the WHAT."
+    },
+    "preferences": {
+      "immutability": "Prefer const over let in TS. Avoid global state.",
+      "async_await": "Use over raw promises or callbacks.",
+      "functional": "Prefer map/filter/reduce over loops where readable."
+    },
+    "strict_linting": {
+      "python": {
+        "formatter": "Black (line length 88)",
+        "linter": "Flake8 or Ruff. No ignored errors without explicit justification.",
+        "type_hints": "MANDATORY for all function signatures.",
+        "imports": "Sorted via isort."
+      },
+      "typescript_react": {
+        "strict_mode": "Enabled. NO any types allowed.",
+        "linter": "ESLint with strict config. Fix all warnings.",
+        "formatter": "Prettier."
+      },
+      "general": [
+        "Fix ALL linting errors before requesting user review.",
+        "Remove unused imports and dead code immediately."
+      ]
+    }
+  },
+  "tech_stack": {
+    "backend": {
+      "framework": "FastAPI (Async)",
+      "validation": "Pydantic (Strict Models)",
+      "orm": "SQLAlchemy 2.0 (Async)",
+      "migrations": "Alembic"
+    },
+    "frontend": {
+      "framework": "React + Vite",
+      "language": "TypeScript",
+      "styling": "TailwindCSS (Premium/Dark)",
+      "state": "React Query"
+    },
+    "infrastructure": {
+      "orchestration": "Docker Compose",
+      "config": ".env configuration"
+    }
+  },
+  "mcp_servers": {
+    "coordination": "agent-coordination-mcp",
+    "data": ["postgres", "redis"],
+    "tools": ["sequential-thinking", "memory"],
+    "config_rule": "Verify settings.json paths match Simple378 workspace."
+  },
+  "specific_rules": [
+    "Offline Capability: Design for local SQLite mirror support.",
+    "Mens Rea Engine: Define and log 'intent' indicators.",
+    "Error Handling: Use custom exception classes. NEVER return raw 500s."
+  ],
+  "workflow": {
+    "phase_1_planning": [
+      "Understand Goal: Read docs/architecture/00_master_plan.md.",
+      "SSOT Check: Search for existing files, confirm NO new files unless necessary, plan updates.",
+      "Create Artifacts: task.md (granular steps), implementation_plan.md (technical approach).",
+      "Approval: Request user review of the plan before major coding."
+    ],
+    "phase_2_execution": [
+      "Atomic Changes: Make small, testable edits.",
+      "Task Boundaries: Use the task_boundary tool to track progress.",
+      "Tool Selection: Prefer specific tools (replace_file_content) over generic ones.",
+      "Continuous Cleanup: Run linters/formatters after every significant edit."
+    ],
+    "phase_3_verification": [
+      "Static Analysis: Run cargo check (if Rust) or npm run lint / flake8. FIX ALL ERRORS.",
+      "Test First: Run existing tests to ensure no regressions.",
+      "New Tests: Write unit/integration tests for new features.",
+      "Manual Verification: Use browser_subagent or curl.",
+      "Walkthrough: Create walkthrough.md to demonstrate success."
+    ]
+  }
+}

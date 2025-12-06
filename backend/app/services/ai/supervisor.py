@@ -1,0 +1,84 @@
+import logging
+from typing import TypedDict, Annotated, List, Dict, Any, Optional
+import operator
+
+from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import BaseMessage, SystemMessage
+from langgraph.graph import StateGraph, END
+
+
+logger = logging.getLogger(__name__)
+
+# Define State
+class InvestigationState(TypedDict):
+    subject_id: str
+    messages: Annotated[List[BaseMessage], operator.add]
+    next_step: Optional[str]
+    findings: Dict[str, Any]
+    final_verdict: Optional[str]
+
+# Initialize LLM
+from app.core.config import settings  # noqa: E402
+
+# Constants
+TEST_API_KEY_PLACEHOLDER = "test-key-not-real"
+
+# Only initialize LLM if API key is available and not a test placeholder
+llm = None
+if settings.ANTHROPIC_API_KEY and settings.ANTHROPIC_API_KEY != TEST_API_KEY_PLACEHOLDER:
+    try:
+        llm = ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=settings.ANTHROPIC_API_KEY)
+    except Exception as e:
+        logger.warning(f"Failed to initialize ChatAnthropic: {e}")
+
+# Define Nodes
+def supervisor_node(state: InvestigationState):
+    # Simple router logic for MVP:
+    # If no findings, ask Financial Analyst.
+    # If financial findings but no graph, ask Graph Investigator.
+    # If both, conclude.
+    
+    if not state.get("findings"):
+        return {"next_step": "Financial_Analyst"}
+    
+    if "financial_analysis" in state["findings"] and "graph_analysis" not in state["findings"]:
+        return {"next_step": "Graph_Investigator"}
+        
+    return {"next_step": "FINISH"}
+
+async def financial_analyst_node(state: InvestigationState):
+    # In a real app, this would call the LLM with tools.
+    # For MVP, we simulate the tool call and reasoning.
+    return {
+        "messages": [SystemMessage(content="Analyzed transactions. Found high velocity.")],
+        "findings": {"financial_analysis": "High velocity detected."}
+    }
+
+async def graph_investigator_node(state: InvestigationState):
+    return {
+        "messages": [SystemMessage(content="Analyzed graph. Found 2 connections to known bad actors.")],
+        "findings": {"graph_analysis": "Connected to bad actors."}
+    }
+
+# Build Graph
+workflow = StateGraph(InvestigationState)
+workflow.add_node("Supervisor", supervisor_node)
+workflow.add_node("Financial_Analyst", financial_analyst_node)
+workflow.add_node("Graph_Investigator", graph_investigator_node)
+
+workflow.set_entry_point("Supervisor")
+
+workflow.add_conditional_edges(
+    "Supervisor",
+    lambda x: x["next_step"],
+    {
+        "Financial_Analyst": "Financial_Analyst",
+        "Graph_Investigator": "Graph_Investigator",
+        "FINISH": END
+    }
+)
+
+workflow.add_edge("Financial_Analyst", "Supervisor")
+workflow.add_edge("Graph_Investigator", "Supervisor")
+
+app = workflow.compile()

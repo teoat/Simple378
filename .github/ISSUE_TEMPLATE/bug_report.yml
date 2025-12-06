@@ -1,0 +1,138 @@
+name: Bug Report
+description: Report a bug or issue with the fraud detection system
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out this form to help us fix it.
+        
+        **Note for Copilot Coding Agent:** This template provides structured information to help reproduce and fix bugs efficiently.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is
+      placeholder: Describe the bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: Describe what should happen...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened
+      placeholder: Describe what actually happened...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      description: Which part of the system is affected?
+      options:
+        - Frontend - UI/Components
+        - Frontend - API Integration
+        - Backend - API Endpoints
+        - Backend - Database
+        - Backend - AI/ML Services
+        - Backend - File Processing
+        - Infrastructure - Docker/K8s
+        - CI/CD - GitHub Actions
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: files
+    attributes:
+      label: Affected Files (if known)
+      description: List the files that may need to be modified
+      placeholder: |
+        frontend/src/components/cases/CaseList.tsx
+        backend/app/api/v1/endpoints/cases.py
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Messages/Logs
+      description: Include any relevant error messages, stack traces, or logs
+      render: shell
+      placeholder: Paste error messages or logs here...
+    validations:
+      required: false
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Where did this bug occur?
+      options:
+        - Local Development
+        - Docker Compose
+        - Kubernetes
+        - Production
+    validations:
+      required: true
+
+  - type: textarea
+    id: browser
+    attributes:
+      label: Browser/Environment Details (for frontend bugs)
+      description: Browser version, OS, screen size, etc.
+      placeholder: |
+        - Browser: Chrome 120
+        - OS: Windows 11
+        - Screen: 1920x1080
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: What would make this bug "fixed"?
+      options:
+        - label: Bug no longer occurs
+          required: true
+        - label: Unit tests added to prevent regression
+        - label: Integration tests pass
+        - label: Documentation updated (if needed)
+        - label: No new bugs introduced
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or information about the problem
+      placeholder: Any additional information...
+    validations:
+      required: false
