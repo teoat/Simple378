@@ -225,16 +225,53 @@ class EvidenceAnnotation(Base):
 
 class Match(Base):
     __tablename__ = "matches"
-    
+
     id = Column(Uuid, primary_key=True, default=uuid.uuid4)
     internal_transaction_id = Column(Uuid, ForeignKey("transactions.id"), nullable=False)
     external_transaction_id = Column(Uuid, ForeignKey("transactions.id"), nullable=False)
     confidence = Column(Numeric, default=1.0)
     status = Column(Enum(MatchStatus), default=MatchStatus.MATCHED)
-    
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     internal_transaction = relationship("Transaction", foreign_keys=[internal_transaction_id])
     external_transaction = relationship("Transaction", foreign_keys=[external_transaction_id])
+
+class AnalysisResult(Base):
+    __tablename__ = "analysis_results"
+
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    subject_id = Column(Uuid, ForeignKey("subjects.id"), nullable=False)
+    status = Column(String, default="pending")  # pending, completed, failed
+    risk_score = Column(Numeric, default=0.0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Adjudication Fields
+    adjudication_status = Column(String, default="pending")  # pending, flagged, reviewed
+    decision = Column(String, nullable=True)  # confirmed_fraud, false_positive, escalated
+    reviewer_notes = Column(String, nullable=True)
+    reviewer_id = Column(Uuid, ForeignKey("users.id"), nullable=True)
+
+    # Chain of Custody
+    chain_of_custody = Column(JSON, default=list)  # List of custody log entries
+
+    # Relationships
+    subject = relationship("Subject", back_populates="analysis_results")
+    indicators = relationship("Indicator", back_populates="analysis_result", cascade="all, delete-orphan")
+    reviewer = relationship("User", foreign_keys=[reviewer_id])
+
+class Indicator(Base):
+    __tablename__ = "indicators"
+
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    analysis_result_id = Column(Uuid, ForeignKey("analysis_results.id"), nullable=False)
+    type = Column(String, nullable=False)  # structuring, velocity, etc.
+    confidence = Column(Numeric, default=0.0)
+    evidence = Column(JSON, default={})  # Flexible payload for evidence details
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    analysis_result = relationship("AnalysisResult", back_populates="indicators")

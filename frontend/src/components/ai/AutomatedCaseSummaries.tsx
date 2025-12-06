@@ -12,10 +12,14 @@ import {
   CheckCircle,
   AlertTriangle,
   TrendingUp,
-  Users,
-  DollarSign
+  Users
 } from 'lucide-react';
 import { api } from '../../lib/api';
+
+interface SummaryResponse {
+  summary: CaseSummary;
+}
+
 
 interface CaseSummary {
   id: string;
@@ -131,7 +135,7 @@ export function AutomatedCaseSummaries({
     setIsGenerating(type);
     try {
       // In real implementation, this would call the AI service
-      const response = await api.post('/ai/generate-summary', {
+      const response = await api.post<SummaryResponse>('/ai/generate-summary', {
         case_id: caseId,
         summary_type: type
       });
@@ -257,7 +261,8 @@ ${summary.recommendations.map(r => `• ${r}`).join('\n')}
                       </p>
                       <Button
                         size="sm"
-                        variant={existingSummary ? 'outline' : 'default'}
+                        variant={existingSummary ? 'outline' : 'primary'}
+
                         onClick={() => generateSummary(type.id)}
                         disabled={isGenerating === type.id}
                         className="w-full"
@@ -336,7 +341,8 @@ ${summary.recommendations.map(r => `• ${r}`).join('\n')}
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={(e) => exportSummary(summary, 'txt')}
+                              onClick={() => exportSummary(summary, 'txt')}
+
                             >
                               <Download className="h-3 w-3" />
                             </Button>

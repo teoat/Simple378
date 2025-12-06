@@ -37,7 +37,7 @@ export function SankeyFlow({
   links: propLinks,
   height = 360,
   onExport,
-  fitToContainer,
+  fitToContainer: _fitToContainer,
 }: SankeyFlowProps) {
   // Use data prop if provided, otherwise fall back to individual props
   const nodes = data ? data.nodes : (propNodes || []);
