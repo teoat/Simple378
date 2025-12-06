@@ -71,7 +71,41 @@ export function ConfirmDialog({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.2 }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="confirm-dialog-title"
+              aria-describedby="confirm-dialog-description"
               className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-slate-700"
+              onKeyDown={(e) => {
+                if (e.key === 'Tab') {
+                  const container = e.currentTarget as HTMLElement;
+                  const focusables = container.querySelectorAll<HTMLElement>(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                  );
+                  if (focusables.length === 0) return;
+                  const first = focusables[0];
+                  const last = focusables[focusables.length - 1];
+                  if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                  } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                  }
+                }
+                if (e.key === 'Escape') {
+                  if (!isLoading) onClose();
+                }
+              }}
+              ref={(node) => {
+                if (node) {
+                  // Move focus to the first focusable element when the dialog mounts
+                  const first = node.querySelector<HTMLElement>(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                  );
+                  first?.focus();
+                }
+              }}
             >
               {/* Header */}
               <div className="p-6 pb-4">
