@@ -109,11 +109,11 @@ export default function AdjudicationQueue() {
                       {new Date(c.created_at).toLocaleDateString()}
                     </td>
                     <td className="p-4">
-                      <Button size="sm" variant="secondary">
-                        <Link to={`/adjudication/${c.id}`}>
+                      <Link to={`/adjudication/${c.id}`}>
+                        <Button size="sm" variant="secondary">
                           Review Case
-                        </Link>
-                      </Button>
+                        </Button>
+                      </Link>
                     </td>
                   </tr>
                 ))}
