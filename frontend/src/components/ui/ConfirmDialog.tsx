@@ -98,10 +98,7 @@ export function ConfirmDialog({
                   {cancelText}
                 </button>
                 <button
-                  onClick={() => {
-                    onConfirm();
-                    onClose();
-                  }}
+                  onClick={onConfirm}
                   disabled={isLoading}
                   className={cn(
                     'px-4 py-2 text-sm font-medium text-white rounded-lg transition-all shadow-lg disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-offset-2',
