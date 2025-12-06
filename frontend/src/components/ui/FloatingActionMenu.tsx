@@ -84,18 +84,10 @@ export function FloatingActionMenu({ actions, className }: FloatingActionMenuPro
         )}
       </AnimatePresence>
 
-      <motion.button
-        role="button"
-        tabIndex={0}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={() => setIsOpen((v) => !v)}
+      <div
+        className={cn('fixed bottom-8 right-8 z-50', className)}
         onKeyDown={(e) => {
           if (e.key === 'Escape') setIsOpen(false);
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            setIsOpen((v) => !v);
-          }
         }}
         onBlur={(e) => {
           const related = e.relatedTarget as HTMLElement | null;
@@ -103,19 +95,77 @@ export function FloatingActionMenu({ actions, className }: FloatingActionMenuPro
             setIsOpen(false);
           }
         }}
-        className={cn(
-          'w-14 h-14 rounded-full shadow-2xl backdrop-blur-md',
-          'flex items-center justify-center transition-all',
-          isOpen
-            ? 'bg-slate-800 dark:bg-slate-700 rotate-45'
-            : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:shadow-blue-500/50'
-        )}
-        aria-label="Quick actions"
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
+        tabIndex={-1}
       >
-        <Plus className="w-7 h-7 text-white" />
-      </motion.button>
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.5 }}
+              className="absolute bottom-20 right-0 space-y-3"
+              role="menu"
+              aria-label="Quick actions"
+            >
+              {defaultActions.map((action, index) => {
+                const Icon = action.icon;
+                return (
+                  <motion.button
+                    key={action.label}
+                    type="button"
+                    tabIndex={0}
+                    initial={{ opacity: 0, x: 50, y: 20 }}
+                    animate={{ opacity: 1, x: 0, y: 0 }}
+                    exit={{ opacity: 0, x: 50, y: 20 }}
+                    transition={{ delay: index * 0.05 }}
+                    onClick={() => {
+                      action.onClick();
+                      setIsOpen(false);
+                    }}
+                    className={cn(
+                      'flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg backdrop-blur-md',
+                      'bg-gradient-to-r text-white font-medium',
+                      'hover:shadow-xl transition-all group',
+                      action.color
+                    )}
+                    role="menuitem"
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="text-sm whitespace-nowrap">{action.label}</span>
+                  </motion.button>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setIsOpen((v) => !v)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setIsOpen(false);
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setIsOpen((v) => !v);
+            }
+          }}
+          className={cn(
+            'w-14 h-14 rounded-full shadow-2xl backdrop-blur-md',
+            'flex items-center justify-center transition-all',
+            isOpen
+              ? 'bg-slate-800 dark:bg-slate-700 rotate-45'
+              : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:shadow-blue-500/50'
+          )}
+          aria-label="Quick actions"
+          aria-haspopup="menu"
+          aria-expanded={isOpen}
+          aria-controls="floating-action-menu"
+        >
+          <Plus className="w-7 h-7 text-white" />
+        </motion.button>
+      </div>
     </div>
   );
 }
