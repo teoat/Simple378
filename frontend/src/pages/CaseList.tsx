@@ -125,7 +125,7 @@ export function CaseList() {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, data?.pages, statusFilter, sortBy, sortOrder, limit, debouncedSearchQuery]);
+  }, [page, data?.pages, statusFilter, sortBy, sortOrder, limit, debouncedSearchQuery, queryClient]);
 
   const deleteCasesMutation = useMutation({
     mutationFn: async (ids: string[]) => {
