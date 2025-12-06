@@ -185,6 +185,8 @@ export function ComponentName({ id, onSubmit }: Props) {
 
 ### Frontend Files
 - **Components:** `frontend/src/components/<category>/<Component>.tsx`
+  - Reusable modals in `frontend/src/components/ui/Modal.tsx`
+  - Feature modals like `NewCaseModal.tsx` in `frontend/src/components/cases/`
 - **Pages:** `frontend/src/pages/<PageName>.tsx`
 - **Hooks:** `frontend/src/hooks/use<HookName>.ts`
 - **API:** `frontend/src/lib/api.ts` (centralized API client)
