@@ -8,3 +8,5 @@ export { LoadingSkeleton, LoadingCard, LoadingTable } from './LoadingSkeleton';
 export { Modal } from './Modal';
 export { Tabs } from './Tabs';
 export { Tooltip } from './Tooltip';
+export { Breadcrumbs } from './Breadcrumbs';
+export { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp';
