@@ -479,13 +479,7 @@ def detect_structuring(transactions):
     # Detect amounts just below reporting threshold ($10,000)
     # Flag if multiple txns ~$9,500-$9,999
     pass
-```
-
-#### **mirroring.py** - Account mirroring
-```python
-def detect_mirroring(accounts):
-    # Detect identical transaction patterns across accounts
-    # Flag if >80% similarity
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=settings.ALGORITHM)
     pass
 ```
 
