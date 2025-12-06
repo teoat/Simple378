@@ -85,11 +85,23 @@ export function FloatingActionMenu({ actions, className }: FloatingActionMenuPro
       </AnimatePresence>
 
       <motion.button
+        role="button"
+        tabIndex={0}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen((v) => !v)}
         onKeyDown={(e) => {
           if (e.key === 'Escape') setIsOpen(false);
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsOpen((v) => !v);
+          }
+        }}
+        onBlur={(e) => {
+          const related = e.relatedTarget as HTMLElement | null;
+          if (!related || !e.currentTarget.contains(related)) {
+            setIsOpen(false);
+          }
         }}
         className={cn(
           'w-14 h-14 rounded-full shadow-2xl backdrop-blur-md',
