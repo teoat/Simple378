@@ -360,20 +360,35 @@ GET /api/v1/graph/subgraph       # Get subgraph
 - Transaction import
 - Evidence upload
 
-#### **WebSocket** (`websocket.py` - 1,758 lines)
-- Real-time event broadcasting
-- Connection management
-- Room-based messaging
-
----
-
-## Service Layer Analysis
-
-### AI Services (5 files)
-
-#### **orchestrator.py**
-```python
 import asyncio
+import logging
+
+class AIOrchestrator:
+    async def analyze_case(self, case_id):
+        # Coordinate multiple AI agents
+        graph_agent = self.create_graph_agent()
+        fraud_agent = self.create_fraud_agent()
+
+        async def run_with_timeout(coro, timeout=30):
+            try:
+                return await asyncio.wait_for(coro, timeout=timeout)
+            except Exception as e:
+                logging.exception("AI agent failed", exc_info=e)
+                return e
+
+        results = await asyncio.gather(
+            run_with_timeout(graph_agent.run(case_id)),
+            run_with_timeout(fraud_agent.run(case_id)),
+            return_exceptions=True,
+        )
+
+        graph_result, fraud_result = results
+
+        # Filter out exceptions; pass None for failed agents
+        graph_output = None if isinstance(graph_result, Exception) else graph_result
+        fraud_output = None if isinstance(fraud_result, Exception) else fraud_result
+
+        return self.synthesize(graph_output, fraud_output)
 
 class AIOrchestrator:
     async def analyze_case(self, case_id):
