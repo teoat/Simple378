@@ -17,17 +17,6 @@ interface ActivityHeatmapProps {
 
 interface TooltipState {
   show: boolean;
-  x: number;
-  y: number;
-  day: string;
-  hour: number;
-  value: number;
-}
-
-interface TooltipState {
-  show: boolean;
-  x: number;
-  y: number;
   day: string;
   hour: number;
   value: number;
@@ -45,11 +34,19 @@ function cellColor(value: number): string {
   return '#1d4ed8';
 }
 
+function legendColorClass(value: number): string {
+  if (value === 0) return 'bg-slate-50';
+  if (value < 4) return 'bg-blue-200';
+  if (value < 8) return 'bg-blue-400';
+  if (value < 11) return 'bg-blue-700';
+  return 'bg-blue-800';
+}
+
 export function ActivityHeatmap({ title = 'Activity Heatmap', data = [], onExport }: ActivityHeatmapProps) {
   const heatmapId = `heatmap-${Math.random().toString(36).slice(2, 8)}`;
   const width = 80 + HOURS.length * CELL;
   const height = 40 + DAYS.length * CELL;
-  const [tooltip, setTooltip] = useState<TooltipState>({ show: false, x: 0, y: 0, day: '', hour: 0, value: 0 });
+  const [tooltip, setTooltip] = useState<TooltipState>({ show: false, day: '', hour: 0, value: 0 });
 
   return (
     <Card>
@@ -95,18 +92,15 @@ export function ActivityHeatmap({ title = 'Activity Heatmap', data = [], onExpor
                           ry={6}
                           fill={cellColor(value)}
                           onMouseEnter={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
                             setTooltip({
                               show: true,
-                              x: rect.left + rect.width / 2,
-                              y: rect.top - 10,
                               day,
                               hour,
                               value
                             });
                           }}
                           onMouseLeave={() => setTooltip({ ...tooltip, show: false })}
-                          style={{ cursor: 'pointer' }}
+                          className="cursor-pointer"
                         />
                         {value > 0 && (
                           <text
@@ -136,8 +130,7 @@ export function ActivityHeatmap({ title = 'Activity Heatmap', data = [], onExpor
               {[0, 4, 8, 12].map(level => (
                 <div
                   key={level}
-                  className="w-4 h-4 rounded"
-                  style={{ backgroundColor: cellColor(level) }}
+                  className={`w-4 h-4 rounded ${legendColorClass(level)}`}
                 />
               ))}
             </div>
@@ -149,12 +142,7 @@ export function ActivityHeatmap({ title = 'Activity Heatmap', data = [], onExpor
         {/* Tooltip */}
         {tooltip.show && (
           <div
-            className="fixed z-50 bg-slate-900 text-white px-3 py-2 rounded-lg text-sm pointer-events-none shadow-lg"
-            style={{
-              left: tooltip.x,
-              top: tooltip.y,
-              transform: 'translate(-50%, -100%)'
-            }}
+            className="mt-3 inline-block rounded-lg bg-slate-900 px-3 py-2 text-sm text-white shadow-lg"
           >
             <div className="font-medium">{tooltip.day}, {tooltip.hour}:00</div>
             <div>Activity: {tooltip.value} transactions</div>

@@ -1,17 +1,18 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { Link } from 'react-router-dom';
 import { 
   Briefcase, AlertTriangle, Clock, CheckCircle, 
   TrendingUp, TrendingDown, ArrowRight, Users,
-  FileText, Activity
+  FileText
 } from 'lucide-react';
 import { api } from '../lib/api';
-import {
-  LineChartWrapper,
-  PieChartWrapper
-} from '../components/charts/ChartWrappers';
+import { RecentActivity } from '../components/dashboard/RecentActivity';
+import { RiskDistributionChart, RiskData } from '../components/dashboard/RiskDistributionChart';
+import { WeeklyActivityChart, ActivityData } from '../components/dashboard/WeeklyActivityChart';
+import { PipelineHealthStatus, PipelineStage } from '../components/dashboard/PipelineHealthStatus';
+import { DataQualityAlerts, DataQualityAlert } from '../components/dashboard/DataQualityAlerts';
 import { TrendAnalysis } from '../components/predictive/TrendAnalysis';
 import { ScenarioSimulation } from '../components/predictive/ScenarioSimulation';
 
@@ -25,6 +26,30 @@ interface DashboardMetrics {
   resolved_today: number;
 }
 
+interface ActivityItem {
+  id: string;
+  type: string;
+  message: string;
+  timestamp: string;
+  user: string;
+}
+
+interface DashboardChartData {
+  risk_distribution: RiskData[];
+  weekly_activity: ActivityData[];
+}
+
+interface DashboardPipelineStatus {
+  stages: PipelineStage[];
+}
+
+interface DashboardData {
+  metrics: DashboardMetrics;
+  activity: ActivityItem[];
+  charts: DashboardChartData;
+  pipeline: DashboardPipelineStatus;
+}
+
 export function Dashboard() {
   const queryClient = useQueryClient();
   const { lastMessage } = useWebSocket();
@@ -32,65 +57,106 @@ export function Dashboard() {
   useEffect(() => {
     if (lastMessage?.type === 'STATS_UPDATE') {
       // Invalidate query to refetch fresh data
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     }
   }, [lastMessage, queryClient]);
 
-  const { data: metrics, isLoading } = useQuery({
-    queryKey: ['dashboard', 'metrics'],
-    queryFn: () => api.get<DashboardMetrics>('/dashboard/metrics'),
-    retry: false,
+  const { data: dashboardData, isLoading } = useQuery<DashboardData>({
+    queryKey: ['dashboard'],
+    queryFn: async () => {
+      // Parallel fetch implementation
+      const [metrics, activity, charts] = await Promise.all([
+        api.get<DashboardMetrics>('/dashboard/metrics'),
+        api.get<ActivityItem[]>('/dashboard/activity'),
+        api.get<DashboardChartData>('/dashboard/charts'),
+      ]);
+      
+      // Mock pipeline data for now until we have dedicated endpoint
+      const pipeline: DashboardPipelineStatus = {
+        stages: [
+          { id: '1', name: 'Ingestion', status: 'healthy', metric: '1,245', metricLabel: 'Records' },
+          { id: '2', name: 'Categorize', status: 'warning', metric: '89%', metricLabel: 'Complete' },
+          { id: '3', name: 'Reconcile', status: 'healthy', metric: '94%', metricLabel: 'Match Rate' },
+          { id: '4', name: 'Adjudicate', status: 'critical', metric: '12', metricLabel: 'Pending' },
+          { id: '5', name: 'Visualize', status: 'healthy', metric: 'Ready', metricLabel: 'Status' }
+        ]
+      };
+
+      return { metrics, activity, charts, pipeline };
+    },
+    refetchInterval: 30000,
+    retry: false
   });
 
-  // Mock data for charts
-  const activityData = [
-    { date: 'Week 1', cases: 45, alerts: 23 },
-    { date: 'Week 2', cases: 52, alerts: 31 },
-    { date: 'Week 3', cases: 48, alerts: 27 },
-    { date: 'Week 4', cases: 61, alerts: 42 },
-  ];
+  const alerts: DataQualityAlert[] = useMemo(() => {
+    if (!dashboardData) return [];
+    
+    const generatedAlerts: DataQualityAlert[] = [];
+    
+    // Logic to generate quality alerts based on metrics
+    if (dashboardData.metrics.pending_reviews > 100) {
+      generatedAlerts.push({
+        id: 'adj_backlog',
+        type: 'critical',
+        title: 'Adjudication Backlog',
+        description: `High volume of pending reviews (${dashboardData.metrics.pending_reviews} items).`,
+        actionText: 'Go to Queue',
+        actionHandler: () => window.location.href = '/adjudication'
+      });
+    }
 
-  const riskDistribution = [
-    { name: 'Critical', value: 5 },
-    { name: 'High', value: 15 },
-    { name: 'Medium', value: 35 },
-    { name: 'Low', value: 45 },
-  ];
+    if (dashboardData.metrics.high_risk_subjects > 20) {
+      generatedAlerts.push({
+         id: 'high_risk_spike',
+         type: 'warning',
+         title: 'High Risk Subject Spike',
+         description: `${dashboardData.metrics.high_risk_subjects} subjects flagged as high risk.`,
+         actionText: 'Review Subjects',
+         actionHandler: () => window.location.href = '/cases?risk=high'
+      });
+    }
+
+    return generatedAlerts;
+  }, [dashboardData]);
 
   const statCards = [
     {
       title: 'Total Cases',
-      value: metrics?.total_cases ?? 1234,
-      delta: metrics?.total_cases_delta ?? 12,
+      value: dashboardData?.metrics?.total_cases ?? 0,
+      delta: dashboardData?.metrics?.total_cases_delta ?? 0,
       icon: Briefcase,
       color: 'blue',
       link: '/cases',
     },
     {
       title: 'High Risk Subjects',
-      value: metrics?.high_risk_subjects ?? 45,
-      delta: metrics?.high_risk_delta ?? 3,
+      value: dashboardData?.metrics?.high_risk_subjects ?? 0,
+      delta: dashboardData?.metrics?.high_risk_delta ?? 0,
       icon: AlertTriangle,
       color: 'red',
       link: '/cases?risk=high',
     },
     {
       title: 'Pending Reviews',
-      value: metrics?.pending_reviews ?? 127,
-      delta: metrics?.pending_delta ?? -15,
+      value: dashboardData?.metrics?.pending_reviews ?? 0,
+      delta: dashboardData?.metrics?.pending_delta ?? 0,
       icon: Clock,
       color: 'amber',
       link: '/adjudication',
     },
     {
       title: 'Resolved Today',
-      value: metrics?.resolved_today ?? 23,
-      delta: 23,
+      value: dashboardData?.metrics?.resolved_today ?? 0,
+      delta: dashboardData?.metrics?.resolved_today ?? 0, // Delta is same as value for "today"
       icon: CheckCircle,
       color: 'emerald',
       link: '/cases?status=resolved',
     },
   ];
+
+  if (isLoading && !dashboardData) {
+    return <div className="p-6 flex items-center justify-center h-screen text-slate-500 dark:text-slate-400">Loading Dashboard...</div>;
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -104,6 +170,8 @@ export function Dashboard() {
           <span className="text-sm text-slate-500">Last updated: Just now</span>
         </div>
       </div>
+
+      <DataQualityAlerts alerts={alerts} />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -123,12 +191,12 @@ export function Dashboard() {
               <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">{card.title}</h3>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  {isLoading ? '...' : card.value.toLocaleString()}
+                  {card.value.toLocaleString()}
                 </span>
                 {card.delta !== 0 && (
                   <span className={`flex items-center text-sm ${card.delta > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {card.delta > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                    {Math.abs(card.delta)} today
+                    {card.delta > 0 ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
+                    {Math.abs(card.delta)} {card.title === 'Resolved Today' ? '' : 'today'}
                   </span>
                 )}
               </div>
@@ -137,68 +205,25 @@ export function Dashboard() {
         ))}
       </div>
 
+      <PipelineHealthStatus stages={dashboardData?.pipeline.stages || []} />
+
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Activity Chart */}
-        <div className="lg:col-span-2">
-          <LineChartWrapper
-            data={activityData}
-            xKey="date"
-            yKeys={[
-              { key: 'cases', name: 'Cases', color: '#3b82f6' },
-              { key: 'alerts', name: 'Alerts', color: '#ef4444' },
-            ]}
-            title="Case Activity (30 Days)"
-            subtitle="New cases and alerts over time"
-            height={300}
-          />
+        <div className="lg:col-span-2 h-[380px]">
+           <WeeklyActivityChart data={dashboardData?.charts.weekly_activity || []} />
         </div>
 
         {/* Risk Distribution */}
-        <div>
-          <PieChartWrapper
-            data={riskDistribution}
-            dataKey="value"
-            nameKey="name"
-            title="Risk Distribution"
-            subtitle="Cases by risk level"
-            height={300}
-            innerRadius={60}
-            outerRadius={100}
-            colors={['#ef4444', '#f59e0b', '#3b82f6', '#10b981']}
-          />
+        <div className="h-[380px]">
+          <RiskDistributionChart data={dashboardData?.charts.risk_distribution || []} />
         </div>
       </div>
 
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Recent Activity</h3>
-            <Activity className="w-5 h-5 text-slate-400" />
-          </div>
-          <div className="space-y-4">
-            {[
-              { action: 'Case #123 reviewed', user: 'John D.', time: '2 min ago', type: 'review' },
-              { action: 'New alert detected', user: 'System', time: '5 min ago', type: 'alert' },
-              { action: 'Case #456 closed', user: 'Jane S.', time: '12 min ago', type: 'close' },
-              { action: 'New case created', user: 'Mike R.', time: '25 min ago', type: 'create' },
-            ].map((item, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <div className={`w-2 h-2 mt-2 rounded-full ${
-                  item.type === 'alert' ? 'bg-red-500' : 
-                  item.type === 'review' ? 'bg-blue-500' : 
-                  item.type === 'close' ? 'bg-emerald-500' : 'bg-slate-400'
-                }`} />
-                <div className="flex-1">
-                  <p className="text-sm text-slate-900 dark:text-slate-100">{item.action}</p>
-                  <p className="text-xs text-slate-500">{item.user} • {item.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <RecentActivity activities={dashboardData?.activity || []} />
 
         {/* Quick Actions */}
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">

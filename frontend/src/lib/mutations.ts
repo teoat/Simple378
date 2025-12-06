@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 import toast from 'react-hot-toast';
+import { useEventStore } from './eventSourcing';
 
 /**
  * Cache Invalidation and Mutation Patterns
@@ -41,10 +42,11 @@ export interface Subject {
 }
 
 /**
- * Create a case mutation with automatic cache invalidation
+ * Create a case mutation with automatic cache invalidation and event sourcing
  */
 export function useCreateCaseMutation(options?: MutationOptions<Case>) {
   const queryClient = useQueryClient();
+  const { appendEvent, isReady } = useEventStore();
 
   return useMutation({
     mutationFn: (data: Partial<Case>) =>
@@ -83,7 +85,16 @@ export function useCreateCaseMutation(options?: MutationOptions<Case>) {
       options?.onError?.(error);
     },
 
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      // Log event
+      if (isReady) {
+        try {
+          await appendEvent(data.id, 'Subject', 'case.created', data as unknown as Record<string, unknown>);
+        } catch (e) {
+          console.error('Failed to append event:', e);
+        }
+      }
+
       // Invalidate related caches
       queryClient.invalidateQueries({ queryKey: ['cases'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -100,10 +111,11 @@ export function useCreateCaseMutation(options?: MutationOptions<Case>) {
 }
 
 /**
- * Update a case with automatic cache invalidation
+ * Update a case with automatic cache invalidation and event sourcing
  */
 export function useUpdateCaseMutation(caseId: string, options?: MutationOptions<Case>) {
   const queryClient = useQueryClient();
+  const { appendEvent, isReady } = useEventStore();
 
   return useMutation({
     mutationFn: (data: Partial<Case>) =>
@@ -140,7 +152,16 @@ export function useUpdateCaseMutation(caseId: string, options?: MutationOptions<
       options?.onError?.(error);
     },
 
-    onSuccess: (updatedCase) => {
+    onSuccess: async (updatedCase) => {
+      // Log event
+      if (isReady) {
+        try {
+          await appendEvent(updatedCase.id, 'Subject', 'case.updated', updatedCase as unknown as Record<string, unknown>);
+        } catch (e) {
+           console.error('Failed to append event:', e);
+        }
+      }
+
       // Update specific case
       queryClient.setQueryData(['cases', caseId], updatedCase);
       
@@ -157,10 +178,11 @@ export function useUpdateCaseMutation(caseId: string, options?: MutationOptions<
 }
 
 /**
- * Delete a case with automatic cache invalidation
+ * Delete a case with automatic cache invalidation and event sourcing
  */
 export function useDeleteCaseMutation(options?: MutationOptions<void>) {
   const queryClient = useQueryClient();
+  const { appendEvent, isReady } = useEventStore();
 
   return useMutation({
     mutationFn: (caseId: string) =>
@@ -194,7 +216,16 @@ export function useDeleteCaseMutation(options?: MutationOptions<void>) {
       options?.onError?.(error);
     },
 
-    onSuccess: () => {
+    onSuccess: async (_, caseId) => {
+       // Log event
+       if (isReady) {
+        try {
+          await appendEvent(caseId, 'Subject', 'case.deleted', { id: caseId });
+        } catch (e) {
+          console.error('Failed to append event:', e);
+        }
+      }
+
       // Invalidate lists
       queryClient.invalidateQueries({ queryKey: ['cases'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -208,16 +239,26 @@ export function useDeleteCaseMutation(options?: MutationOptions<void>) {
 }
 
 /**
- * Create a subject mutation with automatic cache invalidation
+ * Create a subject mutation with automatic cache invalidation and event sourcing
  */
 export function useCreateSubjectMutation(options?: MutationOptions<Subject>) {
   const queryClient = useQueryClient();
+  const { appendEvent, isReady } = useEventStore();
 
   return useMutation({
     mutationFn: (data: Partial<Subject>) =>
       api.post<Subject>('/subjects', data),
 
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+       // Log event
+       if (isReady) {
+        try {
+          await appendEvent(data.id, 'Subject', 'subject.created', data as unknown as Record<string, unknown>);
+        } catch (e) {
+          console.error('Failed to append event:', e);
+        }
+      }
+    
       queryClient.invalidateQueries({ queryKey: ['subjects'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       

@@ -16,15 +16,20 @@ interface MilestoneTrackerProps {
   onMilestoneClick?: (milestone: Milestone) => void;
 }
 
-const defaultMilestones: Milestone[] = [
-  { id: '1', name: 'Initial Deposit Received', date: '2024-01-15', amount: 500000, status: 'complete', phase: 'Phase 1', description: 'Opening balance transferred from client' },
-  { id: '2', name: 'First Vendor Payment', date: '2024-01-28', amount: 125000, status: 'complete', phase: 'Phase 1', description: 'Payment to primary vendor' },
-  { id: '3', name: 'Large Transfer Detected', date: '2024-02-10', amount: 450000, status: 'alert', phase: 'Phase 2', description: 'Unusual transfer to offshore account' },
-  { id: '4', name: 'Quarterly Settlement', date: '2024-03-31', amount: 300000, status: 'pending', phase: 'Phase 2', description: 'Quarterly reconciliation payment' },
-  { id: '5', name: 'Final Audit Review', date: '2024-04-15', amount: 0, status: 'upcoming', phase: 'Phase 3', description: 'Scheduled compliance review' }
-];
+export function MilestoneTracker({ milestones, onMilestoneClick }: MilestoneTrackerProps) {
+  // Empty state if no milestones
+  if (!milestones || milestones.length === 0) {
+    return (
+      <div className="py-12 text-center">
+        <Clock className="h-12 w-12 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
+        <p className="text-slate-500 dark:text-slate-400">No milestones detected</p>
+        <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">
+          Milestones are automatically detected from high-value transactions
+        </p>
+      </div>
+    );
+  }
 
-export function MilestoneTracker({ milestones = defaultMilestones, onMilestoneClick }: MilestoneTrackerProps) {
   const getStatusIcon = (status: Milestone['status']) => {
     switch (status) {
       case 'complete':

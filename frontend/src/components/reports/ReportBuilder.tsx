@@ -1,24 +1,20 @@
+
 import { useState, useRef, useCallback } from 'react';
-import { useDrop } from 'react-dnd';
+import { useDrop, DropTargetMonitor } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DndProvider } from 'react-dnd';
 import {
   BarChart3,
-  PieChart,
-  LineChart,
   Table,
   FileText,
-  Download,
   Save,
   Eye,
-  Settings,
   Plus,
   Trash2,
-  Move,
   Copy
 } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
+// Used card imports removed
 
 export interface ReportComponent {
   id: string;
@@ -26,7 +22,7 @@ export interface ReportComponent {
   chartType?: 'bar' | 'line' | 'pie' | 'area';
   title: string;
   dataSource: string;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   position: { x: number; y: number; width: number; height: number };
 }
 
@@ -49,7 +45,7 @@ export interface ReportDefinition {
 interface ReportFilter {
   field: string;
   operator: 'equals' | 'contains' | 'greater' | 'less' | 'between';
-  value: any;
+  value: string | number | boolean | null;
 }
 
 interface ReportSchedule {
@@ -86,16 +82,16 @@ export function ReportBuilder({ onSave, onPreview, initialReport }: ReportBuilde
 
   const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLDivElement | null>(null);
 
   const addComponent = useCallback((type: string, position?: { x: number; y: number }) => {
     const newComponent: ReportComponent = {
       id: `component-${Date.now()}`,
-      type: type as any,
+      type: type as ReportComponent['type'],
       title: `New ${type}`,
       dataSource: DATA_SOURCES[0],
       config: {},
-      position: position || { x: 0, y: 0, width: 300, height: 200 }
+      position: position ? { ...position, width: 300, height: 200 } : { x: 0, y: 0, width: 300, height: 200 }
     };
 
     setReport(prev => ({
@@ -125,7 +121,7 @@ export function ReportBuilder({ onSave, onPreview, initialReport }: ReportBuilde
 
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'component',
-    drop: (item: { type: string }, monitor) => {
+    drop: (item: { type: string }, monitor: DropTargetMonitor) => {
       const offset = monitor.getClientOffset();
       if (offset && canvasRef.current) {
         const rect = canvasRef.current.getBoundingClientRect();
@@ -138,7 +134,7 @@ export function ReportBuilder({ onSave, onPreview, initialReport }: ReportBuilde
         addComponent(item.type, position);
       }
     },
-    collect: (monitor) => ({
+    collect: (monitor: DropTargetMonitor) => ({
       isOver: monitor.isOver()
     })
   }));
@@ -187,6 +183,8 @@ export function ReportBuilder({ onSave, onPreview, initialReport }: ReportBuilde
                 }));
               }}
               className="p-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              title="Duplicate Component"
+              aria-label="Duplicate Component"
             >
               <Copy className="w-3 h-3" />
             </button>
@@ -196,6 +194,8 @@ export function ReportBuilder({ onSave, onPreview, initialReport }: ReportBuilde
                 deleteComponent(component.id);
               }}
               className="p-1 text-red-500 hover:text-red-700"
+              title="Delete Component"
+              aria-label="Delete Component"
             >
               <Trash2 className="w-3 h-3" />
             </button>
@@ -255,6 +255,7 @@ export function ReportBuilder({ onSave, onPreview, initialReport }: ReportBuilde
               onChange={(e) => setReport(prev => ({ ...prev, title: e.target.value }))}
               className="px-3 py-1 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
               placeholder="Report Title"
+              aria-label="Report Title"
             />
           </div>
 
@@ -408,6 +409,7 @@ export function ReportBuilder({ onSave, onPreview, initialReport }: ReportBuilde
                         value={component.title}
                         onChange={(e) => updateComponent(component.id, { title: e.target.value })}
                         className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
+                        aria-label="Component Title"
                       />
                     </div>
 
@@ -419,6 +421,7 @@ export function ReportBuilder({ onSave, onPreview, initialReport }: ReportBuilde
                         value={component.dataSource}
                         onChange={(e) => updateComponent(component.id, { dataSource: e.target.value })}
                         className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
+                        aria-label="Data Source"
                       >
                         {DATA_SOURCES.map((source) => (
                           <option key={source} value={source}>
@@ -435,8 +438,9 @@ export function ReportBuilder({ onSave, onPreview, initialReport }: ReportBuilde
                         </label>
                         <select
                           value={component.chartType || 'bar'}
-                          onChange={(e) => updateComponent(component.id, { chartType: e.target.value })}
+                          onChange={(e) => updateComponent(component.id, { chartType: e.target.value as 'bar' | 'line' | 'pie' | 'area' })}
                           className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800"
+                          aria-label="Chart Type"
                         >
                           <option value="bar">Bar Chart</option>
                           <option value="line">Line Chart</option>

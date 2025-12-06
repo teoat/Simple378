@@ -19,6 +19,16 @@ import {
   EyeOff
 } from 'lucide-react';
 
+interface ChartDataPoint {
+  date: string;
+  transactions: number;
+  transactionAmount: number;
+  analysis: number;
+  evidence: number;
+  comments: number;
+  riskScore: number | null;
+}
+
 interface TimelineEvent {
   id: string;
   date: string;
@@ -29,7 +39,7 @@ interface TimelineEvent {
   risk_score?: number;
   user?: string;
   category?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface TimelineFilters {
@@ -68,10 +78,10 @@ export function CaseTimeline({
   });
 
   // Memoize default date range to avoid impure render calls
-  const defaultDateRange = useMemo(() => ({
+  const [defaultDateRange] = useState(() => ({
     start: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0]
-  }), []);
+  }));
 
   // Default filters
   const defaultFilters: TimelineFilters = useMemo(() => ({
@@ -131,6 +141,7 @@ export function CaseTimeline({
   // Prepare chart data
   const chartData = useMemo(() => {
     const groupedByDate = filteredEvents.reduce((acc, event) => {
+      if (!event.date) return acc; // Skip events without date
       const date = new Date(event.date).toISOString().split('T')[0];
       if (!acc[date]) {
         acc[date] = {
@@ -159,9 +170,9 @@ export function CaseTimeline({
       }
 
       return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, ChartDataPoint>);
 
-    return Object.values(groupedByDate).sort((a: any, b: any) =>
+    return Object.values(groupedByDate).sort((a: ChartDataPoint, b: ChartDataPoint) =>
       new Date(a.date).getTime() - new Date(b.date).getTime()
     );
   }, [filteredEvents]);
@@ -363,12 +374,14 @@ export function CaseTimeline({
                   border: '1px solid var(--tooltip-border, #e2e8f0)',
                   borderRadius: '6px'
                 }}
-                formatter={(value: any, name: string) => {
-                  if (name === 'transactionAmount') {
-                    return [`$${value.toLocaleString()}`, 'Transaction Amount'];
-                  }
-                  if (name === 'riskScore') {
-                    return [value, 'Risk Score'];
+                formatter={(value: number | string, name: string) => {
+                  if (typeof value === 'number') {
+                    if (name === 'transactionAmount') {
+                      return [`$${value.toLocaleString()}`, 'Transaction Amount'];
+                    }
+                    if (name === 'riskScore') {
+                      return [value, 'Risk Score'];
+                    }
                   }
                   return [value, name];
                 }}

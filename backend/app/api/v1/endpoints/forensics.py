@@ -28,6 +28,7 @@ entity_service = EntityResolutionService()
 @router.post("/analyze", response_model=Any)
 async def analyze_file(
     file: UploadFile = File(...),
+    db: AsyncSession = Depends(deps.get_db),
     current_user: Any = Depends(deps.get_current_user)
 ) -> Any:
     """
@@ -44,8 +45,8 @@ async def analyze_file(
         raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
 
     try:
-        # Run analysis
-        result = await forensics_service.analyze_document(tmp_path)
+        # Run analysis, passing DB for event sourcing
+        result = await forensics_service.analyze_document(tmp_path, db=db)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
@@ -116,6 +117,7 @@ async def get_evidence_for_analysis(
 @router.post("/entity-resolution", response_model=List[Dict[str, Any]])
 async def resolve_entities(
     request: EntityResolutionRequest,
+    db: AsyncSession = Depends(deps.get_db),
     current_user: Any = Depends(deps.get_current_user)
 ):
     """
@@ -124,10 +126,10 @@ async def resolve_entities(
     try:
         matches = await entity_service.ai_entity_resolution(
             entities=request.entities,
-            context_data=request.context_data
+            context_data=request.context_data,
+            db=db
         )
 
-        # Convert to dict format for JSON response
         return [
             {
                 "entity_id_a": match.entity_id_a,
@@ -141,6 +143,42 @@ async def resolve_entities(
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Entity resolution failed: {str(e)}")
+
+@router.get("/entities", response_model=List[Dict[str, Any]])
+async def get_forensic_entities(
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: Any = Depends(deps.get_current_user)
+):
+    """
+    Get list of entities for forensic analysis. 
+    Aggregates Subjects and potentially other entity types.
+    """
+    # For now, map Subjects to Forensic Entities
+    result = await db.execute(select(models.Subject))
+    subjects = result.scalars().all()
+    
+    entities = []
+    for sub in subjects:
+        # Determine type (heuristic)
+        entity_type = "person" # Default
+        if sub.encrypted_pii and isinstance(sub.encrypted_pii, dict) and "type" in sub.encrypted_pii:
+            entity_type = sub.encrypted_pii["type"]
+            
+        # Extract name if possible
+        name = f"Subject {str(sub.id)[:8]}"
+        if sub.encrypted_pii and isinstance(sub.encrypted_pii, dict):
+            name = sub.encrypted_pii.get("name", name)
+            
+        entities.append({
+            "id": str(sub.id),
+            "name": name, 
+            "type": entity_type,
+            "risk_score": 0, # Should join with AnalysisResult for real score
+            "connections": 0, # Placeholder
+            "last_activity": sub.updated_at.isoformat() if sub.updated_at else sub.created_at.isoformat()
+        })
+        
+    return entities
 
 @router.post("/entity-network", response_model=Dict[str, Any])
 async def analyze_entity_network(

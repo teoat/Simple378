@@ -3,7 +3,7 @@ import io
 from datetime import datetime
 from typing import List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.models import Transaction
+from app.db.models import Transaction, Event
 from uuid import UUID
 import uuid
 from fastapi import HTTPException
@@ -71,20 +71,45 @@ class IngestionService:
 
         # Prepare data for bulk insert
         transactions_to_insert = []
+        events_to_insert = []
         for tx_data in parsed_transactions_data:
+            tx_id = uuid.uuid4()
+            # Transaction
             transactions_to_insert.append({
-                "id": uuid.uuid4(),
+                "id": tx_id,
                 "subject_id": subject_id,
                 "source_bank": bank_name,
                 **tx_data,
                 "created_at": datetime.now(),
-                "updated_at": datetime.now()
+                # "updated_at": datetime.now() # Handled by database/ORM usually but fine here
+            })
+            # Event
+            events_to_insert.append({
+                "id": uuid.uuid4(),
+                "aggregate_id": tx_id,
+                "aggregate_type": "transaction",
+                "event_type": "TRANSACTION_CREATED",
+                "version": 1,
+                "payload": {
+                    "subject_id": str(subject_id),
+                    "source_bank": bank_name,
+                    **{k: str(v) if isinstance(v, (datetime, Decimal)) else v for k, v in tx_data.items()}
+                },
+                "metadata_": {"source": "csv_import", "filename": filename},
+                "created_at": datetime.now()
             })
 
         # Execute bulk insert
         from sqlalchemy import insert
-        stmt = insert(Transaction).values(transactions_to_insert)
-        await db.execute(stmt)
+        if transactions_to_insert:
+            # Insert Transactions
+            stmt = insert(Transaction).values(transactions_to_insert)
+            await db.execute(stmt)
+            
+            # Insert Events
+            evt_stmt = insert(Event).values(events_to_insert)
+            await db.execute(evt_stmt)
+
         await db.commit()
         
         # Return created objects (re-querying might be needed if we need the ORM objects, 
@@ -119,13 +144,30 @@ class IngestionService:
                 except (ValueError, TypeError, InvalidOperation):
                     raise HTTPException(status_code=400, detail="Invalid amount format")
 
+            tx_id = uuid.uuid4()
             transaction = Transaction(
+                id=tx_id,
                 subject_id=subject_id,
                 source_bank=bank_name,
                 source_file_id="manual_import",
                 **tx_data
             )
             db.add(transaction)
+            
+            # Create Event
+            event = Event(
+                aggregate_id=tx_id,
+                aggregate_type="transaction",
+                event_type="TRANSACTION_CREATED",
+                version=1,
+                payload={
+                    "subject_id": str(subject_id),
+                    "source_bank": bank_name,
+                    **{k: str(v) if isinstance(v, (datetime, Decimal)) else v for k, v in tx_data.items()}
+                },
+                metadata_={'source': 'manual_batch_import'}
+            )
+            db.add(event)
             transactions.append(transaction)
         
         await db.commit()
@@ -388,16 +430,17 @@ Example response format:
         }
 
     @staticmethod
-    async def preview_mapping(file_id: str, mapping: Dict[str, str], upload_dir: str, limit: int = 5) -> List[Dict[str, Any]]:
+    async def preview_mapping(file_id: str, mapping: Dict[str, str], upload_dir: str, limit: int = 5) -> Dict[str, Any]:
         """
-        Step 2: Preview data with applied mapping.
+        Step 2: Preview data with applied mapping and validation stats.
         """
         file_path = os.path.join(upload_dir, f"{file_id}.csv")
         if not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail="File not found or expired")
             
         try:
-            df = pd.read_csv(file_path, nrows=limit)
+            # Read first 100 rows for validation sampling
+            df = pd.read_csv(file_path, nrows=100)
             
             # Apply mapping: Frontend sends {target: source}, Pandas needs {source: target}
             rename_map = {v: k for k, v in mapping.items()}
@@ -407,10 +450,55 @@ Example response format:
             mapped_cols = [k for k in mapping.keys() if k in df.columns]
             df = df[mapped_cols]
             
-            # Fill NaNs to avoid JSON conversion errors
+            # Fill NaNs
             df = df.fillna("")
             
-            return df.to_dict(orient="records")
+            # Calculate Validation Stats
+            validation = {
+                "total_rows_sampled": len(df),
+                "valid_rows": 0,
+                "issues": []
+            }
+            
+            valid_count = 0
+            for idx, row in df.iterrows():
+                is_valid = True
+                row_issues = []
+                
+                # Check Date
+                if "date" in row:
+                    try:
+                        val = row["date"]
+                        if isinstance(val, str):
+                            pd.to_datetime(val)
+                    except:
+                        is_valid = False
+                        row_issues.append("Invalid Date")
+
+                # Check Amount
+                if "amount" in row:
+                    try:
+                        val = row["amount"]
+                        if isinstance(val, str):
+                            # Simple cleaning check
+                            val = val.replace('$', '').replace(',', '')
+                            float(val)
+                    except:
+                        is_valid = False
+                        row_issues.append("Invalid Amount")
+                        
+                if is_valid:
+                    valid_count += 1
+
+            validation["valid_rows"] = valid_count
+            
+            # Return preview rows (up to limit)
+            preview_rows = df.head(limit).to_dict(orient="records")
+            
+            return {
+                "rows": preview_rows,
+                "validation": validation
+            }
             
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Preview failed: {str(e)}")
@@ -422,18 +510,28 @@ Example response format:
         mapping: Dict[str, str],
         subject_id: UUID,
         bank_name: str,
-        upload_dir: str
+        upload_dir: str,
+        user_id: str = None
     ) -> List[Transaction]:
         """
         Step 3: Process the full file with confirmed mapping.
         """
+        # Lazy import to avoid circular dependencies at module level if any
+        from app.core.websocket import emit_processing_stage, emit_upload_progress, emit_processing_complete, emit_processing_error
+
         file_path = os.path.join(upload_dir, f"{file_id}.csv")
         if not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail="File not found or expired")
             
         try:
+            if user_id:
+                await emit_processing_stage(file_id, "Reading File", user_id)
+
             df = pd.read_csv(file_path)
             
+            if user_id:
+                await emit_upload_progress(file_id, 10, user_id)
+
             # Apply mapping
             rename_map = {v: k for k, v in mapping.items()}
             df = df.rename(columns=rename_map)
@@ -445,6 +543,10 @@ Example response format:
             # Convert to list of dicts
             records = df.to_dict(orient="records")
             
+            if user_id:
+                await emit_processing_stage(file_id, "Cleaning Data", user_id)
+                await emit_upload_progress(file_id, 30, user_id)
+
             # Clean records
             cleaned_records = []
             for record in records:
@@ -454,18 +556,40 @@ Example response format:
                         clean[k] = v
                 cleaned_records.append(clean)
                 
-            # Create transactions
-            transactions = await IngestionService.create_transactions_batch(
-                db=db,
-                transactions_data=cleaned_records,
-                subject_id=subject_id,
-                bank_name=bank_name
-            )
+            if user_id:
+                await emit_processing_stage(file_id, "Creating Transactions", user_id)
+                await emit_upload_progress(file_id, 50, user_id)
+
+            # Chunk processing
+            chunk_size = 100
+            transactions = []
             
+            chunks = [cleaned_records[i:i + chunk_size] for i in range(0, len(cleaned_records), chunk_size)]
+            
+            for i, chunk in enumerate(chunks):
+                batch = await IngestionService.create_transactions_batch(
+                    db=db,
+                    transactions_data=chunk,
+                    subject_id=subject_id,
+                    bank_name=bank_name
+                )
+                transactions.extend(batch)
+                
+                if user_id:
+                    # Scale progress from 50 to 90
+                    progress = 50 + int(((i + 1) / len(chunks)) * 40)
+                    await emit_upload_progress(file_id, progress, user_id)
+
             # Clean up file
             os.remove(file_path)
+            
+            if user_id:
+                await emit_upload_progress(file_id, 100, user_id)
+                await emit_processing_complete(file_id, user_id)
             
             return transactions
             
         except Exception as e:
+            if user_id:
+                await emit_processing_error(file_id, str(e), user_id)
             raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")

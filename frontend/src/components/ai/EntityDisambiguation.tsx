@@ -21,7 +21,7 @@ interface Entity {
   aliases: string[];
   confidence: number;
   sources: string[];
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 interface EntityMatch {
@@ -43,8 +43,6 @@ interface EntityDisambiguationProps {
 export function EntityDisambiguation({
   entities,
   onEntityMerge,
-  onEntitySeparate,
-  onEntityUpdate
 }: EntityDisambiguationProps) {
   const [selectedEntities, setSelectedEntities] = useState<Set<string>>(new Set());
   const [matches, setMatches] = useState<EntityMatch[]>([]);

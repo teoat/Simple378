@@ -71,17 +71,16 @@ export function EnterpriseDashboard() {
           <div className="space-y-3">
             {serviceList.map((service) => {
               const slaPercentage = getSLAPercentage(service);
-              const isCompliant = slaPercentage >= 99.9;
               return (
                 <div key={service} className="flex items-center justify-between">
                   <span className="font-medium">{service}</span>
                   <div className="flex items-center gap-3">
-                    <div className="w-32 h-2 bg-slate-200 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${isCompliant ? 'bg-green-500' : 'bg-red-500'}`}
-                        style={{ width: `${Math.min(slaPercentage, 100)}%` }}
-                      />
-                    </div>
+                    <progress
+                      value={Math.min(slaPercentage, 100)}
+                      max={100}
+                      aria-label={`${service} SLA compliance`}
+                      className="w-32 h-2"
+                    />
                     <span className="text-sm font-semibold">{slaPercentage.toFixed(2)}%</span>
                   </div>
                 </div>

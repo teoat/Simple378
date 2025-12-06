@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { useCamera } from '../../hooks/useCamera';
+import { useCamera, useDeviceStorage } from '../../hooks/useCamera';
 import { X, Camera, Upload } from 'lucide-react';
 
 interface CameraModalProps {
@@ -32,9 +32,9 @@ export function CameraModal({
     startCamera,
     stopCamera,
     capturePhoto,
-    pickFile,
-    pickMultipleFiles,
   } = useCamera();
+
+  const { pickMultipleFiles } = useDeviceStorage();
 
   useEffect(() => {
     return () => {
@@ -47,9 +47,8 @@ export function CameraModal({
   const handleStartCamera = async () => {
     try {
       setError(null);
-      const stream = await startCamera();
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+      const started = await startCamera();
+      if (started) {
         setIsCameraActive(true);
       }
     } catch (err) {
@@ -65,10 +64,12 @@ export function CameraModal({
   const handleCapturePhoto = async () => {
     if (videoRef.current && canvasRef.current) {
       try {
-        const photo = await capturePhoto(videoRef.current);
-        setCapturedImage(URL.createObjectURL(photo));
-        if (onCapture) {
-          onCapture(photo);
+        const photo = await capturePhoto();
+        if (photo) {
+          setCapturedImage(URL.createObjectURL(photo));
+          if (onCapture) {
+            onCapture(photo);
+          }
         }
         handleStopCamera();
       } catch (err) {
@@ -107,6 +108,7 @@ export function CameraModal({
           <button
             onClick={handleClose}
             className="p-1 hover:bg-slate-100 rounded"
+            aria-label="Close camera modal"
           >
             <X size={20} />
           </button>

@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '../../lib/api';
+import { useCreateCaseMutation } from '../../lib/mutations';
 import { Modal } from '../ui/Modal';
 import toast from 'react-hot-toast';
 
@@ -9,41 +8,34 @@ interface NewCaseModalProps {
   onClose: () => void;
 }
 
-interface CreateCaseData {
-  subject_name: string;
-  description: string;
-}
-
 export function NewCaseModal({ isOpen, onClose }: NewCaseModalProps) {
   const [subjectName, setSubjectName] = useState('');
   const [description, setDescription] = useState('');
-  const queryClient = useQueryClient();
 
-  const createCaseMutation = useMutation({
-    mutationFn: (data: CreateCaseData) => apiRequest('/cases', {
-       method: 'POST',
-       body: JSON.stringify(data)
-    }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cases'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      toast.success('Case created successfully');
-      setSubjectName('');
-      setDescription('');
-      onClose();
-    },
-    onError: (error) => {
-      toast.error(`Failed to create case: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    },
-  });
+  const createCaseMutation = useCreateCaseMutation();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Wrap mutate to handle success callback for modal closing
+  const handleCreate = () => {
     if (!subjectName.trim()) {
       toast.error('Subject name is required');
       return;
     }
-    createCaseMutation.mutate({ subject_name: subjectName, description });
+    
+    createCaseMutation.mutate(
+      { subject_name: subjectName, description },
+      {
+        onSuccess: () => {
+          setSubjectName('');
+          setDescription('');
+          onClose();
+        }
+      }
+    );
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleCreate();
   };
 
   return (

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api import deps
 from app.schemas import mens_rea as schemas
-from app.models import mens_rea as models
+from app.db import models as db_models
 from app.services.detectors.structuring import StructuringDetector
 from app.services.detectors.velocity import VelocityDetector
 from app.services.detectors.mirroring import MirroringDetector
@@ -41,7 +41,7 @@ async def analyze_subject(
     indicators_data.extend(mirroring_detector.detect(transactions))
     
     # 3. Save Results
-    analysis_result = models.AnalysisResult(
+    analysis_result = db_models.AnalysisResult(
         subject_id=subject_id,
         status="completed",
         risk_score=0.7 if indicators_data else 0.0 # Simple logic for now
@@ -51,7 +51,7 @@ async def analyze_subject(
     await db.refresh(analysis_result)
     
     for ind_data in indicators_data:
-        indicator = models.Indicator(
+        indicator = db_models.Indicator(
             analysis_result_id=analysis_result.id,
             type=ind_data["type"],
             confidence=ind_data["confidence"],

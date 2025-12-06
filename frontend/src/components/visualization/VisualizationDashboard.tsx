@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { CashflowChart } from './CashflowChart';
 import { BankStatementPanel } from './BankStatementPanel';
 import { ExpenseCategoryPanel } from './ExpenseCategoryPanel';
+import { WaterfallChart } from './WaterfallChart';
 
 interface CategoryData {
   id: string;
@@ -33,6 +34,12 @@ interface FinancialData {
     operational_expenses: CategoryData;
     project_expenses: CategoryData;
   };
+  project_summary?: {
+    net_project_transactions: number;
+    mirror_excluded: number;
+    personal_excluded: number;
+    total_project_value: number;
+  };
 }
 
 interface VisualizationDashboardProps {
@@ -53,6 +60,13 @@ export function VisualizationDashboard({ data }: VisualizationDashboardProps) {
     personal_expenses: { id: 'personal', name: 'Personal Expenses', amount: 0, transactions: 0 },
     operational_expenses: { id: 'ops', name: 'Operational Expenses', amount: 0, transactions: 0 },
     project_expenses: { id: 'project', name: 'Project Specific', amount: 0, transactions: 0 }
+  };
+
+  const projectSummary = data.project_summary || {
+    net_project_transactions: 0,
+    mirror_excluded: 0,
+    personal_excluded: 0,
+    total_project_value: 0
   };
 
   return (
@@ -77,7 +91,24 @@ export function VisualizationDashboard({ data }: VisualizationDashboardProps) {
         />
       </div>
 
-      {/* Chart */}
+      {/* Waterfall Chart - Shows the formula visually */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-purple-500" />
+            Cashflow Breakdown (Waterfall)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <WaterfallChart
+            totalCashflow={data.total_inflow}
+            mirrorTransactions={projectSummary.mirror_excluded}
+            personalExpenses={projectSummary.personal_excluded}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Timeline Chart */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">

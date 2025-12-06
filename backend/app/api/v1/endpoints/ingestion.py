@@ -179,7 +179,8 @@ async def process_mapped(
             mapping=request.mapping,
             subject_id=request.subject_id,
             bank_name=request.bank_name,
-            upload_dir=UPLOAD_DIR
+            upload_dir=UPLOAD_DIR,
+            user_id=str(current_user.id)
         )
         return {"status": "success", "count": len(transactions)}
         

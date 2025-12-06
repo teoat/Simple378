@@ -1,0 +1,136 @@
+groups:
+  - name: mens_rea_alerts
+    interval: 30s
+    rules:
+      # ==========================================
+      # CRITICAL ALERTS (Page Immediately)
+      # ==========================================
+      
+      - alert: ServiceDown
+        expr: up{job=~"backend|frontend|postgres|redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been down for more than 1 minute."
+          runbook: "https://docs.example.com/runbooks/service-down"
+      
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+          runbook: "https://docs.example.com/runbooks/high-error-rate"
+      
+      - alert: DatabaseConnectionPoolExhausted
+        expr: (pg_stat_database_numbackends / pg_settings_max_connections) > 0.9
+        for: 2m
+        labels:
+          severity: critical
+          team: database
+        annotations:
+          summary: "PostgreSQL connection pool near exhaustion"
+          description: "Database connections at {{ $value | humanizePercentage }} capacity"
+          runbook: "https://docs.example.com/runbooks/db-connections"
+      
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Disk space critically low"
+          description: "Only {{ $value | humanizePercentage }} disk space remaining"
+          runbook: "https://docs.example.com/runbooks/disk-space"
+      
+      # ==========================================
+      # WARNING ALERTS (Notify via Slack)
+      # ==========================================
+      
+      - alert: ElevatedLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1.0
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Elevated API latency"
+          description: "p95 latency is {{ $value }}s (threshold: 1.0s)"
+          runbook: "https://docs.example.com/runbooks/latency"
+      
+      - alert: MemoryUsageHigh
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.15
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High memory usage"
+          description: "Available memory: {{ $value | humanizePercentage }}"
+          runbook: "https://docs.example.com/runbooks/memory"
+      
+      - alert: CPUUsageHigh
+        expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}% (threshold: 80%)"
+          runbook: "https://docs.example.com/runbooks/cpu"
+      
+      - alert: RedisMemoryHigh
+        expr: (redis_memory_used_bytes / redis_memory_max_bytes) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          team: cache
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis memory at {{ $value | humanizePercentage }} capacity"
+          runbook: "https://docs.example.com/runbooks/redis-memory"
+      
+      - alert: AdjudicationQueueBacklog
+        expr: adjudication_queue_depth > 100
+        for: 15m
+        labels:
+          severity: warning
+          team: fraud-analysts
+        annotations:
+          summary: "Adjudication queue backlog"
+          description: "{{ $value }} alerts pending review (threshold: 100)"
+          runbook: "https://docs.example.com/runbooks/adjudication-backlog"
+      
+      # ==========================================
+      # BUSINESS METRICS
+      # ==========================================
+      
+      - alert: DecisionThroughputLow
+        expr: rate(adjudication_decisions_total[1h]) < 10
+        for: 30m
+        labels:
+          severity: info
+          team: fraud-analysts
+        annotations:
+          summary: "Low adjudication throughput"
+          description: "Only {{ $value }} decisions/hour (expected: 10+)"
+          runbook: "https://docs.example.com/runbooks/low-throughput"
+      
+      - alert: HighRiskAlertSpike
+        expr: rate(alerts_created_total{risk_level="high"}[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          team: fraud-analysts
+        annotations:
+          summary: "Spike in high-risk alerts"
+          description: "{{ $value }} high-risk alerts/min created"
+          runbook: "https://docs.example.com/runbooks/alert-spike"

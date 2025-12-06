@@ -691,6 +691,18 @@ protobuf = ">=3.20.2,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4
 grpc = ["grpcio (>=1.44.0,<2.0.0)"]
 
 [[package]]
+name = "graphql-core"
+version = "3.2.7"
+description = "GraphQL implementation for Python, a port of GraphQL.js, the JavaScript reference implementation for GraphQL."
+optional = false
+python-versions = "<4,>=3.7"
+groups = ["main"]
+files = [
+    {file = "graphql_core-3.2.7-py3-none-any.whl", hash = "sha256:17fc8f3ca4a42913d8e24d9ac9f08deddf0a0b2483076575757f6c412ead2ec0"},
+    {file = "graphql_core-3.2.7.tar.gz", hash = "sha256:27b6904bdd3b43f2a0556dad5d579bdfdeab1f38e8e8788e555bdcb586a6f62c"},
+]
+
+[[package]]
 name = "greenlet"
 version = "3.3.0"
 description = "Lightweight in-process concurrent programming"
@@ -1268,6 +1280,21 @@ openai-agents = ["openai-agents (>=0.0.3)"]
 otel = ["opentelemetry-api (>=1.30.0)", "opentelemetry-exporter-otlp-proto-http (>=1.30.0)", "opentelemetry-sdk (>=1.30.0)"]
 pytest = ["pytest (>=7.0.0)", "rich (>=13.9.4)", "vcrpy (>=7.0.0)"]
 vcr = ["vcrpy (>=7.0.0)"]
+
+[[package]]
+name = "lia-web"
+version = "0.2.3"
+description = "A library for working with web frameworks"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "lia_web-0.2.3-py3-none-any.whl", hash = "sha256:237c779c943cd4341527fc0adfcc3d8068f992ee051f4ef059b8474ee087f641"},
+    {file = "lia_web-0.2.3.tar.gz", hash = "sha256:ccc9d24cdc200806ea96a20b22fb68f4759e6becdb901bd36024df7921e848d7"},
+]
+
+[package.dependencies]
+typing-extensions = ">=4.14.0"
 
 [[package]]
 name = "limits"
@@ -2450,6 +2477,21 @@ docs = ["sphinx (>=5.3)", "sphinx-rtd-theme (>=1)"]
 testing = ["coverage (>=6.2)", "hypothesis (>=5.7.1)"]
 
 [[package]]
+name = "python-dateutil"
+version = "2.9.0.post0"
+description = "Extensions to the standard Python datetime module"
+optional = false
+python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
+groups = ["main"]
+files = [
+    {file = "python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3"},
+    {file = "python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427"},
+]
+
+[package.dependencies]
+six = ">=1.5"
+
+[[package]]
 name = "python-dotenv"
 version = "1.2.1"
 description = "Read key-value pairs from a .env file and set them as environment variables"
@@ -2879,6 +2921,43 @@ anyio = ">=3.4.0,<5"
 full = ["httpx (>=0.22.0)", "itsdangerous", "jinja2", "python-multipart (>=0.0.7)", "pyyaml"]
 
 [[package]]
+name = "strawberry-graphql"
+version = "0.287.2"
+description = "A library for creating GraphQL APIs"
+optional = false
+python-versions = "<4.0,>=3.10"
+groups = ["main"]
+files = [
+    {file = "strawberry_graphql-0.287.2-py3-none-any.whl", hash = "sha256:ca1e1593d34bbbeac85d5c699bea97e08324c2ef25bc5c98d3bedae60c19705e"},
+    {file = "strawberry_graphql-0.287.2.tar.gz", hash = "sha256:7d61f03fc44317ba427d78bce6ba0ec8092ffa90ebd41392011641d3908ccb33"},
+]
+
+[package.dependencies]
+graphql-core = ">=3.2.0,<3.4.0"
+lia-web = ">=0.2.1"
+packaging = ">=23"
+python-dateutil = ">=2.7"
+typing-extensions = ">=4.5.0"
+
+[package.extras]
+aiohttp = ["aiohttp (>=3.7.4.post0,<4)"]
+asgi = ["python-multipart (>=0.0.7)", "starlette (>=0.18.0)"]
+chalice = ["chalice (>=1.22,<2.0)"]
+channels = ["asgiref (>=3.2,<4.0)", "channels (>=3.0.5)"]
+cli = ["libcst", "pygments (>=2.3,<3.0)", "python-multipart (>=0.0.7)", "rich (>=12.0.0)", "starlette (>=0.18.0)", "typer (>=0.12.4)", "uvicorn (>=0.11.6)", "websockets (>=15.0.1,<16)"]
+debug = ["libcst", "rich (>=12.0.0)"]
+debug-server = ["libcst", "pygments (>=2.3)", "python-multipart (>=0.0.7)", "rich (>=12.0.0)", "starlette (>=0.18.0)", "typer (>=0.12.4)", "uvicorn (>=0.11.6)", "websockets (>=15.0.1,<16)"]
+django = ["Django (>=3.2)", "asgiref (>=3.2,<4.0)"]
+fastapi = ["fastapi (>=0.65.2)", "python-multipart (>=0.0.7)"]
+flask = ["flask (>=1.1)"]
+litestar = ["litestar (>=2) ; python_version ~= \"3.10\""]
+opentelemetry = ["opentelemetry-api (<2)", "opentelemetry-sdk (<2)"]
+pydantic = ["pydantic (>1.6.1)"]
+pyinstrument = ["pyinstrument (>=4.0.0)"]
+quart = ["quart (>=0.19.3)"]
+sanic = ["sanic (>=20.12.2)"]
+
+[[package]]
 name = "structlog"
 version = "24.4.0"
 description = "Structured Logging for Python"
@@ -3247,4 +3326,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "8a0cac82710a5fd34585af49149e2453457a928927275ea458e2aacf12a7cfac"
+content-hash = "ba88caa7d18794a57b48f8e7f4c8ae26693c5ca1c135b704775e80ddaeb0ce45"

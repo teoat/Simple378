@@ -1,0 +1,70 @@
+# Code Ownership and Responsibilities
+
+# This file defines code ownership for the Mens Rea project.
+# When a pull request is opened, these individuals/teams will be
+# automatically requested for review.
+
+# Documentation
+*.md @tech-lead @documentation-team
+/docs/ @tech-lead @documentation-team
+
+# Backend Core
+/backend/app/core/ @backend-lead @security-team
+/backend/app/db/ @backend-lead @database-admin
+/backend/app/models/ @backend-lead @data-team
+
+# Backend API
+/backend/app/api/ @backend-lead @api-team
+/backend/app/api/v1/endpoints/adjudication.py @backend-lead @fraud-analysts
+/backend/app/api/v1/endpoints/forensics.py @backend-lead @security-team
+/backend/app/api/v1/endpoints/ai.py @backend-lead @ml-team
+
+# Backend Services
+/backend/app/services/ @backend-lead @service-team
+/backend/app/services/ai/ @ml-team @backend-lead
+/backend/app/services/security/ @security-team @backend-lead
+/backend/app/services/compliance/ @compliance-team @backend-lead
+
+# Frontend Core
+/frontend/src/ @frontend-lead @ui-team
+/frontend/src/pages/ @frontend-lead @ui-team @ux-team
+/frontend/src/components/ @frontend-lead @ui-team
+
+# Frontend Critical Pages
+/frontend/src/pages/AdjudicationQueue.tsx @frontend-lead @fraud-analysts @ui-team
+/frontend/src/pages/Forensics.tsx @frontend-lead @security-team @ui-team
+/frontend/src/pages/Ingestion.tsx @frontend-lead @data-team @ui-team
+
+# Frontend Components (Specialized)
+/frontend/src/components/adjudication/ @frontend-lead @fraud-analysts
+/frontend/src/components/ai/ @frontend-lead @ml-team
+/frontend/src/components/security/ @frontend-lead @security-team
+
+# Testing
+/backend/tests/ @backend-lead @qa-team
+/frontend/e2e/ @frontend-lead @qa-team
+/frontend/src/**/*.test.tsx @frontend-lead @qa-team
+
+# DevOps & Infrastructure
+/docker/ @devops-lead @backend-lead @frontend-lead
+/docker-compose*.yml @devops-lead
+/.github/ @devops-lead @tech-lead
+/backend/alembic/ @database-admin @backend-lead
+
+# Security & Compliance
+/backend/app/core/security.py @security-team @tech-lead
+/backend/app/core/encryption.py @security-team @tech-lead
+/backend/app/core/audit.py @compliance-team @security-team
+/backend/app/services/compliance/ @compliance-team @security-team
+
+# Configuration Files
+.env.example @tech-lead @devops-lead
+pyproject.toml @backend-lead @devops-lead
+package.json @frontend-lead @devops-lead
+
+# CI/CD
+.github/workflows/ @devops-lead @tech-lead
+/.github/workflows/security.yml @security-team @devops-lead
+
+# Default owners for everything else
+* @tech-lead

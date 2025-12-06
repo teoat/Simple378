@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { usePWA } from '../../hooks/usePWA';
 import { Button } from '../ui/Button';
 import { X, Download } from 'lucide-react';
@@ -10,15 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
  */
 export function PWAInstallBanner() {
   const { canInstall, installApp } = usePWA();
-  const [isDismissed, setIsDismissed] = useState(false);
-
-  // Load dismiss state from localStorage
-  useEffect(() => {
-    const dismissed = localStorage.getItem('pwa-install-dismissed');
-    if (dismissed) {
-      setIsDismissed(true);
-    }
-  }, []);
+  const [isDismissed, setIsDismissed] = useState(() => Boolean(localStorage.getItem('pwa-install-dismissed')));
 
   const handleDismiss = () => {
     setIsDismissed(true);
@@ -67,6 +59,7 @@ export function PWAInstallBanner() {
           <button
             onClick={handleDismiss}
             className="p-2 hover:bg-blue-500 rounded"
+            aria-label="Dismiss install banner"
           >
             <X size={18} />
           </button>

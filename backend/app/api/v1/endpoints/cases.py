@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Optional, Dict, Any, List
@@ -11,6 +11,10 @@ from app.models import mens_rea as models
 from app.core.websocket import emit_case_created, emit_case_updated, emit_case_deleted
 from app.services.risk_forecast import RiskForecastService
 from app.services.anomaly_detection import AnomalyDetectionService
+from app.core.cache import set_cache_headers, add_etag, check_etag_match, apply_cache_preset
+from fastapi import APIRouter, Depends, HTTPException, Response, Request
+from sqlalchemy import asc, desc, func
+from sqlalchemy.future import select
 
 router = APIRouter()
 
@@ -28,11 +32,174 @@ class BatchCaseUpdate(BaseModel):
     status: Optional[str] = None
     assigned_to: Optional[str] = None
 
+@router.get("/", response_model=dict)
+async def get_cases(
+    response: Response,
+    status: Optional[str] = None,
+    min_risk: Optional[int] = None,
+    max_risk: Optional[int] = None,
+    search: Optional[str] = None,
+    page: Optional[int] = 1,
+    limit: Optional[int] = 20,
+    sort_by: Optional[str] = "created_at",
+    sort_order: Optional[str] = "desc",
+    db: AsyncSession = Depends(deps.get_db),
+    current_user = Depends(deps.get_current_user)
+):
+    """
+    List cases (Subjects) with filtering, search, pagination, and sorting.
+    """
+    # Calculate skip from page
+    skip = (page - 1) * limit if page > 0 else 0
+    
+    # Base query
+    query = select(Subject, models.AnalysisResult).outerjoin(
+        models.AnalysisResult, Subject.id == models.AnalysisResult.subject_id
+    )
+
+    # Apply filters
+    if status:
+        query = query.where(models.AnalysisResult.adjudication_status == status)
+    
+    if min_risk is not None:
+        query = query.where(models.AnalysisResult.risk_score >= min_risk)
+    
+    if max_risk is not None:
+        query = query.where(models.AnalysisResult.risk_score <= max_risk)
+
+    if search:
+        # Simple case-insensitive search on ID. 
+        # Searching on encrypted PII is not possible directly via SQL LIKE.
+        # We cast UUID to text for searching.
+        from sqlalchemy import cast, String
+        search_term = f"%{search}%"
+        query = query.where(cast(Subject.id, String).ilike(search_term))
+    
+    # Apply sorting
+    valid_sort_fields = {
+        "created_at": Subject.created_at,
+        "risk_score": models.AnalysisResult.risk_score,
+        "status": models.AnalysisResult.adjudication_status,
+        "id": Subject.id
+    }
+    
+    sort_field = valid_sort_fields.get(sort_by, Subject.created_at)
+    if sort_order.lower() == "asc":
+        query = query.order_by(asc(sort_field))
+    else:
+        query = query.order_by(desc(sort_field))
+    
+    # Count query for pagination
+    count_query = select(func.count()).select_from(Subject).outerjoin(
+        models.AnalysisResult, Subject.id == models.AnalysisResult.subject_id
+    )
+    
+    if status:
+        count_query = count_query.where(models.AnalysisResult.adjudication_status == status)
+    if min_risk is not None:
+        count_query = count_query.where(models.AnalysisResult.risk_score >= min_risk)
+    if max_risk is not None:
+        count_query = count_query.where(models.AnalysisResult.risk_score <= max_risk)
+    if search:
+        from sqlalchemy import cast, String
+        search_term = f"%{search}%"
+        count_query = count_query.where(cast(Subject.id, String).ilike(search_term))
+
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    # Apply pagination
+    query = query.offset(skip).limit(limit)
+    
+    result = await db.execute(query)
+    rows = result.all()
+    
+    items = []
+    for row in rows:
+        sub = row[0]
+        analysis = row[1]
+        
+        # Name resolution (mock logic for now if encrypted_pii is just dict)
+        subject_name = f"Case {str(sub.id)[:8]}"
+        if sub.encrypted_pii and isinstance(sub.encrypted_pii, dict):
+             subject_name = sub.encrypted_pii.get("name", subject_name)
+
+        items.append({
+            "id": str(sub.id),
+            "subject_name": subject_name,
+            "risk_score": analysis.risk_score if analysis else 0,
+            "status": analysis.adjudication_status if analysis else "new",
+            "created_at": sub.created_at.isoformat() if sub.created_at else None,
+            "assigned_to": "Unassigned" # Placeholder
+        })
+        
+    data = {
+        "items": items,
+        "total": total,
+        "page": page,
+        "pages": (total + limit - 1) // limit if limit > 0 else 1
+    }
+
+    apply_cache_preset(response, "case_list")
+    
+    return data
+
+@router.get("/{case_id}", response_model=dict)
+async def get_case(
+    case_id: str,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user = Depends(deps.get_current_user)
+):
+    """
+    Get case details.
+    """
+    try:
+        case_uuid = uuid.UUID(case_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID")
+
+    query = select(Subject, models.AnalysisResult).outerjoin(
+        models.AnalysisResult, Subject.id == models.AnalysisResult.subject_id
+    ).where(Subject.id == case_uuid)
+    
+    result = await db.execute(query)
+    row = result.first()
+    
+    if not row:
+        raise HTTPException(status_code=404, detail="Case not found")
+        
+    sub = row[0]
+    analysis = row[1]
+    
+    subject_name = f"Case {str(sub.id)[:8]}"
+    if sub.encrypted_pii and isinstance(sub.encrypted_pii, dict):
+        subject_name = sub.encrypted_pii.get("name", subject_name)
+        
+    data = {
+        "id": str(sub.id),
+        "subject_name": subject_name,
+        "risk_score": analysis.risk_score if analysis else 0,
+        "status": analysis.adjudication_status if analysis else "new",
+        "description": analysis.explanation if analysis and hasattr(analysis, 'explanation') else "No description available",
+        "assigned_to": "Unassigned",
+        "created_at": sub.created_at.isoformat() if sub.created_at else None,
+        "flags": analysis.flags if analysis and hasattr(analysis, 'flags') else {}
+    }
+
+    check_etag_match(request, data)
+    apply_cache_preset(response, "default")
+    add_etag(response, data)
+
+    return data
+
+
 @router.post("/", response_model=dict)
 async def create_case(
     case_data: CaseCreate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(deps.verify_active_analyst)
 ):
     """
     Create a new case (subject).
@@ -70,7 +237,7 @@ async def update_case(
     case_id: str,
     case_data: CaseUpdate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(deps.verify_active_analyst)
 ):
     """
     Update a case.
@@ -132,7 +299,7 @@ async def update_case(
 async def batch_update_cases(
     batch_data: BatchCaseUpdate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(deps.verify_active_analyst)
 ):
     """
     Batch update multiple cases.
@@ -194,7 +361,7 @@ async def batch_update_cases(
 async def delete_case(
     case_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(deps.verify_active_analyst)
 ):
     """
     Delete a case (subject).
@@ -233,8 +400,9 @@ async def delete_case(
 @router.get("/{case_id}/timeline", response_model=list)
 async def get_case_timeline(
     case_id: str,
+    response: Response,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(deps.verify_active_analyst)
 ):
     """
     Get timeline of events for a case.
@@ -294,17 +462,35 @@ async def get_case_timeline(
     # Sort by timestamp descending
     timeline.sort(key=lambda x: x["timestamp"] or "", reverse=True)
     
+    # Cache for 30 seconds
+    set_cache_headers(response, max_age=30)
+    add_etag(response, timeline)
+
     return timeline
 
 @router.get("/{case_id}/financials", response_model=dict)
 async def get_case_financials(
     case_id: str,
+    response: Response,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(deps.verify_active_analyst)
 ):
     """
-    Get financial visualization data for a case.
+    Get financial visualization data for a case with advanced categorization.
+    
+    Returns comprehensive cashflow analysis with:
+    - Mirror transaction detection (excluded from project calculations)
+    - Personal vs business expense categorization
+    - Project transaction calculation
+    - Milestone detection
+    - Fraud indicator analysis
     """
+    from app.services.visualization import (
+        CashflowAnalyzer,
+        MilestoneDetector,
+        FraudIndicatorDetector
+    )
+    
     try:
         case_uuid = uuid.UUID(case_id)
     except ValueError:
@@ -322,138 +508,43 @@ async def get_case_financials(
         .order_by(Transaction.date)
         .limit(5000)
     )
-    transactions = result.scalars().all()
+    transactions = list(result.scalars().all())
 
-    # Prepare transaction data for anomaly detection
-    transaction_data = []
-    total_inflow = 0.0
-    total_outflow = 0.0
-    cashflow_data = []
-    milestones = []
-
-    current_balance = 0.0
-
-    # Categorization buckets
-    # Income
-    income_sources = {"id": "income", "name": "Income Sources", "amount": 0.0, "transactions": 0}
-    mirror_txs = {"id": "mirror", "name": "Mirror Transactions", "amount": 0.0, "transactions": 0}
-    external_transfers = {"id": "external", "name": "External Transfers", "amount": 0.0, "transactions": 0}
-
-    # Expenses
-    project_expenses = {"id": "project", "name": "Project Specific", "amount": 0.0, "transactions": 0}
-    ops_expenses = {"id": "ops", "name": "Operational Expenses", "amount": 0.0, "transactions": 0}
-    personal_expenses = {"id": "personal", "name": "Personal Expenses", "amount": 0.0, "transactions": 0}
-
-    for tx in transactions:
-        amt = float(tx.amount or 0)
-        desc = (tx.description or "").lower()
-        
-        if amt > 0:
-            total_inflow += amt
-            # Income categorization
-            if "mirror" in desc or "transfer" in desc:
-                mirror_txs["amount"] += amt
-                mirror_txs["transactions"] += 1
-            elif "external" in desc or "wire" in desc:
-                external_transfers["amount"] += amt
-                external_transfers["transactions"] += 1
-            else:
-                income_sources["amount"] += amt
-                income_sources["transactions"] += 1
-        else:
-            abs_amt = abs(amt)
-            total_outflow += abs_amt
-            # Expense categorization
-            if any(k in desc for k in ["project", "labor", "material", "concrete", "steel", "site"]):
-                project_expenses["amount"] += abs_amt
-                project_expenses["transactions"] += 1
-            elif any(k in desc for k in ["office", "rent", "server", "software", "utility", "ops"]):
-                ops_expenses["amount"] += abs_amt
-                ops_expenses["transactions"] += 1
-            else:
-                personal_expenses["amount"] += abs_amt
-                personal_expenses["transactions"] += 1
-
-        current_balance += amt
-
-        tx_dict = {
-            "id": str(tx.id),
-            "date": tx.date.isoformat() if tx.date else None,
-            "amount": amt,
-            "description": tx.description or "",
-            "source_bank": tx.source_bank or ""
-        }
-        transaction_data.append(tx_dict)
-
-        cashflow_data.append({
-            "date": tx.date.isoformat() if tx.date else "",
-            "inflow": amt if amt > 0 else 0,
-            "outflow": abs(amt) if amt < 0 else 0,
-            "balance": current_balance
-        })
-
-        # Simple Milestone Detection: High Value Transactions (> $10k)
-        if abs(amt) > 10000:
-            milestones.append({
-                "id": str(tx.id),
-                "name": f"High Value {'Deposit' if amt > 0 else 'Payment'}",
-                "date": tx.date.isoformat() if tx.date else "",
-                "amount": amt,
-                "status": "complete",
-                "phase": "Phase 1", # Placeholder
-                "description": tx.description or ""
-            })
-
-    # AI-powered anomaly detection
-    subject_info = {
-        "subject_id": str(case_uuid),
-        "total_transactions": len(transactions),
-        "total_inflow": total_inflow,
-        "total_outflow": total_outflow
-    }
-
-    fraud_indicators = await AnomalyDetectionService.detect_anomalies(transaction_data, subject_info)
-
-    # Calculate risk score from anomalies if no existing analysis
-    analysis_result = await db.execute(
-        select(models.AnalysisResult)
-        .where(models.AnalysisResult.subject_id == case_uuid)
-        .order_by(models.AnalysisResult.created_at.desc())
+    # Use new visualization services
+    cashflow_analysis = await CashflowAnalyzer.analyze_cashflow(transactions, db)
+    milestones = await MilestoneDetector.detect_milestones(transactions)
+    fraud_indicators, risk_score = await FraudIndicatorDetector.detect_indicators(
+        transactions,
+        case_id
     )
-    analysis = analysis_result.scalars().first()
 
-    if analysis:
-        risk_score = analysis.risk_score
-    else:
-        # Use anomaly-based risk score
-        risk_score = AnomalyDetectionService.calculate_risk_score_from_anomalies(fraud_indicators)
-    
+    # Get suspect transaction count
+    suspect_count = sum(1 for indicator in fraud_indicators if indicator['severity'] in ['high', 'medium'])
+
+    # Apply cache headers
+    apply_cache_preset(response, "short")  # 5 minutes cache
+
     return {
-        "total_inflow": total_inflow,
-        "total_outflow": total_outflow,
-        "net_cashflow": total_inflow - total_outflow,
+        "total_inflow": cashflow_analysis["total_inflow"],
+        "total_outflow": cashflow_analysis["total_outflow"],
+        "net_cashflow": cashflow_analysis["net_cashflow"],
+        "suspect_transactions": suspect_count,
         "risk_score": risk_score,
-        "suspect_transactions": len(fraud_indicators),
+        "cashflow_data": cashflow_analysis["cashflow_data"],
+        "income_breakdown": cashflow_analysis["income_breakdown"],
+        "expense_breakdown": cashflow_analysis["expense_breakdown"],
+        "project_summary": cashflow_analysis["project_summary"],
         "milestones": milestones,
-        "fraud_indicators": fraud_indicators,
-        "cashflow_data": cashflow_data,
-        "income_breakdown": {
-            "income_sources": income_sources,
-            "mirror_transactions": mirror_txs,
-            "external_transfers": external_transfers
-        },
-        "expense_breakdown": {
-            "personal_expenses": personal_expenses,
-            "operational_expenses": ops_expenses,
-            "project_expenses": project_expenses
-        }
+        "fraud_indicators": fraud_indicators
     }
+
 
 @router.post("/{case_id}/ai-risk-prediction", response_model=Dict[str, Any])
 async def predict_case_risk(
     case_id: str,
+    response: Response,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user = Depends(deps.verify_active_analyst)
 ):
     """
     Use AI to predict future risk scores and provide insights for a case.
@@ -528,5 +619,9 @@ async def predict_case_risk(
         recent_activity=recent_activity
     )
 
+    return prediction
+
+    # Cache AI prediction for 5 minutes
+    set_cache_headers(response, max_age=300)
     return prediction
 

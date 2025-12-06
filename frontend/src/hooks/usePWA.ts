@@ -112,7 +112,7 @@ export function usePWA(): PWAState & PWAActions {
     if (!state.registration) return;
 
     try {
-      await state.registration.sync.register('background-sync');
+      await (state.registration as any).sync.register('background-sync');
     } catch (error) {
       console.error('Background sync registration failed:', error);
     }

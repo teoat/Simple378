@@ -1,22 +1,15 @@
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
 
-interface ActivityData {
+export interface ActivityData {
   day: string;
   cases: number;
   reviews: number;
 }
 
-// Mock data
-const data: ActivityData[] = [
-  { day: 'Mon', cases: 12, reviews: 8 },
-  { day: 'Tue', cases: 18, reviews: 12 },
-  { day: 'Wed', cases: 15, reviews: 10 },
-  { day: 'Thu', cases: 25, reviews: 18 },
-  { day: 'Fri', cases: 20, reviews: 15 },
-  { day: 'Sat', cases: 8, reviews: 5 },
-  { day: 'Sun', cases: 5, reviews: 3 },
-];
+interface WeeklyActivityChartProps {
+  data: ActivityData[];
+}
 
 interface TooltipPayload {
   color: string;
@@ -51,11 +44,11 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   return null;
 };
 
-export function WeeklyActivityChart() {
+export function WeeklyActivityChart({ data }: WeeklyActivityChartProps) {
   const totalActivity = data.reduce((sum, item) => sum + item.cases + item.reviews, 0);
   const totalCases = data.reduce((sum, item) => sum + item.cases, 0);
   const totalReviews = data.reduce((sum, item) => sum + item.reviews, 0);
-  const avgPerDay = (totalActivity / data.length).toFixed(1);
+  const avgPerDay = data.length > 0 ? (totalActivity / data.length).toFixed(1) : '0.0';
 
   return (
     <motion.div
@@ -122,7 +115,7 @@ export function WeeklyActivityChart() {
               strokeWidth={3}
               fillOpacity={1}
               fill="url(#colorCases)"
-              style={{ filter: 'drop-shadow(0 0 6px rgba(139, 92, 246, 0.4))' }}
+              className="drop-shadow-[0_0_6px_rgba(139,92,246,0.4)]"
             />
             <Area
               type="monotone"
@@ -132,7 +125,7 @@ export function WeeklyActivityChart() {
               strokeWidth={3}
               fillOpacity={1}
               fill="url(#colorReviews)"
-              style={{ filter: 'drop-shadow(0 0 6px rgba(6, 182, 212, 0.4))' }}
+              className="drop-shadow-[0_0_6px_rgba(6,182,212,0.4)]"
             />
           </AreaChart>
         </ResponsiveContainer>

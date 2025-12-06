@@ -94,6 +94,7 @@ export function EvidenceLibrary({ caseId }: EvidenceLibraryProps) {
 
         <div className="flex items-center gap-3">
           <select
+            aria-label="Filter by evidence type"
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value as EvidenceType)}
             className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm"

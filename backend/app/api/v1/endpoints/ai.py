@@ -257,3 +257,43 @@ Format your response as a JSON object with these exact keys: summary, keyFinding
             "recommendations": ["Gather more transaction data", "Monitor for unusual activity"],
             "patterns": []
         }
+
+@router.post("/entity-disambiguation", response_model=Dict[str, Any])
+@limiter.limit("50/hour")
+async def entity_disambiguation(
+    request: Request,
+    data: Dict[str, Any],
+    db: AsyncSession = Depends(deps.get_db),
+    current_user = Depends(deps.get_current_user)
+):
+    """
+    Identify duplicate entities and suggest merges.
+    """
+    try:
+        entities = data.get("entities", [])
+        # In a real system, this would call an LLM or fuzzy matching logic
+        # For now, we return a mock response to satisfy the frontend demo
+        # The frontend also has a mock fallback, but this ensures a 200 OK
+        return {"matches": []}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Entity disambiguation failed: {str(e)}")
+
+@router.post("/extract-relationships", response_model=Dict[str, Any])
+@limiter.limit("50/hour")
+async def extract_relationships(
+    request: Request,
+    data: Dict[str, Any],
+    db: AsyncSession = Depends(deps.get_db),
+    current_user = Depends(deps.get_current_user)
+):
+    """
+    Extract relationships from provided documents and entities.
+    """
+    try:
+        # doc_ids = data.get("documents", [])
+        # entities = data.get("entities", [])
+        
+        # Mock logic or LLM call would go here
+        return {"relationships": []}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Relationship extraction failed: {str(e)}")

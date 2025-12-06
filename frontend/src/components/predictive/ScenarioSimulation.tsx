@@ -28,11 +28,12 @@ interface ScenarioResult {
   affected_cases?: number;
   risk_increase?: number;
   critical_dependencies?: string[];
+  overall_risk?: number;
 }
 
 export function ScenarioSimulation() {
   const [activeScenario, setActiveScenario] = useState<string>('what_if');
-  const [scenarioParams, setScenarioParams] = useState<any>({});
+  const [scenarioParams, setScenarioParams] = useState<Record<string, unknown>>({});
 
   const scenarios = [
     {
@@ -77,7 +78,7 @@ export function ScenarioSimulation() {
   ];
 
   const runSimulationMutation = useMutation({
-    mutationFn: (data: any) => api.post('/predictive/simulation/scenario', data),
+    mutationFn: (data: Record<string, unknown>) => api.post<ScenarioResult>('/predictive/simulation/scenario', data),
     onSuccess: (data) => {
       console.log('Simulation result:', data);
     }
@@ -95,8 +96,8 @@ export function ScenarioSimulation() {
     runSimulationMutation.mutate(params);
   };
 
-  const updateParam = (key: string, value: any) => {
-    setScenarioParams(prev => ({
+  const updateParam = (key: string, value: unknown) => {
+    setScenarioParams((prev: Record<string, unknown>) => ({
       ...prev,
       [key]: value
     }));

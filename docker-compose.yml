@@ -1,4 +1,7 @@
 services:
+  # ============================================
+  # Backend API Service
+  # ============================================
   backend:
     build: ./backend
     container_name: fraud_backend
@@ -19,6 +22,8 @@ services:
       - REDIS_DB=0
       - REDIS_URL=redis://cache:6379/0
       - QDRANT_URL=http://vector_db:6333
+      - MEILISEARCH_URL=http://meilisearch:7700
+      - PROMETHEUS_URL=http://prometheus:9090
       - DB_ECHO=${DB_ECHO:-false}
       - CORS_ORIGINS=${CORS_ORIGINS}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -26,9 +31,19 @@ services:
       - db
       - cache
       - vector_db
+      - meilisearch
+      - prometheus
     networks:
       - fraud_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # ============================================
+  # MCP Coordination Server
+  # ============================================
   mcp-server:
     build: ./mcp-server
     container_name: fraud_mcp_server
@@ -51,6 +66,9 @@ services:
     networks:
       - fraud_net
 
+  # ============================================
+  # Frontend Web Application
+  # ============================================
   frontend:
     build: ./frontend
     container_name: fraud_frontend
@@ -68,6 +86,9 @@ services:
     networks:
       - fraud_net
 
+  # ============================================
+  # PostgreSQL Database
+  # ============================================
   db:
     image: postgres:16-alpine
     container_name: fraud_db
@@ -81,7 +102,15 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - fraud_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # ============================================
+  # Qdrant Vector Database
+  # ============================================
   vector_db:
     image: qdrant/qdrant:latest
     container_name: fraud_qdrant
@@ -92,6 +121,9 @@ services:
     networks:
       - fraud_net
 
+  # ============================================
+  # Redis Cache
+  # ============================================
   cache:
     image: redis:7-alpine
     container_name: fraud_redis
@@ -102,16 +134,85 @@ services:
       - redis_data:/data
     networks:
       - fraud_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # ============================================
+  # Meilisearch (Full-text Search)
+  # ============================================
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: fraud_meilisearch
+    ports:
+      - "7700:7700"
+    environment:
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-masterKey}
+      - MEILI_ENV=production
+    volumes:
+      - meilisearch_data:/meili_data
+    networks:
+      - fraud_net
+
+  # ============================================
+  # Prometheus (Metrics)
+  # ============================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: fraud_prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - fraud_net
+
+  # ============================================
+  # Grafana (Monitoring Dashboards)
+  # ============================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: fraud_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    networks:
+      - fraud_net
+
+  # ============================================
+  # Jaeger (Distributed Tracing)
+  # ============================================
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: fraud_jaeger
     ports:
       - "16686:16686" # UI
-      - "4317:4317" # OTLP gRPC
+      - "4317:4317"   # OTLP gRPC
+      - "14250:14250" # model.proto
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
     networks:
       - fraud_net
 
+  # ============================================
+  # MinIO (Object Storage)
+  # ============================================
   minio:
     image: minio/minio:latest
     container_name: fraud_minio
@@ -135,4 +236,7 @@ volumes:
   postgres_data:
   qdrant_data:
   redis_data:
+  meilisearch_data:
+  prometheus_data:
+  grafana_data:
   minio_data:

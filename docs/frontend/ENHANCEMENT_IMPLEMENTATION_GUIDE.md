@@ -384,13 +384,37 @@ frontend/src/
 - [x] **Visualization Page:** Created and connected to real API
 - [x] **Reconciliation Page:** Enhanced with auto-match and connected to real API
 - [x] **Ingestion Wizard:** Backend & Frontend complete with AI Mapping
+### Phase 5: Enterprise Features (Q1 2026 - Planned)
+**Goal:** Enterprise-grade reliability, scaling, and observability.
+
+#### 1. Testing & Quality
+- [ ] **Coverage:** Achieve >80% automated test coverage.
+- [ ] **E2E:** Sync, Cache, and Service Worker flows.
+- [ ] **Visual Regression:** Percy/Chromatic integration.
+
+#### 2. Event Sourcing & Conflict Resolution
+- [x] **Core:** `EventStore` with Lamport clocks.
+- [x] **Backend:** `/sync` endpoint.
+- [x] **Hook:** `useOfflineSync` with auto-retry.
+- [ ] **Conflict UI:** Detailed conflict resolution interface.
+
+#### 3. Real-time & Performance
+- [x] **GraphQL:** Basic schema with events query.
+- [ ] **GraphQL Advanced:** Mutations and subscriptions.
+- [ ] **CDN:** Edge caching for static assets.
+- [ ] **Lighthouse:** CI budgets for performance vitals.
+
+#### 4. Observability & Infra
+- [x] **Telemetry:** `telemetry.py` with Prometheus/Sentry.
+- [ ] **Dashboards:** Grafana dashboards for business metrics.
+- [ ] **Scaling:** Read replicas and multi-region routing.
 - [x] **Settings Page:** Fully implemented
 - [x] **Error Pages:** Created
 - [x] **API Integration:** Integrated for critical pages
 - [x] **WebSocket Updates:** Infrastructure ready
 
 ### Next Actions (December 9-15, 2025)
-1.  **Testing & QA:** ✅ E2E Tests Created (`analytics.spec.ts`, `reconciliation.spec.ts`). **ACTION: Execute via CI/CD.**
+1.  **Testing & QA:** ✅ E2E Tests Created (`analytics.spec.ts`, `reconciliation.spec.ts`). Validating implementation via Playwright (Requires running backend).
 2.  **Performance Optimization:** Review and optimize component rendering.
 3.  **Documentation:** Update API documentation for new endpoints.
 4.  **User Training:** Prepare user guides for advanced features.

@@ -4,17 +4,12 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import {
   Calendar,
-  Clock,
   Mail,
-  Download,
   Play,
   Pause,
   Trash2,
   Edit,
-  Plus,
-  Users,
-  FileText,
-  BarChart3
+  Plus
 } from 'lucide-react';
 
 interface ScheduledReport {
@@ -60,12 +55,12 @@ export function ScheduledReports({
   const [formData, setFormData] = useState({
     name: '',
     template_id: '',
-    frequency: 'weekly' as const,
+    frequency: 'weekly' as 'daily' | 'weekly' | 'monthly',
     time: '09:00',
     day_of_week: 1, // Monday
     day_of_month: 1,
     recipients: [] as string[],
-    format: 'pdf' as const,
+    format: 'pdf' as 'pdf' | 'excel' | 'both',
     filters: {}
   });
 
@@ -74,6 +69,9 @@ export function ScheduledReports({
 
   const handleCreateReport = () => {
     if (!formData.name || !formData.template_id || formData.recipients.length === 0) return;
+
+    const template = templates.find(t => t.id === formData.template_id);
+    const template_name = template?.name || 'Unknown Template';
 
     const schedule = {
       frequency: formData.frequency,
@@ -85,6 +83,7 @@ export function ScheduledReports({
     onCreateReport?.({
       name: formData.name,
       template_id: formData.template_id,
+      template_name,
       schedule,
       recipients: formData.recipients,
       format: formData.format,
@@ -231,6 +230,7 @@ export function ScheduledReports({
                   value={formData.template_id}
                   onChange={(e) => setFormData(prev => ({ ...prev, template_id: e.target.value }))}
                   className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900"
+                  aria-label="Select Template"
                 >
                   <option value="">Select template</option>
                   {templates.map(template => (
@@ -247,6 +247,7 @@ export function ScheduledReports({
                   value={formData.frequency}
                   onChange={(e) => setFormData(prev => ({ ...prev, frequency: e.target.value as any }))}
                   className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900"
+                  aria-label="Select Frequency"
                 >
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
@@ -260,6 +261,7 @@ export function ScheduledReports({
                   type="time"
                   value={formData.time}
                   onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
+                  aria-label="Select Time"
                 />
               </div>
 
@@ -270,6 +272,7 @@ export function ScheduledReports({
                     value={formData.day_of_week}
                     onChange={(e) => setFormData(prev => ({ ...prev, day_of_week: parseInt(e.target.value) }))}
                     className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900"
+                    aria-label="Select Day of Week"
                   >
                     <option value={0}>Sunday</option>
                     <option value={1}>Monday</option>
@@ -291,6 +294,7 @@ export function ScheduledReports({
                     max={31}
                     value={formData.day_of_month}
                     onChange={(e) => setFormData(prev => ({ ...prev, day_of_month: parseInt(e.target.value) }))}
+                    aria-label="Select Day of Month"
                   />
                 </div>
               )}
@@ -301,6 +305,7 @@ export function ScheduledReports({
                   value={formData.format}
                   onChange={(e) => setFormData(prev => ({ ...prev, format: e.target.value as any }))}
                   className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900"
+                  aria-label="Select Format"
                 >
                   <option value="pdf">PDF</option>
                   <option value="excel">Excel</option>

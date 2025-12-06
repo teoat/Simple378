@@ -361,6 +361,7 @@ export function Settings() {
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
                           >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
@@ -408,6 +409,7 @@ export function Settings() {
                           className={`relative w-14 h-7 rounded-full transition-colors ${
                             twoFactorEnabled ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-700'
                           }`}
+                          aria-label={twoFactorEnabled ? 'Disable two-factor authentication' : 'Enable two-factor authentication'}
                         >
                           <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${
                             twoFactorEnabled ? 'translate-x-7' : ''
@@ -480,7 +482,7 @@ export function Settings() {
                             }`}>
                               {member.status}
                             </span>
-                            <button className="text-slate-400 hover:text-red-500">
+                            <button className="text-slate-400 hover:text-red-500" aria-label={`Remove ${member.name}`}>
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
@@ -512,6 +514,7 @@ export function Settings() {
                             className={`relative w-12 h-6 rounded-full transition-colors ${
                               value ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-700'
                             }`}
+                            aria-label={`Toggle email notification for ${key}`}
                           >
                             <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
                               value ? 'translate-x-6' : ''
@@ -540,6 +543,7 @@ export function Settings() {
                             className={`relative w-12 h-6 rounded-full transition-colors ${
                               value ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-700'
                             }`}
+                            aria-label={`Toggle push notification for ${key}`}
                           >
                             <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
                               value ? 'translate-x-6' : ''
@@ -590,6 +594,7 @@ export function Settings() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleCopyKey(key.key, key.id)}
+                                aria-label={`Copy API key for ${key.name}`}
                               >
                                 {copiedKey === key.id ? (
                                   <Check className="h-4 w-4 text-green-500" />
@@ -597,7 +602,12 @@ export function Settings() {
                                   <Copy className="h-4 w-4" />
                                 )}
                               </Button>
-                              <Button variant="outline" size="sm" className="text-red-500 hover:text-red-700">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-500 hover:text-red-700"
+                                aria-label={`Delete API key ${key.name}`}
+                              >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
@@ -654,6 +664,7 @@ export function Settings() {
                               primaryColor === color ? 'ring-2 ring-offset-2 ring-slate-400' : ''
                             }`}
                             style={{ backgroundColor: color === 'blue' ? '#3b82f6' : color === 'purple' ? '#8b5cf6' : color === 'green' ? '#22c55e' : color === 'red' ? '#ef4444' : color === 'orange' ? '#f97316' : '#ec4899' }}
+                            aria-label={`Set accent color to ${color}`}
                           />
                         ))}
                       </div>
@@ -670,7 +681,10 @@ export function Settings() {
                           <p className="font-medium">Compact Mode</p>
                           <p className="text-sm text-slate-500">Reduce spacing for denser information display</p>
                         </div>
-                        <button className="relative w-12 h-6 rounded-full bg-slate-300 dark:bg-slate-700">
+                        <button
+                          className="relative w-12 h-6 rounded-full bg-slate-300 dark:bg-slate-700"
+                          aria-label="Toggle compact mode"
+                        >
                           <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white" />
                         </button>
                       </div>
@@ -679,7 +693,10 @@ export function Settings() {
                           <p className="font-medium">Animations</p>
                           <p className="text-sm text-slate-500">Enable smooth transitions and animations</p>
                         </div>
-                        <button className="relative w-12 h-6 rounded-full bg-blue-500">
+                        <button
+                          className="relative w-12 h-6 rounded-full bg-blue-500"
+                          aria-label="Toggle animations"
+                        >
                           <span className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white translate-x-6" />
                         </button>
                       </div>
@@ -782,27 +799,36 @@ export function Settings() {
                           <p className="font-medium">API Calls</p>
                           <p className="text-sm text-slate-500">450,000 / 500,000</p>
                         </div>
-                        <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                          <div className="h-full bg-green-500" style={{ width: '90%' }} />
-                        </div>
+                        <progress
+                          value={90}
+                          max={100}
+                          aria-label="API calls usage"
+                          className="w-full h-2"
+                        />
                       </div>
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <p className="font-medium">Storage</p>
                           <p className="text-sm text-slate-500">750 GB / 1 TB</p>
                         </div>
-                        <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                          <div className="h-full bg-blue-500" style={{ width: '75%' }} />
-                        </div>
+                        <progress
+                          value={75}
+                          max={100}
+                          aria-label="Storage usage"
+                          className="w-full h-2"
+                        />
                       </div>
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <p className="font-medium">Team Members</p>
                           <p className="text-sm text-slate-500">8 / 25</p>
                         </div>
-                        <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                          <div className="h-full bg-amber-500" style={{ width: '32%' }} />
-                        </div>
+                        <progress
+                          value={32}
+                          max={100}
+                          aria-label="Team members usage"
+                          className="w-full h-2"
+                        />
                       </div>
                     </CardContent>
                   </Card>

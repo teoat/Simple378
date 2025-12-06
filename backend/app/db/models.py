@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, JSON, Uuid, Numeric
+from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, JSON, Uuid, Numeric, Integer
 # from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
@@ -51,7 +51,7 @@ class Subject(Base):
     # Relationships
     analysis_results = relationship("AnalysisResult", back_populates="subject", cascade="all, delete-orphan")
     transactions = relationship("Transaction", back_populates="subject", cascade="all, delete-orphan")
-    consents = relationship("Consent", back_populates="subject")
+    consents = relationship("Consent", back_populates="subject", cascade="all, delete-orphan")
 
 class Consent(Base):
     __tablename__ = "consents"
@@ -275,3 +275,15 @@ class Indicator(Base):
 
     # Relationships
     analysis_result = relationship("AnalysisResult", back_populates="indicators")
+
+class Event(Base):
+    __tablename__ = "events"
+
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    aggregate_id = Column(Uuid, nullable=False, index=True)
+    aggregate_type = Column(String, nullable=False, index=True)
+    event_type = Column(String, nullable=False)
+    version = Column(Integer, default=1)
+    payload = Column(JSON, nullable=False)
+    metadata_ = Column("metadata", JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

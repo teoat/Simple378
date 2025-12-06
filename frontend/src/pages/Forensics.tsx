@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Search, Network, Eye, AlertTriangle, FileText, Clock, Brain, Link } from 'lucide-react';
+import { Search, Network, Eye, AlertTriangle, FileText, Clock, Brain, Link, FileSearch, Upload, ArrowRight, Loader2 } from 'lucide-react';
 import { apiRequest } from '../lib/api';
+import toast from 'react-hot-toast';
+import { ProcessingPipeline } from '../components/forensics/ProcessingPipeline';
+import ForceGraph2D from 'react-force-graph-2d';
 
 interface ForensicEntity {
   id: string;
@@ -12,11 +15,63 @@ interface ForensicEntity {
   last_activity: string;
 }
 
+interface AnalysisResult {
+  file_path: string;
+  file_type: string;
+  metadata: Record<string, any>;
+  manipulation_analysis: {
+    ela_score: number;
+    is_suspicious: boolean;
+    details: string;
+  };
+  summary: string;
+}
+
 export function Forensics() {
+  const [activeTab, setActiveTab] = useState<'entity' | 'document'>('entity');
+  
+  // Graph Refs
+  const fgRef = useRef<any>();
+  const [graphDimensions, setGraphDimensions] = useState({ width: 0, height: 0 });
+  const graphContainerRef = useRef<HTMLDivElement>(null);
+
+  // Document Forensics State
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+
+  // Entity Forensics State
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntity, setSelectedEntity] = useState<ForensicEntity | null>(null);
   const [entityMatches, setEntityMatches] = useState<any[]>([]);
 
+  // Calculate generic graph data based on selected entity
+  const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+
+  useEffect(() => {
+    if (graphContainerRef.current) {
+      setGraphDimensions({
+        width: graphContainerRef.current.offsetWidth,
+        height: graphContainerRef.current.offsetHeight
+      });
+    }
+  }, [selectedEntity, activeTab]);
+
+  useEffect(() => {
+    if (selectedEntity) {
+      // Generate mock network for visualization
+      const nodes: any = [{ id: selectedEntity.id, name: selectedEntity.name, val: 20, color: '#3b82f6' }];
+      const links: any = [];
+      const connectionCount = Math.min(selectedEntity.connections, 10); // Limit for visual sanity
+      
+      for (let i = 0; i < connectionCount; i++) {
+        const id = `conn-${i}`;
+        nodes.push({ id, name: `Associate ${i+1}`, val: 10, color: '#64748b' });
+        links.push({ source: selectedEntity.id, target: id });
+      }
+      setGraphData({ nodes, links });
+    }
+  }, [selectedEntity]);
+
+  // Entity Query
   const { data: entities, isLoading } = useQuery({
     queryKey: ['forensics', 'entities'],
     queryFn: () => apiRequest<ForensicEntity[]>('/forensics/entities'),
@@ -31,21 +86,53 @@ export function Forensics() {
     }),
     onSuccess: (data: any) => {
       setEntityMatches(data);
+      toast.success('Entity resolution complete');
     },
     onError: (error: any) => {
       console.error('Entity resolution failed:', error);
+      toast.error('Resolution failed');
     }
   });
 
-  // Mock data for demo
-  const mockEntities: ForensicEntity[] = [
-    { id: '1', name: 'John Doe', type: 'person', risk_score: 85, connections: 12, last_activity: '2025-01-15' },
-    { id: '2', name: 'Acme Corp', type: 'company', risk_score: 72, connections: 45, last_activity: '2025-01-14' },
-    { id: '3', name: 'Account #1234', type: 'account', risk_score: 91, connections: 8, last_activity: '2025-01-15' },
-    { id: '4', name: '123 Main St', type: 'address', risk_score: 45, connections: 3, last_activity: '2025-01-10' },
-  ];
+   // Document Analysis Mutation
+  const analyzeMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/v1/forensics/analyze', {
+          method: 'POST',
+          headers: {
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: formData
+      });
+      if (!res.ok) throw new Error('Analysis failed');
+      return res.json();
+    },
+    onSuccess: (data: AnalysisResult) => {
+      setTimeout(() => setAnalysisResult(data), 1000); // Slight delay to show 'Completing' state if we wanted
+    },
+    onError: (err) => {
+      toast.error('Analysis failed: ' + (err as Error).message);
+    }
+  });
 
-  const displayEntities = entities || mockEntities;
+  const displayEntities = entities || [];
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+          setAnalysisResult(null); // Reset
+          analyzeMutation.mutate(e.target.files[0]);
+      }
+  };
+
+  const getPipelineStatus = () => {
+      if (analyzeMutation.isPending) return 'processing';
+      if (analyzeMutation.isError) return 'error';
+      if (analyzeMutation.isSuccess && analysisResult) return 'completed';
+      return 'idle';
+  };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -68,13 +155,30 @@ export function Forensics() {
     <div className="p-6 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Forensic Analysis</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
-            Entity resolution, network analysis, and pattern detection
-          </p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Forensics & Investigation</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">
+              Deep dive analysis for entities and documents
+            </p>
+          </div>
+          <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+              <button 
+                onClick={() => setActiveTab('entity')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'entity' ? 'bg-white dark:bg-slate-700 shadow text-slate-900 dark:text-white' : 'text-slate-500'}`}
+              >
+                  Entity Resolution
+              </button>
+              <button 
+                onClick={() => setActiveTab('document')}
+                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'document' ? 'bg-white dark:bg-slate-700 shadow text-slate-900 dark:text-white' : 'text-slate-500'}`}
+              >
+                  Document Forensics
+              </button>
+          </div>
         </div>
 
+        {activeTab === 'entity' ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Entity List */}
           <div className="lg:col-span-1 space-y-4">
@@ -120,7 +224,7 @@ export function Forensics() {
                   };
                   entityResolutionMutation.mutate(entityData);
                 }}
-                disabled={entityResolutionMutation.isPending}
+                disabled={entityResolutionMutation.isPending || displayEntities.length < 2}
                 className="px-3 py-1.5 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1"
               >
                 <Brain className="h-3 w-3" />
@@ -129,11 +233,13 @@ export function Forensics() {
             </div>
 
             {/* Entity Cards */}
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[600px] overflow-y-auto">
               {isLoading ? (
                 <div className="flex justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
                 </div>
+              ) : displayEntities.length === 0 ? (
+                  <p className="text-center text-slate-400 py-8">No entities found.</p>
               ) : (
                 displayEntities.map((entity) => (
                   <button
@@ -157,7 +263,7 @@ export function Forensics() {
                             Risk: {entity.risk_score}
                           </span>
                           <span className="text-slate-400">
-                            {entity.connections} connections
+                            {entity.connections} conns
                           </span>
                         </div>
                       </div>
@@ -222,14 +328,31 @@ export function Forensics() {
                   </div>
                 </div>
 
-                {/* Network Visualization Placeholder */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
+                {/* Network Visualization */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 flex flex-col h-[400px]">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-slate-900 dark:text-slate-100">Network Graph</h3>
                     <Network className="w-5 h-5 text-slate-400" />
                   </div>
-                  <div className="h-64 bg-slate-50 dark:bg-slate-800/50 rounded-lg flex items-center justify-center">
-                    <p className="text-slate-400">Interactive network visualization</p>
+                  <div ref={graphContainerRef} className="flex-1 bg-slate-50 dark:bg-slate-800/50 rounded-lg overflow-hidden relative">
+                    {/* Force Graph */}
+                    {graphDimensions.width > 0 && (
+                      <ForceGraph2D
+                         ref={fgRef}
+                         width={graphDimensions.width}
+                         height={300}
+                         graphData={graphData}
+                         nodeLabel="name"
+                         nodeColor={(node: any) => node.color}
+                         nodeRelSize={6}
+                         linkColor={() => "#cbd5e1"}
+                      />
+                    )}
+                    {selectedEntity.connections === 0 && (
+                        <div className="absolute inset-0 flex items-center justify-center text-slate-400 pointer-events-none">
+                            No connections found
+                        </div>
+                    )}
                   </div>
                 </div>
 
@@ -263,6 +386,116 @@ export function Forensics() {
             )}
           </div>
         </div>
+        ) : (
+            // Document Forensics Content
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                 <div className="space-y-6">
+                    <div className="bg-white dark:bg-slate-900 p-8 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-center hover:border-blue-500 transition-colors">
+                        <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Upload className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <h3 className="text-xl font-semibold mb-2">Upload Document for Analysis</h3>
+                        <p className="text-slate-500 mb-6">Support for PDF, JPG, PNG. Max size 25MB.</p>
+                        
+                        <input 
+                            type="file" 
+                            id="doc-upload" 
+                            className="hidden" 
+                            onChange={handleFileUpload}
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            disabled={analyzeMutation.isPending}
+                        />
+                        <label 
+                            htmlFor="doc-upload" 
+                            className={`inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors ${analyzeMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                        >
+                            {analyzeMutation.isPending ? <Loader2 className="animate-spin w-4 h-4" /> : <FileSearch className="w-4 h-4" />}
+                            {analyzeMutation.isPending ? "Analyzing..." : "Select Document"}
+                        </label>
+                    </div>
+
+                    <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
+                        <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
+                            <Brain className="w-4 h-4" /> Analysis Capabilities
+                        </h4>
+                        <ul className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
+                            <li className="flex items-center gap-2"><ArrowRight className="w-3 h-3" /> Metadata Extraction (EXIF/XMP)</li>
+                            <li className="flex items-center gap-2"><ArrowRight className="w-3 h-3" /> Manipulation Detection (ELA & Signatures)</li>
+                            <li className="flex items-center gap-2"><ArrowRight className="w-3 h-3" /> Security Scan (Virus/Malware)</li>
+                        </ul>
+                    </div>
+                 </div>
+
+                 <div className="space-y-6">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden min-h-[400px]">
+                         <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+                                <h3 className="text-lg font-bold flex items-center gap-2">
+                                    <FileText className="w-5 h-5 text-slate-400" />
+                                    Analysis Pipeline
+                                </h3>
+                            </div>
+                            
+                            {analyzeMutation.isPending || analysisResult ? (
+                                <div className="p-6">
+                                     <ProcessingPipeline status={getPipelineStatus()} />
+                                     
+                                     {analysisResult && (
+                                         <div className="mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                             {/* Verdict */}
+                                            <div className={`p-4 rounded-lg flex items-start gap-4 mb-6 ${
+                                                analysisResult.manipulation_analysis.is_suspicious 
+                                                ? 'bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800' 
+                                                : 'bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800'
+                                            }`}>
+                                                {analysisResult.manipulation_analysis.is_suspicious 
+                                                    ? <AlertTriangle className="w-6 h-6 text-red-600 shrink-0" />
+                                                    : <ShieldCheck className="w-6 h-6 text-green-600 shrink-0" />
+                                                }
+                                                <div>
+                                                    <h4 className={`font-bold ${
+                                                        analysisResult.manipulation_analysis.is_suspicious ? 'text-red-900 dark:text-red-100' : 'text-green-900 dark:text-green-100'
+                                                    }`}>
+                                                        {analysisResult.manipulation_analysis.is_suspicious ? "Tampering Detected" : "No Anomalies Found"}
+                                                    </h4>
+                                                    <p className="text-sm mt-1 opacity-90">{analysisResult.summary}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Metadata Grid */}
+                                            <div>
+                                                <h4 className="font-semibold mb-3 text-sm uppercase tracking-wider text-slate-500">Metadata</h4>
+                                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded">
+                                                        <span className="block text-xs text-slate-400">File Type</span>
+                                                        <span className="font-medium truncate">{analysisResult.file_type}</span>
+                                                    </div>
+                                                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded">
+                                                        <span className="block text-xs text-slate-400">Software</span>
+                                                        <span className="font-medium truncate">{analysisResult.metadata.Software || "N/A"}</span>
+                                                    </div>
+                                                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded">
+                                                        <span className="block text-xs text-slate-400">Created</span>
+                                                        <span className="font-medium truncate">{analysisResult.metadata.CreateDate || "Unknown"}</span>
+                                                    </div>
+                                                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded">
+                                                        <span className="block text-xs text-slate-400">ELA Score</span>
+                                                        <span className="font-medium truncate">{analysisResult.manipulation_analysis.ela_score?.toFixed(3) || "0.00"}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                         </div>
+                                     )}
+                                </div>
+                            ) : (
+                                <div className="h-full flex flex-col items-center justify-center text-slate-400 p-12">
+                                    <FileSearch className="w-16 h-16 mb-4 opacity-20" />
+                                    <p>Upload a file to trigger the detailed analysis pipeline</p>
+                                </div>
+                            )}
+                    </div>
+                 </div>
+            </div>
+        )}
       </div>
     </div>
   );

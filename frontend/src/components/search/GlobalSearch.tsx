@@ -13,12 +13,12 @@ interface SearchResult {
   amount?: number;
   date?: string;
   description?: string;
-  _formatted?: any;
+  _formatted?: Record<string, unknown>;
 }
 
 interface SearchResponse {
   hits: SearchResult[];
-  facets: Record<string, Record<string, number>>;
+  facets: Record<string, Record<string, Record<string, number>>>;
 }
 
 interface SearchComponentProps {
@@ -26,6 +26,15 @@ interface SearchComponentProps {
   placeholder?: string;
   className?: string;
   showFacets?: boolean;
+}
+
+interface SearchPreset {
+  name: string;
+  config: {
+    query?: string;
+    filters?: string[];
+    timestamp?: string;
+  };
 }
 
 export function GlobalSearch({
@@ -66,22 +75,22 @@ export function GlobalSearch({
     queryKey: ['search-suggestions', query],
     queryFn: async () => {
       const response = await api.get<{ suggestions: string[] }>(`/search/suggestions?q=${encodeURIComponent(query)}`);
-      return (response as any)?.suggestions || []; 
+      return response.suggestions || []; 
     },
     enabled: query.length > 1 && query.length < 3,
     staleTime: 60000 // 1 minute
   });
 
   // Search presets
-  const { data: presets } = useQuery({
+  const { data: presets } = useQuery<SearchPreset[]>({
     queryKey: ['search-presets'],
-    queryFn: () => api.get<any[]>('/search/presets'),
+    queryFn: () => api.get<SearchPreset[]>('/search/presets'),
     staleTime: 300000 // 5 minutes
   });
 
   // Save preset mutation
   const savePresetMutation = useMutation({
-    mutationFn: (preset: any) => api.post('/search/presets', preset),
+    mutationFn: (preset: SearchPreset) => api.post('/search/presets', preset),
     onSuccess: () => {
       setPresetName('');
       setShowPresets(false);
@@ -155,6 +164,7 @@ export function GlobalSearch({
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsOpen(true)}
           placeholder={placeholder}
+          aria-label="Global Search"
           className="w-full pl-10 pr-10 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         {query && (
@@ -163,6 +173,7 @@ export function GlobalSearch({
               onClick={() => setShowPresets(!showPresets)}
               className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded"
               title="Save/Load presets"
+              aria-label="Save or load search presets"
             >
               <Bookmark className="h-3 w-3 text-slate-400" />
             </button>
@@ -172,6 +183,7 @@ export function GlobalSearch({
                 setIsOpen(false);
               }}
               className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded"
+              aria-label="Clear search"
             >
               <X className="h-3 w-3 text-slate-400" />
             </button>
@@ -199,6 +211,7 @@ export function GlobalSearch({
                         ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300'
                         : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                     }`}
+                    aria-label={`Toggle filter for ${filter}`}
                   >
                     {filter}
                   </button>
@@ -208,15 +221,15 @@ export function GlobalSearch({
               {/* Facets */}
               {showFacets && searchResults?.facets && (
                 <div className="space-y-2">
-                  {Object.entries(searchResults.facets).map(([indexName, facets]: [string, any]) => (
+                  {Object.entries(searchResults.facets).map(([indexName, facets]) => (
                     <div key={indexName} className="text-xs">
                       <div className="font-medium text-slate-700 dark:text-slate-300 mb-1 capitalize">
                         {indexName} Filters:
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {Object.entries(facets).map(([facetName, facetData]: [string, any]) => (
+                        {Object.entries(facets).map(([facetName, facetData]) => (
                           <div key={facetName} className="flex flex-wrap gap-1">
-                            {Object.entries(facetData).slice(0, 3).map(([value, count]: [string, any]) => (
+                            {Object.entries(facetData as Record<string, number>).slice(0, 3).map(([value, count]) => (
                               <button
                                 key={value}
                                 className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
@@ -224,6 +237,7 @@ export function GlobalSearch({
                                   // Add facet filter
                                   setSelectedFilters(prev => [...prev, `${facetName}:${value}`]);
                                 }}
+                                aria-label={`Add facet filter ${facetName}: ${value} (${count})`}
                               >
                                 {facetName}: {value} ({count})
                               </button>
@@ -255,6 +269,7 @@ export function GlobalSearch({
                     key={`${result._index}_${result.id}`}
                     onClick={() => handleResultClick(result)}
                     className="w-full text-left p-3 hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-100 dark:border-slate-800 last:border-b-0"
+                    aria-label={`View ${result.type} ${result.name}`}
                   >
                     <div className="flex items-start gap-3">
                       <span className="text-lg">{getResultIcon(result.type)}</span>
@@ -291,6 +306,7 @@ export function GlobalSearch({
                   key={idx}
                   onClick={() => setQuery(suggestion)}
                   className="w-full text-left p-3 hover:bg-slate-50 dark:hover:bg-slate-800 border-b border-slate-100 dark:border-slate-800 last:border-b-0"
+                  aria-label={`Search for suggestion: ${suggestion}`}
                 >
                   <div className="flex items-center gap-2">
                     <Clock className="h-3 w-3 text-slate-400" />
@@ -311,6 +327,7 @@ export function GlobalSearch({
             <button
               onClick={() => setShowPresets(false)}
               className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded"
+              aria-label="Close presets"
             >
               <X className="h-3 w-3 text-slate-400" />
             </button>
@@ -326,6 +343,7 @@ export function GlobalSearch({
                 onChange={(e) => setPresetName(e.target.value)}
                 placeholder="Preset name..."
                 className="flex-1 px-2 py-1 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded"
+                aria-label="Preset name input"
               />
               <button
                 onClick={() => {
@@ -342,6 +360,7 @@ export function GlobalSearch({
                 }}
                 disabled={!presetName || (!query && selectedFilters.length === 0) || savePresetMutation.isPending}
                 className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                aria-label={savePresetMutation.isPending ? 'Saving preset' : 'Save current search as preset'}
               >
                 {savePresetMutation.isPending ? 'Saving...' : 'Save'}
               </button>
@@ -353,7 +372,7 @@ export function GlobalSearch({
             <div className="text-sm text-slate-600 dark:text-slate-400 mb-2">Saved Presets</div>
             {presets && presets.length > 0 ? (
               <div className="space-y-2">
-                {presets.map((preset: any, idx: number) => (
+                {presets.map((preset: SearchPreset, idx: number) => (
                   <button
                     key={idx}
                     onClick={() => {
@@ -363,12 +382,13 @@ export function GlobalSearch({
                       setIsOpen(true);
                     }}
                     className="w-full text-left p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded flex items-center justify-between"
+                    aria-label={`Load preset ${preset.name}`}
                   >
                     <div>
                       <div className="font-medium text-slate-900 dark:text-slate-100">{preset.name}</div>
                       <div className="text-xs text-slate-500">
                         {preset.config.query ? `"${preset.config.query}"` : 'Filters only'}
-                        {preset.config.filters?.length > 0 && ` + ${preset.config.filters.length} filters`}
+                        {preset.config.filters && preset.config.filters.length > 0 && ` + ${preset.config.filters.length} filters`}
                       </div>
                     </div>
                     <Clock className="h-3 w-3 text-slate-400" />

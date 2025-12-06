@@ -1,120 +1,384 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { AlertCircle, Clock } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { subjectsApi } from '../lib/api';
+import { useState, useEffect, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { AlertList } from '../components/adjudication/AlertList';
+import { AlertCard } from '../components/adjudication/AlertCard';
+import { DecisionPanel } from '../components/adjudication/DecisionPanel';
+import { ContextTabs } from '../components/adjudication/ContextTabs';
+import { AdjudicationQueueSkeleton } from '../components/adjudication/AdjudicationQueueSkeleton';
+import { apiRequest } from '../lib/api';
+import { useWebSocket } from '../hooks/useWebSocket';
+import toast from 'react-hot-toast';
+import { Filter, RefreshCw, ArrowUpDown, Undo2 } from 'lucide-react';
+import { useHotkeys } from 'react-hotkeys-hook';
 
-// Subject type
-interface Subject {
+interface Alert {
   id: string;
+  subject_id: string;
   subject_name: string;
   risk_score: number;
-  status: string;
+  status: 'pending' | 'flagged' | 'resolved';
+  decision?: 'confirmed_fraud' | 'false_positive' | 'escalated' | null;
   created_at: string;
-  assigned_to: string;
+  triggered_rules: string[];
+  adjudication_status: string;
 }
 
-export const AdjudicationQueue = () => {
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [loading, setLoading] = useState(true);
+interface QueueResponse {
+  items: Alert[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+interface RecentDecision {
+  alertId: string;
+  timestamp: number;
+  data: any;
+}
+
+export function AdjudicationQueue() {
+  const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'flagged'>('pending');
+  const [sortBy, setSortBy] = useState<'risk_score' | 'created_at'>('risk_score');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [recentDecision, setRecentDecision] = useState<RecentDecision | null>(null);
+  const queryClient = useQueryClient();
+  const undoTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // WebSocket integration for real-time updates
+  const { lastMessage } = useWebSocket('/ws');
 
   useEffect(() => {
-    const fetchSubjects = async () => {
-      try {
-        const response = await subjectsApi.getSubjects({
-          status: 'flagged,pending',
-          sort_by: 'risk_score',
-          sort_order: 'desc',
-          limit: 50
-        }) as { items?: Subject[] };
-        setSubjects(response.items || []);
-      } catch (error) {
-        console.error("Failed to fetch subjects", error);
-        // Fallback to empty array
-        setSubjects([]);
-      } finally {
-        setLoading(false);
+    if (lastMessage) {
+      if (lastMessage.type === 'queue_updated') {
+        queryClient.invalidateQueries({ queryKey: ['adjudication', 'queue'] });
+      } else if (lastMessage.type === 'alert_resolved') {
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        if (lastMessage.payload?.resolver_id && lastMessage.payload.resolver_id !== currentUser.id) {
+          toast('Alert resolved by another analyst', { icon: '👥' });
+          queryClient.invalidateQueries({ queryKey: ['adjudication', 'queue'] });
+        }
       }
-    };
+    }
+  }, [lastMessage, queryClient]);
 
-    fetchSubjects();
-  }, []);
+  // Fetch queue
+  const { data: queueData, isLoading, refetch } = useQuery<QueueResponse>({
+    queryKey: ['adjudication', 'queue', page, statusFilter, sortBy, sortOrder],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '50',
+        sort_by: sortBy,
+        sort_order: sortOrder
+      });
+      
+      return apiRequest<QueueResponse>(`/adjudication/queue?${params}`);
+    },
+    refetchInterval: 30000, // Auto-refresh every 30s
+  });
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading queue...</div>;
+  // Auto-select first alert if none selected
+  useEffect(() => {
+    if (!selectedAlertId && queueData?.items && queueData.items.length > 0) {
+      setSelectedAlertId(queueData.items[0].id);
+    }
+  }, [queueData, selectedAlertId]);
+
+  // Undo mutation
+  const undoMutation = useMutation({
+    mutationFn: async (alertId: string) => {
+      return apiRequest(`/adjudication/${alertId}/revert`, {
+        method: 'POST'
+      });
+    },
+    onSuccess: () => {
+      toast.success('Decision reverted successfully');
+      setRecentDecision(null);
+      queryClient.invalidateQueries({ queryKey: ['adjudication', 'queue'] });
+    },
+    onError: (err) => {
+      toast.error('Failed to revert: ' + (err as Error).message);
+    }
+  });
+
+  // Submit decision mutation
+  const decisionMutation = useMutation({
+    mutationFn: async ({ 
+      alertId, 
+      decision, 
+      comment 
+    }: { 
+      alertId: string; 
+      decision: 'approve' | 'reject' | 'escalate'; 
+      comment?: string;
+    }) => {
+      const decisionMap = {
+        approve: 'confirmed_fraud',
+        reject: 'false_positive',
+        escalate: 'escalated'
+      };
+
+      return apiRequest(`/adjudication/${alertId}/decision`, {
+        method: 'POST',
+        body: JSON.stringify({
+          decision: decisionMap[decision],
+          notes: comment
+        })
+      });
+    },
+    onMutate: async ({ alertId }) => {
+      await queryClient.cancelQueries({ queryKey: ['adjudication', 'queue'] });
+      const previousData = queryClient.getQueryData<QueueResponse>(['adjudication', 'queue', page, statusFilter, sortBy, sortOrder]);
+      
+      if (previousData) {
+        queryClient.setQueryData<QueueResponse>(
+          ['adjudication', 'queue', page, statusFilter, sortBy, sortOrder],
+          {
+            ...previousData,
+            items: previousData.items.filter(a => a.id !== alertId),
+            total: previousData.total - 1
+          }
+        );
+      }
+
+      const currentIndex = previousData?.items.findIndex(a => a.id === alertId) || 0;
+      const nextAlert = previousData?.items[currentIndex + 1] || previousData?.items[currentIndex - 1];
+      if (nextAlert) {
+        setSelectedAlertId(nextAlert.id);
+      } else {
+        setSelectedAlertId(null);
+      }
+
+      return { previousData };
+    },
+    onSuccess: (_, { decision, alertId }, context) => {
+      const actionLabel = decision === 'approve' ? 'approved' : decision === 'reject' ? 'rejected' : 'escalated';
+      
+      // Set recent decision for undo window
+      setRecentDecision({
+        alertId,
+        timestamp: Date.now(),
+        data: context?.previousData
+      });
+
+      // Clear undo after 5 seconds
+      if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+      undoTimeoutRef.current = setTimeout(() => {
+        setRecentDecision(null);
+      }, 5000);
+
+      // Show undo toast
+      toast((t) => (
+        <div className="flex items-center gap-3">
+          <span>Alert {actionLabel}</span>
+          <button
+            onClick={() => {
+              undoMutation.mutate(alertId);
+              toast.dismiss(t.id);
+              if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+            }}
+            className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded text-white text-sm font-medium flex items-center gap-1"
+          >
+            <Undo2 className="w-3 h-3" />
+            Undo
+          </button>
+        </div>
+      ), { duration: 5000 });
+
+      refetch();
+    },
+    onError: (err, _, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['adjudication', 'queue', page, statusFilter, sortBy, sortOrder], context.previousData);
+      }
+      toast.error('Failed to submit decision: ' + (err as Error).message);
+    }
+  });
+
+  const handleDecision = (decision: 'approve' | 'reject' | 'escalate', confidence: string, comment?: string) => {
+    if (!selectedAlertId) return;
+    
+    decisionMutation.mutate({
+      alertId: selectedAlertId,
+      decision,
+      comment: comment || `Decision: ${decision} (Confidence: ${confidence})`
+    });
+  };
+
+  const toggleSort = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
+
+  const selectedAlert = queueData?.items.find(a => a.id === selectedAlertId);
+
+  // Keyboard shortcuts
+  useHotkeys('ctrl+r,cmd+r', (e) => {
+    e.preventDefault();
+    refetch();
+    toast('Queue refreshed');
+  });
+
+  if (isLoading) {
+    return <AdjudicationQueueSkeleton />;
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-primary">Adjudication Queue</h2>
-          <p className="text-muted-foreground">Review flagged cases and high-risk subjects.</p>
-        </div>
-        <Button>
-          Refresh Queue
-        </Button>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Active Cases</CardTitle>
-          <CardDescription>Cases requiring immediate attention.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border border-border">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-secondary/50 text-muted-foreground font-medium">
-                <tr>
-                  <th className="p-4">Subject Name</th>
-                  <th className="p-4">Risk Score</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Date Detected</th>
-                  <th className="p-4">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {subjects.map((subject) => (
-                  <tr key={subject.id} className="hover:bg-secondary/20 transition-colors">
-                    <td className="p-4 font-medium text-primary">{subject.subject_name}</td>
-                    <td className="p-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        subject.risk_score > 70
-                          ? 'bg-danger/10 text-danger'
-                          : subject.risk_score > 50
-                          ? 'bg-yellow-500/10 text-yellow-500'
-                          : 'bg-green-500/10 text-green-500'
-                      }`}>
-                        {subject.risk_score}%
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        {subject.status === 'flagged' ? (
-                          <AlertCircle className="w-4 h-4 text-danger" />
-                        ) : (
-                          <Clock className="w-4 h-4 text-yellow-500" />
-                        )}
-                        <span className="capitalize">{subject.status}</span>
-                      </div>
-                    </td>
-                    <td className="p-4 text-muted-foreground">
-                      {subject.created_at ? new Date(subject.created_at).toLocaleDateString() : 'N/A'}
-                    </td>
-                    <td className="p-4">
-                      <Link
-                        to={`/case/${subject.id}`}
-                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 rounded-md px-3"
-                      >
-                        Review Case
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6">
+      <div className="max-w-[1800px] mx-auto">
+        {/* Header */}
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Adjudication Queue
+            </h1>
+            <p className="text-slate-400 mt-1">
+              {queueData?.total || 0} alerts pending review
+            </p>
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="flex items-center gap-3">
+            {/* Sort Control */}
+            <div className="flex items-center gap-2 bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-1">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="bg-transparent text-sm text-slate-300 px-3 py-2 outline-none"
+                aria-label="Sort by"
+              >
+                <option value="risk_score">Risk Score</option>
+                <option value="created_at">Date</option>
+              </select>
+              <button
+                onClick={toggleSort}
+                className="p-2 hover:bg-white/10 rounded transition-colors"
+                aria-label={`Sort ${sortOrder === 'asc' ? 'ascending' : 'descending'}`}
+              >
+                <ArrowUpDown className={`w-4 h-4 text-slate-300 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
+
+            {/* Filter */}
+            <div className="flex items-center gap-2 bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-1">
+              {(['all', 'pending', 'flagged'] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setStatusFilter(filter)}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    statusFilter === filter
+                      ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            {/* Refresh */}
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 backdrop-blur-md rounded-lg border border-white/10 text-slate-300 hover:text-white transition-all"
+              aria-label="Refresh queue"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Split View */}
+        <div className="grid grid-cols-12 gap-6">
+          {/* Alert List - Left Pane */}
+          <div className="col-span-12 lg:col-span-4 xl:col-span-3">
+            <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-4 shadow-2xl">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <Filter className="w-5 h-5 text-blue-400" />
+                  Alert Queue
+                </h2>
+                <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full border border-blue-500/30">
+                  {queueData?.items.length || 0}
+                </span>
+              </div>
+
+              {queueData?.items && queueData.items.length > 0 ? (
+                <AlertList
+                  alerts={queueData.items}
+                  selectedId={selectedAlertId}
+                  onSelect={setSelectedAlertId}
+                />
+              ) : (
+                <div className="text-center py-12 text-slate-400">
+                  <p>No alerts in queue</p>
+                  <p className="text-sm mt-1">All clear! 🎉</p>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {queueData && queueData.pages > 1 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="px-3 py-1 text-sm text-slate-300 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-xs text-slate-400">
+                    Page {page} of {queueData.pages}
+                  </span>
+                  <button
+                    onClick={() => setPage(p => Math.min(queueData.pages, p + 1))}
+                    disabled={page === queueData.pages}
+                    className="px-3 py-1 text-sm text-slate-300 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Alert Detail - Right Pane */}
+          <div className="col-span-12 lg:col-span-8 xl:col-span-9">
+            {selectedAlert ? (
+              <div className="space-y-4">
+                {/* Alert Card */}
+                <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-6 shadow-2xl">
+                  <AlertCard alert={selectedAlert} />
+                </div>
+
+                {/* Context Tabs */}
+                <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl">
+                  <ContextTabs alertId={selectedAlert.id} />
+                </div>
+
+                {/* Decision Panel */}
+                <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-6 shadow-2xl">
+                  <DecisionPanel 
+                    onDecision={handleDecision}
+                    disabled={decisionMutation.isPending}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-12 text-center shadow-2xl">
+                <div className="max-w-md mx-auto">
+                  <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Filter className="w-10 h-10 text-blue-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">No Alert Selected</h3>
+                  <p className="text-slate-400">
+                    Select an alert from the queue to review and take action
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

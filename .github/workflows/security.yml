@@ -1,0 +1,139 @@
+name: Security Audit
+
+on:
+  schedule:
+    - cron: '0 2 * * 1' # Every Monday at 2 AM UTC
+  workflow_dispatch: # Manual trigger
+  pull_request:
+    paths:
+      - 'backend/poetry.lock'
+      - 'frontend/package-lock.json'
+      - '.github/workflows/security.yml'
+
+jobs:
+  dependency-audit:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          
+      - name: Python dependency audit
+        working-directory: ./backend
+        run: |
+          poetry install
+          poetry add --group dev safety
+          poetry run safety check --json --output safety-report.json
+        continue-on-error: true
+        
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: NPM audit
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npm audit --json > npm-audit-report.json || true
+          
+      - name: Upload audit reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-audit-reports
+          path: |
+            backend/safety-report.json
+            frontend/npm-audit-report.json
+
+  secret-scanning:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for better detection
+          
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  sast-scan:
+    name: Static Application Security Testing
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: python, javascript
+          
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/secrets
+            p/owasp-top-ten
+            p/r2c-ci
+
+  container-scanning:
+    name: Container Image Scanning
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build backend image
+        run: docker build -t backend:scan ./backend
+        
+      - name: Run Trivy scan (backend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: backend:scan
+          format: 'sarif'
+          output: 'backend-trivy-results.sarif'
+          
+      - name: Build frontend image
+        run: docker build -t frontend:scan ./frontend
+        
+      - name: Run Trivy scan (frontend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: frontend:scan
+          format: 'sarif'
+          output: 'frontend-trivy-results.sarif'
+          
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: '.'
+
+  notify-security-team:
+    name: Notify Security Team
+    runs-on: ubuntu-latest
+    needs: [dependency-audit, secret-scanning, sast-scan]
+    if: failure()
+    steps:
+      - name: Send Slack notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: '🚨 Security audit failed! Please review immediately.'
+          webhook_url: ${{ secrets.SECURITY_SLACK_WEBHOOK }}

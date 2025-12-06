@@ -30,14 +30,6 @@ interface FraudDetectionPanelProps {
   riskScore?: number;
 }
 
-const defaultIndicators: FraudIndicator[] = [
-  { id: '1', type: 'Layering', severity: 'high', description: 'Multiple rapid transfers', amount: 450000, count: 12, trend: 'up' },
-  { id: '2', type: 'Structuring', severity: 'high', description: 'Split transactions below threshold', amount: 89000, count: 18, trend: 'stable' },
-  { id: '3', type: 'Round-trip', severity: 'medium', description: 'Circular fund movement', amount: 200000, count: 5, trend: 'down' },
-  { id: '4', type: 'Velocity', severity: 'medium', description: 'Unusual transaction frequency', amount: 125000, count: 28, trend: 'up' },
-  { id: '5', type: 'Offshore', severity: 'low', description: 'High-risk jurisdiction transfers', amount: 75000, count: 3, trend: 'stable' }
-];
-
 const SEVERITY_COLORS = {
   high: '#ef4444',
   medium: '#f59e0b',
@@ -46,7 +38,24 @@ const SEVERITY_COLORS = {
 
 const formatCurrency = (value: number) => `$${(value / 1000).toFixed(0)}K`;
 
-export function FraudDetectionPanel({ indicators = defaultIndicators, riskScore = 72 }: FraudDetectionPanelProps) {
+export function FraudDetectionPanel({ indicators = [], riskScore = 0 }: FraudDetectionPanelProps) {
+  // Empty state
+  if (!indicators || indicators.length === 0) {
+    return (
+      <div className="py-12 text-center space-y-6">
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/10 rounded-xl p-8 max-w-md mx-auto">
+          <Shield className="h-16 w-16 text-green-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-green-700 dark:text-green-300 mb-2">
+            No Fraud Indicators Detected
+          </h3>
+          <p className="text-sm text-green-600/80 dark:text-green-400/80">
+            This case appears clean based on current transaction patterns
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const chartData = useMemo(() => 
     indicators.map(i => ({
       name: i.type,

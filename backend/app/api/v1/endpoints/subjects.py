@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 from sqlalchemy.future import select
@@ -8,6 +8,7 @@ from app.api import deps
 from app.models import mens_rea as models
 from app.services.subject import SubjectService
 from app.db.models import Subject
+from app.core.cache import apply_cache_preset, add_etag, check_etag_match, CACHE_PRESETS
 
 router = APIRouter()
 
@@ -53,6 +54,7 @@ async def export_subject_data(
 
 @router.get("/", response_model=dict)
 async def get_subjects(
+    response: Response,
     status: Optional[str] = None,
     min_risk: Optional[int] = None,
     max_risk: Optional[int] = None,
@@ -142,16 +144,23 @@ async def get_subjects(
             "assigned_to": "Unassigned" # Placeholder
         })
         
-    return {
+    data = {
         "items": items,
         "total": total,
         "page": page,
         "pages": (total + limit - 1) // limit if limit > 0 else 1
     }
 
+    # Apply short cache for lists
+    apply_cache_preset(response, "case_list")
+    
+    return data
+
 @router.get("/{subject_id}", response_model=dict)
 async def get_subject(
     subject_id: str,
+    request: Request,
+    response: Response,
     db: AsyncSession = Depends(deps.get_db),
     current_user = Depends(deps.get_current_user)
 ):
@@ -181,7 +190,7 @@ async def get_subject(
     if sub.encrypted_pii and isinstance(sub.encrypted_pii, dict):
         subject_name = sub.encrypted_pii.get("name", subject_name)
         
-    return {
+    data = {
         "id": str(sub.id),
         "subject_name": subject_name,
         "risk_score": analysis.risk_score if analysis else 0,
@@ -191,3 +200,12 @@ async def get_subject(
         "created_at": sub.created_at.isoformat() if sub.created_at else None,
         "flags": analysis.flags if analysis and hasattr(analysis, 'flags') else {}
     }
+
+    # Check ETag conditions
+    check_etag_match(request, data)
+    
+    # Set Cache headers and ETag
+    apply_cache_preset(response, "default")
+    add_etag(response, data)
+
+    return data

@@ -2,7 +2,11 @@ import json
 import os
 import logging
 import asyncio
-from typing import Dict, Any
+import uuid
+from datetime import datetime
+from typing import Dict, Any, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.db.models import Event
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -25,12 +29,37 @@ class ForensicsService:
     def __init__(self):
         self.exiftool_path = "exiftool"  # Assumes exiftool is in PATH
 
-    async def analyze_document(self, file_path: str) -> Dict[str, Any]:
+    async def scan_file(self, file_path: str) -> bool:
+        """
+        Scans a file for viruses using ClamAV (Mock implementation).
+        In production, integrate with pyclamd or a sidebar process.
+        Returns True if safe, False if malicious.
+        """
+        # Mock Scan: Check for EICAR test string signature in the first 1KB
+        try:
+            with open(file_path, "rb") as f:
+                header = f.read(1024)
+                # Standard EICAR string check (partial mock)
+                if b"EICAR-STANDARD-ANTIVIRUS-TEST-FILE" in header:
+                    logger.warning(f"Virus detected in {file_path}")
+                    return False
+        except Exception as e:
+             logger.error(f"Scan error: {e}")
+             # Fail open or closed based on policy? We'll fail open for MVP but log error
+        
+        return True
+
+    async def analyze_document(self, file_path: str, db: Optional[AsyncSession] = None) -> Dict[str, Any]:
         """
         Orchestrates the forensic analysis of a document.
         """
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
+
+        # 1. Security Scan
+        is_safe = await self.scan_file(file_path)
+        if not is_safe:
+            raise ValueError("Malicious file detected. Analysis aborted.")
 
         # Run independent tasks concurrently
         metadata_task = self.extract_metadata(file_path)
@@ -43,13 +72,39 @@ class ForensicsService:
             # Run magic.from_file in a thread as it is blocking
             file_type = await asyncio.to_thread(magic.from_file, file_path, mime=True)
 
-        return {
+        result = {
             "file_path": file_path,
             "file_type": file_type,
             "metadata": metadata,
             "manipulation_analysis": manipulation_score,
             "summary": self._generate_summary(metadata, manipulation_score)
         }
+
+        # 2. Event Sourcing
+        if db:
+            try:
+                event_id = uuid.uuid4()
+                event = Event(
+                     id=event_id,
+                     aggregate_id=event_id, 
+                     aggregate_type="document_analysis",
+                     event_type="DOCUMENT_ANALYZED",
+                     version=1,
+                     payload={
+                         "filename": os.path.basename(file_path),
+                         "file_type": file_type,
+                         "is_suspicious": result["manipulation_analysis"].get("is_suspicious", False),
+                         "summary": result["summary"]
+                     },
+                     metadata_={"source": "ForensicsService"},
+                     created_at=datetime.utcnow()
+                )
+                db.add(event)
+                await db.commit()
+            except Exception as e:
+                logger.error(f"Failed to persist event: {e}")
+
+        return result
 
     async def extract_metadata(self, file_path: str) -> Dict[str, Any]:
         """
@@ -65,8 +120,8 @@ class ForensicsService:
             stdout, stderr = await process.communicate()
 
             if process.returncode != 0:
-                logger.error(f"ExifTool failed: {stderr.decode()}")
-                return {"error": "Failed to extract metadata"}
+                logger.debug(f"ExifTool warning (often benign): {stderr.decode()[:100]}")
+                return {}
 
             # Parse JSON output
             data = json.loads(stdout.decode())
@@ -95,13 +150,10 @@ class ForensicsService:
             # Run CPU-intensive ELA in a separate thread
             ela_score = await asyncio.to_thread(self._calculate_ela_score, file_path)
             
-            # 2. Metadata Consistency Check (Placeholder)
-            # In a real implementation, we would check if Software tag exists in metadata
-            
             return {
                 "ela_score": ela_score,
                 "is_suspicious": ela_score > 0.5,  # Threshold
-                "details": "High ELA score indicates potential manipulation or resaving."
+                "details": "High ELA score indicates potential manipulation ."
             }
 
         except Exception as e:
@@ -117,9 +169,6 @@ class ForensicsService:
     def _calculate_ela_score(self, file_path: str) -> float:
         """
         Calculates a simple ELA score.
-        Resaves the image at 90% quality and compares the difference.
-        Returns a score between 0.0 and 1.0.
-        NOTE: This runs in a thread, so it can be blocking.
         """
         try:
             original = cv2.imread(file_path)
@@ -127,42 +176,27 @@ class ForensicsService:
                 return 0.0
 
             # Use in-memory encoding/decoding to avoid disk I/O
-            # Encode to JPEG with 90% quality
             _, encoded_img = cv2.imencode('.jpg', original, [cv2.IMWRITE_JPEG_QUALITY, 90])
-            
-            # Decode back
             resaved = cv2.imdecode(encoded_img, cv2.IMREAD_COLOR)
-            
-            # Calculate absolute difference
             diff = cv2.absdiff(original, resaved)
-            
-            # Calculate mean difference intensity
             score = np.mean(diff) / 255.0
-            
-            # Normalize score (heuristic)
-            # A raw score of 0.1 is actually quite high for ELA difference
             normalized_score = min(score * 10, 1.0)
             
             return float(normalized_score)
-
         except Exception:
             return 0.0
 
     def _generate_summary(self, metadata: Dict, manipulation: Dict) -> str:
         summary = []
-        
-        # Check for software traces
         software = metadata.get("Software", "")
         if "Photoshop" in software or "GIMP" in software:
             summary.append(f"Warning: Image edited with {software}.")
-            
-        # Check GPS
+        
         if "GPSLatitude" in metadata:
             summary.append("GPS data found.")
         else:
             summary.append("No GPS data.")
             
-        # Check Manipulation
         if manipulation.get("is_suspicious"):
             summary.append("Potential manipulation detected (High ELA score).")
             

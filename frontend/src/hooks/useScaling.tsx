@@ -5,10 +5,10 @@ import { useCallback, useRef } from 'react';
  */
 export class LoadBalancer {
   private servers: string[];
+  private strategy: string;
   private currentIndex = 0;
-  private strategy: 'round-robin' | 'least-connections';
 
-  constructor(servers: string[], strategy: 'round-robin' | 'least-connections' = 'round-robin') {
+  constructor(servers: string[], strategy: string = 'round-robin') {
     this.servers = servers;
     this.strategy = strategy;
   }

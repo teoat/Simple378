@@ -382,7 +382,7 @@ export function GraphAnalytics({
               <div className="flex items-center gap-2">
                 <select
                   value={selectedMetric}
-                  onChange={(e) => setSelectedMetric(e.target.value as any)}
+                  onChange={(e) => setSelectedMetric(e.target.value as 'degree' | 'betweenness' | 'closeness' | 'eigenvector')}
                   className="px-2 py-1 text-sm border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900"
                   aria-label="Select centrality metric"
                 >

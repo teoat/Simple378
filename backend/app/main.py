@@ -14,6 +14,7 @@ from app.api.v1.api import api_router
 from app.core.logging import setup_logging
 from app.core.exceptions import global_exception_handler, AppException
 from app.core.middleware import SecurityHeadersMiddleware, RateLimitHeadersMiddleware
+from app.core.security_headers import SecurityHeadersMiddleware as SecurityHeadersMiddlewareV2
 from app.core.rate_limit import limiter
 from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import _rate_limit_exceeded_handler
@@ -107,27 +108,46 @@ async def error_handling_middleware(request: Request, call_next):
             method=request.method,
             path=request.url.path,
             status_code=response.status_code,
-            duration=duration
+            duration=process_time
         )
         
-        # Add request ID to response headers
-        response.headers["X-Request-ID"] = request_id
-        
+        # Record metrics
+        try:
+            from app.core.monitoring import global_metrics
+            # Determine if it was an error based on status code
+            is_error = response.status_code >= 400
+            await global_metrics.record_request(
+                response_time_ms=process_time * 1000,
+                is_error=is_error
+            )
+        except Exception:
+            pass
+            
         return response
         
     except Exception as e:
         # Log error with full context
-        duration = (datetime.utcnow() - start_time).total_seconds()
+        process_time = (datetime.utcnow() - start_time).total_seconds()
         logger.error(
             "request_failed",
             request_id=request_id,
             method=request.method,
             path=request.url.path,
-            duration=duration,
+            duration=process_time,
             error=str(e),
             traceback=traceback.format_exc()
         )
         
+        # Record error metrics
+        try:
+            from app.core.monitoring import global_metrics
+            await global_metrics.record_request(
+                response_time_ms=process_time * 1000,
+                is_error=True
+            )
+        except Exception:
+            pass
+            
         # Return consistent error response
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -322,6 +342,33 @@ async def root():
 
 # API routes
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# Health and metrics endpoints
+try:
+    from app.api.v1.endpoints.health import router as health_router
+    app.include_router(health_router, tags=["Health"])
+    logger = structlog.get_logger()
+    logger.info("Health endpoints enabled")
+except ImportError as e:
+    import structlog
+    logger = structlog.get_logger()
+    logger.warning("Health endpoints not available", error=str(e))
+
+# GraphQL Integration
+try:
+    from strawberry.fastapi import GraphQLRouter
+    from app.graphql.schema import schema
+    
+    # Enable GraphiQL playground for development
+    graphql_router = GraphQLRouter(schema, graphiql=True)
+    app.include_router(graphql_router, prefix="/graphql")
+    
+    logger = structlog.get_logger()
+    logger.info("GraphQL endpoint enabled at /graphql")
+except ImportError:
+    import structlog
+    logger = structlog.get_logger()
+    logger.warning("strawberry-graphql not installed, skipping GraphQL route")
 
 # Uvicorn main block
 if __name__ == "__main__":

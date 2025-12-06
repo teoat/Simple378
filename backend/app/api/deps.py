@@ -68,3 +68,17 @@ async def verify_active_analyst(
             detail="The user doesn't have enough privileges",
         )
     return current_user
+
+async def verify_subject_access(
+    subject_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(verify_active_analyst)
+) -> None:
+    """
+    Verify potential specific access rights to a subject.
+    For now, implicit access via active analyst role is sufficient,
+    but this hook allows for future granular permissions or existence checks.
+    """
+    # Logic to verify existence or specific ownership could go here
+    # For now, we rely on the endpoint to check existence for 404s
+    return None

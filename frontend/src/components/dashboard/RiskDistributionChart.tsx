@@ -1,19 +1,15 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { motion } from 'framer-motion';
 
-interface RiskData {
+export interface RiskData {
   range: string;
   count: number;
   riskLevel: 'Low' | 'Medium' | 'High' | 'Critical';
 }
 
-// Mock data - in a real app this would come from props
-const data: RiskData[] = [
-  { range: '0-30', count: 45, riskLevel: 'Low' },
-  { range: '31-60', count: 28, riskLevel: 'Medium' },
-  { range: '61-80', count: 15, riskLevel: 'High' },
-  { range: '81-100', count: 8, riskLevel: 'Critical' },
-];
+interface RiskDistributionChartProps {
+  data: RiskData[];
+}
 
 interface TooltipPayload {
   value: number;
@@ -43,12 +39,12 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   return null;
 };
 
-export function RiskDistributionChart() {
+export function RiskDistributionChart({ data }: RiskDistributionChartProps) {
   const totalCases = data.reduce((sum, item) => sum + item.count, 0);
   const highRiskCases = data.filter(d => d.riskLevel === 'High' || d.riskLevel === 'Critical')
     .reduce((sum, item) => sum + item.count, 0);
   const criticalCases = data.find(d => d.riskLevel === 'Critical')?.count || 0;
-  const highRiskPercent = ((highRiskCases / totalCases) * 100).toFixed(1);
+  const highRiskPercent = totalCases > 0 ? ((highRiskCases / totalCases) * 100).toFixed(1) : '0.0';
 
   return (
     <motion.div

@@ -10,7 +10,7 @@ import { useAI } from '../context/AIContext';
 
 interface CaseData {
   id: string;
-  title: string;
+  // title removed, rely on subject_name
   status: string;
   risk_score: number;
   subject_name: string;
@@ -32,9 +32,15 @@ export function CaseDetail() {
     enabled: !!id,
   });
 
+interface PredictiveResponse {
+  predicted_score: number;
+  trend: 'increasing' | 'decreasing' | 'stable';
+  confidence: number;
+}
+
   const { data: aiRiskPrediction, isLoading: predictionLoading } = useQuery({
     queryKey: ['case', id, 'ai-risk-prediction'],
-    queryFn: () => apiRequest<any>(`/cases/${id}/ai-risk-prediction`),
+    queryFn: () => apiRequest<PredictiveResponse>(`/cases/${id}/ai-risk-prediction`),
     retry: false,
     enabled: !!id,
   });
@@ -95,7 +101,7 @@ export function CaseDetail() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                {caseData?.title || `Case #${id?.slice(0, 8)}`}
+                {caseData?.subject_name || `Case #${id?.slice(0, 8)}`}
               </h1>
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(caseData?.status || 'Open')}`}>
                 {caseData?.status || 'Open'}
