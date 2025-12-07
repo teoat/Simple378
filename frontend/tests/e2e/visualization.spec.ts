@@ -25,6 +25,16 @@ test.describe('Visualization Page E2E Tests', () => {
           suspect_transactions: 0,
           risk_score: 10,
           cashflow_data: [],
+          income_breakdown: {
+            income_sources: { id: '1', name: 'Income', amount: 80000, transactions: 10 },
+            mirror_transactions: { id: '2', name: 'Mirror', amount: 10000, transactions: 2 },
+            external_transfers: { id: '3', name: 'External', amount: 10000, transactions: 2 }
+          },
+          expense_breakdown: {
+            personal_expenses: { id: '4', name: 'Personal', amount: 10000, transactions: 5 },
+            operational_expenses: { id: '5', name: 'Ops', amount: 30000, transactions: 10 },
+            project_expenses: { id: '6', name: 'Project', amount: 10000, transactions: 2 }
+          },
           milestones: [],
           fraud_indicators: []
         })
@@ -111,14 +121,14 @@ test.describe('Visualization Page E2E Tests', () => {
     await expect(waterfallChart).toBeVisible();
     
     // Check for legend items
-    await expect(page.locator('text=Total')).toBeVisible();
-    await expect(page.locator('text=Excluded')).toBeVisible();
-    await expect(page.locator('text=Project')).toBeVisible();
+    await expect(page.locator('text=Total Cashflow').first()).toBeVisible();
+    await expect(page.locator('text=Excluded').first()).toBeVisible();
+    await expect(page.locator('text=Project').first()).toBeVisible();
   });
 
   test('should handle empty state for milestones', async ({ page }) => {
     // Navigate to page with no milestones (mock API to return empty array)
-    await page.route('**/api/v1/cases/*/financials', async (route) => {
+    await page.route('**/cases/*/financials', async (route) => {
       await route.fulfill({
         status: 200,
         body: JSON.stringify({
@@ -147,7 +157,7 @@ test.describe('Visualization Page E2E Tests', () => {
 
   test('should handle empty state for fraud indicators', async ({ page }) => {
     // Mock API with no fraud indicators
-    await page.route('**/api/v1/cases/*/financials', async (route) => {
+    await page.route('**/cases/*/financials', async (route) => {
       await route.fulfill({
         status: 200,
         body: JSON.stringify({
@@ -195,12 +205,13 @@ test.describe('Visualization Page E2E Tests', () => {
     await page.waitForTimeout(500);
     
     // Verify page is still functional
-    await expect(page.locator('[data-testid="kpi-card"]')).toBeVisible();
+    await expect(page.locator('[data-testid="kpi-card"]').first()).toBeVisible();
   });
 
   test('should display milestone with details', async ({ page }) => {
+    const caseId = 'MILESTONE_CASE_ID';
     // Mock API with milestone data
-    await page.route('**/api/v1/cases/*/financials', async (route) => {
+    await page.route(`**/cases/${caseId}/financials`, async (route) => {
       await route.fulfill({
         status: 200,
         body: JSON.stringify({
@@ -226,7 +237,7 @@ test.describe('Visualization Page E2E Tests', () => {
       });
     });
 
-    await page.reload();
+    await page.goto(`/visualization/${caseId}`);
     await page.locator('button:has-text("Milestone Tracker")').click();
     
     // Verify milestone details
@@ -236,8 +247,9 @@ test.describe('Visualization Page E2E Tests', () => {
   });
 
   test('should display fraud indicators with severity', async ({ page }) => {
+    const caseId = 'FRAUD_CASE_ID';
     // Mock API with fraud data
-    await page.route('**/api/v1/cases/*/financials', async (route) => {
+    await page.route(`**/cases/${caseId}/financials`, async (route) => {
       await route.fulfill({
         status: 200,
         body: JSON.stringify({
@@ -272,7 +284,7 @@ test.describe('Visualization Page E2E Tests', () => {
       });
     });
 
-    await page.reload();
+    await page.goto(`/visualization/${caseId}`);
     await page.locator('button:has-text("Fraud")').click();
     
     // Verify fraud indicators
@@ -282,18 +294,18 @@ test.describe('Visualization Page E2E Tests', () => {
   });
 
   test('should handle API errors gracefully', async ({ page }) => {
-    // Mock API error
-    await page.route('**/api/v1/cases/*/financials', async (route) => {
+    const errorCaseId = 'ERROR_CASE_ID';
+    // Mock API error specific to this case
+    await page.route(`**/cases/${errorCaseId}/financials`, async (route) => {
       await route.fulfill({
         status: 500,
         body: JSON.stringify({ detail: 'Internal server error' })
       });
     });
 
-    await page.reload();
+    await page.goto(`/visualization/${errorCaseId}`);
     
-    // Verify error state (assuming error boundary or error message)
-    // This depends on your error handling implementation
+    // Verify error state
     await expect(page.locator('text=Error')).toBeVisible();
   });
 });

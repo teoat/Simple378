@@ -20,7 +20,7 @@ export function MilestoneTracker({ milestones, onMilestoneClick }: MilestoneTrac
   // Empty state if no milestones
   if (!milestones || milestones.length === 0) {
     return (
-      <div className="py-12 text-center">
+      <div className="py-12 text-center" data-testid="milestone-tracker">
         <Clock className="h-12 w-12 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
         <p className="text-slate-500 dark:text-slate-400">No milestones detected</p>
         <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">
@@ -70,7 +70,7 @@ export function MilestoneTracker({ milestones, onMilestoneClick }: MilestoneTrac
   };
 
   return (
-    <div className="relative">
+    <div className="relative" data-testid="milestone-tracker">
       {/* Timeline line */}
       <div className="absolute left-6 top-8 bottom-8 w-0.5 bg-slate-200 dark:bg-slate-800" />
       

@@ -267,7 +267,8 @@ async def advanced_search(
             for field, value in request.filters.items():
                 if isinstance(value, list):
                     # Multiple values for the same field
-                    filter_parts.append(f"{field} IN [{', '.join(f'\"{v}\"' for v in value)}]")
+                    quoted_values = ', '.join(f'"{v}"' for v in value)
+                    filter_parts.append(f"{field} IN [{quoted_values}]")
                 elif isinstance(value, dict):
                     # Range filters
                     if 'min' in value:

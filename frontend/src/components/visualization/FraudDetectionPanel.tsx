@@ -40,21 +40,7 @@ const formatCurrency = (value: number) => `$${(value / 1000).toFixed(0)}K`;
 
 export function FraudDetectionPanel({ indicators = [], riskScore = 0 }: FraudDetectionPanelProps) {
   // Empty state
-  if (!indicators || indicators.length === 0) {
-    return (
-      <div className="py-12 text-center space-y-6">
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/10 rounded-xl p-8 max-w-md mx-auto">
-          <Shield className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-green-700 dark:text-green-300 mb-2">
-            No Fraud Indicators Detected
-          </h3>
-          <p className="text-sm text-green-600/80 dark:text-green-400/80">
-            This case appears clean based on current transaction patterns
-          </p>
-        </div>
-      </div>
-    );
-  }
+
 
   const chartData = useMemo(() => 
     indicators.map(i => ({
@@ -89,8 +75,25 @@ export function FraudDetectionPanel({ indicators = [], riskScore = 0 }: FraudDet
 
   const risk = getRiskLevel(riskScore);
 
+  // Empty state check
+  if (!indicators || indicators.length === 0) {
+    return (
+      <div className="py-12 text-center space-y-6" data-testid="fraud-panel">
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/10 rounded-xl p-8 max-w-md mx-auto">
+          <Shield className="h-16 w-16 text-green-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-green-700 dark:text-green-300 mb-2">
+            No Fraud Indicators Detected
+          </h3>
+          <p className="text-sm text-green-600/80 dark:text-green-400/80">
+            This case appears clean based on current transaction patterns
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="fraud-panel">
        {/* Risk Score Header */}
        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
          <motion.div

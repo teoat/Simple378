@@ -14,4 +14,5 @@ from app.db.models import (  # noqa
     EvidenceAnnotation,
     AnalysisResult,
     Indicator,
+    Tenant,
 )

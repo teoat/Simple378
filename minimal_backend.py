@@ -9,18 +9,42 @@ testing the Frenly AI integration and basic E2E functionality.
 
 import os
 import json
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import uvicorn
+import time
 
 app = FastAPI(title="AntiGravity Minimal API", version="1.0.0")
+
+# Security middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+
+    # Security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:* ws://localhost:*;"
+
+    # Performance headers
+    response.headers["X-Process-Time"] = f"{process_time:.3f}"
+    response.headers["X-API-Version"] = "1.0.0"
+
+    return response
 
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://localhost:80"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -90,9 +114,19 @@ async def login(request: LoginRequest):
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
 @app.get("/auth/me")
-async def get_current_user():
-    """Mock current user endpoint"""
-    return MOCK_USERS["test@example.com"]
+async def get_current_user(request: Request):
+    """Mock current user endpoint with authentication check"""
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    # In a real implementation, validate the JWT token here
+    # For now, just check if it exists
+    token = auth_header.replace("Bearer ", "")
+    if not token or token == "mock-jwt-token-12345":
+        return MOCK_USERS["test@example.com"]
+    else:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 @app.get("/cases/")
 async def get_cases(page: int = 1, limit: int = 10, search: Optional[str] = None):

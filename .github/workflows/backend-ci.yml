@@ -86,10 +86,10 @@ jobs:
         working-directory: backend
       
       - name: Check for outdated dependencies
-        run: poetry show --outdated || true # '|| true' to prevent job failure if outdated deps found
+        run: poetry show --outdated
         working-directory: backend
       
       - name: Audit dependencies for vulnerabilities
-        run: poetry run pip install pip-audit && poetry run pip-audit || true # '|| true' to prevent job failure if vulns found
+        run: poetry run pip install pip-audit && poetry run pip-audit
         working-directory: backend
 

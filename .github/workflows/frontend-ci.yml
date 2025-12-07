@@ -92,8 +92,8 @@ jobs:
         run: cd frontend && npm ci
       
       - name: Check for outdated dependencies
-        run: cd frontend && npm outdated || true # '|| true' to prevent job failure if outdated deps found
+        run: cd frontend && npm outdated
       
       - name: Audit dependencies for vulnerabilities
-        run: cd frontend && npm audit --audit-level=high || true # '|| true' to prevent job failure if vulns found
+        run: cd frontend && npm audit --audit-level=high
 

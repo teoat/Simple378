@@ -7,12 +7,10 @@ from app.schemas.analysis import (
     ShortestPathRequest,
     ShortestPathResult,
     CommunityResult,
-    ShortestPathResult,
-    CommunityResult,
     CentralityResult,
-    AnalysisResult
+    AnalysisResult,
+    AnalysisResultResponse
 )
-# from app.db.models import AnalysisResult
 from app.services.heuristic_engine import HeuristicEngine
 from app.services.risk_forecast import RiskForecastService
 from app.services.graph_analytics import GraphAnalyticsService

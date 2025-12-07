@@ -180,7 +180,7 @@ export function VisualizationNetwork({ graphData, financialData, isLoading = fal
   }, [financialData]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="visualization-network">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">

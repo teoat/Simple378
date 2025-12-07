@@ -47,8 +47,25 @@ class ShortestPathResult(BaseModel):
     path: List[str]
     length: int
 
+class AnalysisResultResponse(BaseModel):
+    """Response schema for analysis results"""
+    id: str
+    subject_id: str
+    status: str = "pending"
+    risk_score: float = 0.0
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    adjudication_status: str = "pending"
+    decision: Optional[str] = None
+    reviewer_notes: Optional[str] = None
+    reviewer_id: Optional[str] = None
+    
+    class Config:
+        from_attributes = True  # Allows conversion from ORM models
+
 class AnalysisResult(BaseModel):
+    """Schema for analysis evaluation results"""
     subject_id: str
     risk_score: float
-    triggered_rules: List[RuleResult]
+    triggered_rules: List[RuleResult] = []
     created_at: Optional[datetime] = None

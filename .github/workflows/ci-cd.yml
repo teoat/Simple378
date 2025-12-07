@@ -55,7 +55,6 @@ jobs:
       - name: Run mypy (type checking)
         working-directory: ./backend
         run: poetry run mypy app/
-        continue-on-error: true # Allow to fail initially, remove this once types are clean
 
   backend-security:
     name: Backend Security Scan
@@ -82,14 +81,12 @@ jobs:
         run: |
           poetry add --group dev safety
           poetry run safety check --json
-        continue-on-error: true
         
       - name: Run Bandit (security linter)
         working-directory: ./backend
         run: |
           poetry add --group dev bandit
           poetry run bandit -r app/ -f json -o bandit-report.json
-        continue-on-error: true
         
       - name: Upload security reports
         uses: actions/upload-artifact@v3
@@ -178,7 +175,6 @@ jobs:
         working-directory: ./backend
         run: |
           poetry run coverage report --fail-under=85
-        continue-on-error: true # Set to false once coverage target is met
         
       - name: Upload coverage reports
         uses: actions/upload-artifact@v3
@@ -252,7 +248,6 @@ jobs:
         run: |
           echo "Checking coverage thresholds..."
           # Add coverage threshold check here
-        continue-on-error: true
         
       - name: Upload coverage reports
         uses: actions/upload-artifact@v3
@@ -288,7 +283,6 @@ jobs:
       - name: Run E2E tests
         working-directory: ./frontend
         run: npm run test:e2e
-        continue-on-error: true # Initially allow failures
         
       - name: Upload Playwright report
         uses: actions/upload-artifact@v3
