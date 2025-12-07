@@ -38,11 +38,11 @@ services:
       start_period: 40s
 
   mcp-server:
-    build: 
+    build:
       context: ./mcp-server
       dockerfile: Dockerfile
     container_name: fraud_mcp_server
-    command: "node dist/index.js"
+    command: uvicorn server:app --host 0.0.0.0 --port 8080
     env_file:
       - .env.production
     environment:
@@ -117,7 +117,7 @@ services:
   cache:
     image: redis:7-alpine
     container_name: fraud_redis
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass YourRedisProductionPassword
     volumes:
       - redis_data:/data
     networks:

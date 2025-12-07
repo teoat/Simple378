@@ -1,4 +1,35 @@
 import { QueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
+import { FrontendAPIError } from '../types/api.d'; // Import FrontendAPIError
+
+/**
+ * Global error handler for React Query
+ * Redirects for specific HTTP status codes and shows toast for others
+ */
+const globalErrorHandler = (error: unknown) => {
+  if (error instanceof FrontendAPIError) {
+    switch (error.code) {
+      case 401: // Unauthorized
+        window.location.href = '/401';
+        break;
+      case 403: // Forbidden
+        window.location.href = '/403';
+        break;
+      case 500: // Internal Server Error
+        toast.error(`Server Error: ${error.message}`);
+        // Consider redirecting to a generic error page like /500
+        // window.location.href = '/500';
+        break;
+      default:
+        toast.error(`API Error: ${error.message} (Code: ${error.code})`);
+        break;
+    }
+  } else if (error instanceof Error) {
+    toast.error(`An unexpected error occurred: ${error.message}`);
+  } else {
+    toast.error('An unknown error occurred.');
+  }
+};
 
 /**
  * Global React Query configuration
@@ -18,7 +49,7 @@ export const queryClient = new QueryClient({
       // Retry strategy with exponential backoff
       retry: (failureCount, error: Error & { response?: { status?: number } }) => {
         // Don't retry client errors (4xx)
-        const status = error?.response?.status;
+        const status = (error as FrontendAPIError)?.code || error?.response?.status;
         if (status && status >= 400 && status < 500) {
           return false;
         }
@@ -33,6 +64,7 @@ export const queryClient = new QueryClient({
       
       // Network mode
       networkMode: 'always',  // Use online/offline events
+      // onError: globalErrorHandler, // Add global error handler
     },
     
     mutations: {
@@ -42,6 +74,7 @@ export const queryClient = new QueryClient({
       
       // Network mode
       networkMode: 'always',
+      onError: globalErrorHandler, // Add global error handler
     }
   }
 });

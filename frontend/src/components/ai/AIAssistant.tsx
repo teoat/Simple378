@@ -41,7 +41,7 @@ export function AIAssistant() {
   });
 
   // Load shortcuts from localStorage on component mount
-  const [shortcuts, setShortcuts] = useState(() => {
+  const [shortcuts] = useState(() => {
     try {
       const savedShortcuts = localStorage.getItem('ai-chat-shortcuts');
       return savedShortcuts ? JSON.parse(savedShortcuts) : defaultShortcuts.current;

@@ -4,7 +4,7 @@ import time
 import psutil
 import asyncio
 from typing import Dict
-from datetime import datetime
+from datetime import datetime, timezone
 from app.services.cache_service import cache
 
 class HealthMetrics:
@@ -13,7 +13,7 @@ class HealthMetrics:
     RESPONSE_TIMES_KEY = "response_times"
 
     def __init__(self):
-        self.start_time = datetime.utcnow()
+        self.start_time = datetime.now(timezone.utc)
 
     async def _load_metrics(self) -> Dict:
         """Load metrics from Redis"""

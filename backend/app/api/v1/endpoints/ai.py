@@ -8,7 +8,7 @@ import json
 from app.api import deps
 from app.core.rate_limit import limiter
 from app.services.ai.supervisor import app as ai_app
-from app.schemas.ai import ChatRequest, ChatResponse
+from app.schemas.ai import ChatRequest, ChatResponse, ProactiveSuggestionRequest
 from app.schemas.feedback import FeedbackCreate
 from app.services.ai.llm_service import LLMService
 from app.db.models import Feedback
@@ -187,9 +187,7 @@ async def chat_with_ai(
 @limiter.limit("60/minute")  # Rate limit: 60 suggestions per minute (lightweight)
 async def proactive_suggestions(
     request: Request,
-    context: str,  # e.g., "adjudication", "dashboard", "case_detail"
-    alert_id: str = None,
-    case_id: str = None,
+    suggestion_req: ProactiveSuggestionRequest,
     db: AsyncSession = Depends(deps.get_db),
     current_user = Depends(deps.get_current_user)
 ):
@@ -197,6 +195,9 @@ async def proactive_suggestions(
     Get proactive AI suggestions based on current context.
     Returns prioritized suggestions with actionable steps.
     """
+    context = suggestion_req.context
+    alert_id = suggestion_req.alert_id
+    case_id = suggestion_req.case_id
     try:
         suggestions = []
         
@@ -313,9 +314,6 @@ async def proactive_suggestions(
     except Exception as e:
         print(f"Proactive suggestions error: {e}")
         raise HTTPException(status_code=500, detail=f"Proactive suggestions failed: {str(e)}")
-
-
-
 
 
 @router.post("/multi-persona-analysis", response_model=Dict[str, Any])

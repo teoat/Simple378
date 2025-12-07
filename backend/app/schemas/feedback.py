@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from uuid import UUID
 
@@ -13,5 +13,4 @@ class FeedbackInDB(FeedbackBase):
     id: UUID
     user_id: UUID
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

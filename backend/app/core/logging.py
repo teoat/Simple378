@@ -2,7 +2,7 @@ import logging
 import sys
 import structlog
 from app.core.config import settings
-from app.main import request_context # Import request_context
+from app.core.context import request_context # Fixed circular import
 
 def add_request_context(_, __, event_dict):
     """Adds request_id and user_id from RequestContext to log event."""

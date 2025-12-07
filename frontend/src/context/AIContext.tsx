@@ -63,7 +63,7 @@ interface AIContextType {
 
 const AIContext = createContext<AIContextType | undefined>(undefined);
 
-export function AIProvider({ children }: { ReactNode }) {
+export function AIProvider({ children }: { children: ReactNode }) {
   const [persona, setPersona] = useState<Persona>('analyst');
   const [messages, setMessages] = useState<Message[]>(() => {
     try {

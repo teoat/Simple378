@@ -24,21 +24,11 @@
 
 ## ⚠️ CRITICAL NEXT STEPS (REQUIRED)
 
-The code changes assume the database schema has been updated. **You must run a migration to avoid runtime errors.**
+**Status:** ✅ COMPLETED (2025-12-07T11:47:00+09:00)
 
-1.  **Generate Migration:**
-    ```bash
-    cd backend
-    alembic revision --autogenerate -m "add_tenant_id_to_users_and_subjects"
-    ```
-
-2.  **Apply Migration:**
-    ```bash
-    alembic upgrade head
-    ```
-
-3.  **Verify:**
-    Check that `users` and `subjects` tables have the `tenant_id` column.
+1.  **Generate Migration:** ✅ Done (`5994161dc89c`)
+2.  **Apply Migration:** ✅ Done (Cleaned up SQLite artifacts and applied)
+3.  **Verify:** ✅ Verified `tenant_id` exists in `subjects`.
 
 ## 🔜 Phase 2 Recommendations
 *   **Secure Remaining Endpoints:** Apply `tenant_id` filtering to `forecast_risk_score`, `estimate_resources`, and `detect_pattern_alerts`.

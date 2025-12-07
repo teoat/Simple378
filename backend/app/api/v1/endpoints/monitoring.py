@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 import time
-from app.core.auth import get_current_user
-from app.db.base import get_db
+from app.api import deps
+from app.db.session import get_db
 from app.db.models import User
 from app.services.cache_service import cache
 from app.core.cache import set_cache_headers, add_etag
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/monitoring", tags=["monitoring"])
 @router.get("/health")
 async def get_system_health(
     response: Response,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(deps.get_current_user),
 ) -> Dict:
     """
     Get current system health status including metrics and alerts.
@@ -112,7 +112,7 @@ async def get_system_health(
 
 @router.get("/metrics")
 async def get_detailed_metrics(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(deps.get_current_user),
     time_range_minutes: int = Query(60, ge=1, le=1440),
 ) -> Dict:
     """
@@ -146,7 +146,7 @@ async def get_detailed_metrics(
 
 @router.get("/sla")
 async def get_sla_status(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(deps.get_current_user),
 ) -> Dict:
     """
     Get SLA compliance status for each service component.
@@ -192,7 +192,7 @@ async def get_sla_status(
 
 @router.post("/metrics/custom")
 async def submit_custom_metric(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(deps.get_current_user),
     metric_data: Dict = None,
 ) -> Dict:
     """
@@ -227,7 +227,7 @@ async def submit_custom_metric(
 
 @router.get("/alerts")
 async def get_active_alerts(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(deps.get_current_user),
     severity: Optional[str] = Query(None, enum=["info", "warning", "error", "critical"]),
 ) -> Dict:
     """
@@ -240,7 +240,7 @@ async def get_active_alerts(
         - alerts: List of active alerts with details
         - count: Total active alert count
     """
-    health = await get_system_health(current_user)
+    health = await get_system_health(Response(), current_user)
     
     all_alerts = health.get("alerts", [])
     
@@ -257,7 +257,7 @@ async def get_active_alerts(
 @router.post("/alerts/acknowledge/{alert_id}")
 async def acknowledge_alert(
     alert_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(deps.get_current_user),
 ) -> Dict:
     """
     Mark an alert as acknowledged by the user.
@@ -273,13 +273,13 @@ async def acknowledge_alert(
 
 @router.get("/status")
 async def get_status_page(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(deps.get_current_user),
 ) -> Dict:
     """
     Get status page information (public endpoint for status page).
     Shows overall system status and component status.
     """
-    health = await get_system_health(current_user)
+    health = await get_system_health(Response(), current_user)
     
     components = {
         "api": "operational",

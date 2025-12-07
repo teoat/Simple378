@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
-from datetime import datetime
+from datetime import datetime, timezone
 import structlog
 import traceback
 import logging
@@ -19,6 +19,7 @@ from app.core.rate_limit import limiter
 from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from app.schemas.common import APIResponse # Import APIResponse
 
 # Setup logging
 setup_logging()
@@ -37,50 +38,8 @@ app = FastAPI(
 # Register global exception handler
 # app.add_exception_handler(Exception, global_exception_handler)
 
-from contextvars import ContextVar
-
-# Error monitoring context using ContextVars for async safety
-class RequestContext:
-    """Store request context using ContextVars for async safety"""
-    _request_id: ContextVar[str] = ContextVar("request_id", default=None)
-    _user_id: ContextVar[str] = ContextVar("user_id", default=None)
-    _method: ContextVar[str] = ContextVar("method", default=None)
-    _path: ContextVar[str] = ContextVar("path", default=None)
-    _timestamp: ContextVar[datetime] = ContextVar("timestamp", default=None)
-
-    @property
-    def request_id(self) -> str:
-        return self._request_id.get()
-    
-    @request_id.setter
-    def request_id(self, value: str):
-        self._request_id.set(value)
-
-    @property
-    def method(self) -> str:
-        return self._method.get()
-    
-    @method.setter
-    def method(self, value: str):
-        self._method.set(value)
-
-    @property
-    def path(self) -> str:
-        return self._path.get()
-    
-    @path.setter
-    def path(self, value: str):
-        self._path.set(value)
-
-    @property
-    def timestamp(self) -> datetime:
-        return self._timestamp.get()
-    
-    @timestamp.setter
-    def timestamp(self, value: datetime):
-        self._timestamp.set(value)
-
-request_context = RequestContext()
+# RequestContext definition moved to app.core.context to avoid circular imports
+from app.core.context import request_context
 
 @app.middleware("http")
 async def error_handling_middleware(request: Request, call_next):
@@ -92,16 +51,16 @@ async def error_handling_middleware(request: Request, call_next):
     request_context.request_id = request_id
     request_context.method = request.method
     request_context.path = request.url.path
-    request_context.timestamp = datetime.utcnow()
+    request_context.timestamp = datetime.now(timezone.utc)
     
-    start_time = datetime.utcnow()
+    start_time = datetime.now(timezone.utc)
     logger = structlog.get_logger()
     
     try:
         response = await call_next(request)
         
         # Log successful response
-        duration = (datetime.utcnow() - start_time).total_seconds()
+        duration = (datetime.now(timezone.utc) - start_time).total_seconds()
         logger.info(
             "request_completed",
             request_id=request_id,
@@ -124,26 +83,38 @@ async def error_handling_middleware(request: Request, call_next):
             pass
             
         return response
-    except Exception as e:
-        # Log unhandled exception
-        duration = (datetime.utcnow() - start_time).total_seconds()
+
+    except Exception as exc:
+        # Log unexpected exceptions with traceback
         logger.error(
             "request_failed",
             request_id=request_id,
             method=request.method,
             path=request.url.path,
-            error=str(e),
-            traceback=traceback.format_exc(),
-            duration=duration
+            error=str(exc),
+            traceback=traceback.format_exc()
         )
+
+        # Record error metric
+        try:
+            from app.core.monitoring import global_metrics
+            await global_metrics.record_request(
+                response_time_ms=(datetime.now(timezone.utc) - start_time).total_seconds() * 1000,
+                is_error=True
+            )
+        except Exception:
+            pass
+
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={
-                "error": "internal_server_error",
-                "message": "An unexpected error occurred",
-                "request_id": request_id
-            }
+            content=APIResponse(
+                status=False,
+                code=500,
+                message="Internal server error",
+                data={"request_id": request_context.request_id}
+            ).model_dump()
         )
+
 
 @app.exception_handler(ValueError)
 async def value_error_handler(request: Request, exc: ValueError):
@@ -152,11 +123,12 @@ async def value_error_handler(request: Request, exc: ValueError):
     logger.warning("validation_error", error=str(exc))
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
-        content={
-            "error": "validation_error",
-            "message": str(exc),
-            "request_id": request_context.request_id
-        }
+        content=APIResponse(
+            status=False,
+            code=400,
+            message=str(exc),
+            data={"request_id": request_context.request_id}
+        ).model_dump() # Use model_dump to convert Pydantic model to dict
     )
 
 @app.exception_handler(AppException)
@@ -164,7 +136,12 @@ async def app_exception_handler(request: Request, exc: AppException):
     """Handle application-specific exceptions"""
     return JSONResponse(
         status_code=exc.status_code,
-        content={"detail": exc.detail},
+        content=APIResponse(
+            status=False,
+            code=exc.code,
+            message=exc.detail,
+            data=exc.data
+        ).model_dump(),
         headers=exc.headers,
     )
 
@@ -175,11 +152,12 @@ async def generic_exception_handler(request: Request, exc: Exception):
     logger.error("unhandled_exception", error=str(exc), traceback=traceback.format_exc())
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "error": "internal_server_error",
-            "message": "An unexpected error occurred",
-            "request_id": request_context.request_id
-        }
+        content=APIResponse(
+            status=False,
+            code=500,
+            message="An unexpected error occurred",
+            data={"request_id": request_context.request_id}
+        ).model_dump()
     )
 
 # Add rate limiter to app state

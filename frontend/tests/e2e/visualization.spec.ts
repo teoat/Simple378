@@ -1,9 +1,35 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Visualization Page E2E Tests', () => {
+  let mockFinancialsResponse: any;
+
   test.beforeEach(async ({ page }) => {
+    // Default mock response
+    mockFinancialsResponse = {
+      total_inflow: 100000,
+      total_outflow: 50000,
+      net_cashflow: 50000,
+      suspect_transactions: 0,
+      risk_score: 10,
+      cashflow_data: [],
+      income_breakdown: {
+        income_sources: { id: '1', name: 'Income', amount: 80000, transactions: 10 },
+        mirror_transactions: { id: '2', name: 'Mirror', amount: 10000, transactions: 2 },
+        external_transfers: { id: '3', name: 'External', amount: 10000, transactions: 2 }
+      },
+      expense_breakdown: {
+        personal_expenses: { id: '4', name: 'Personal', amount: 10000, transactions: 5 },
+        operational_expenses: { id: '5', name: 'Ops', amount: 30000, transactions: 10 },
+        project_expenses: { id: '6', name: 'Project', amount: 10000, transactions: 2 }
+      },
+      milestones: [],
+      fraud_indicators: []
+    };
+
     // Mock APIs to ensure page loads
+    // ... auth mock ...
     await page.route('**/auth/me', async (route) => {
+      // ... existing auth mock ...
       await route.fulfill({
         status: 200,
         body: JSON.stringify({
@@ -15,29 +41,10 @@ test.describe('Visualization Page E2E Tests', () => {
       });
     });
 
-    await page.route('**/cases/*/financials', async (route) => {
+    await page.route('**/cases/MOCK_CASE_ID/financials', async (route) => {
       await route.fulfill({
         status: 200,
-        body: JSON.stringify({
-          total_inflow: 100000,
-          total_outflow: 50000,
-          net_cashflow: 50000,
-          suspect_transactions: 0,
-          risk_score: 10,
-          cashflow_data: [],
-          income_breakdown: {
-            income_sources: { id: '1', name: 'Income', amount: 80000, transactions: 10 },
-            mirror_transactions: { id: '2', name: 'Mirror', amount: 10000, transactions: 2 },
-            external_transfers: { id: '3', name: 'External', amount: 10000, transactions: 2 }
-          },
-          expense_breakdown: {
-            personal_expenses: { id: '4', name: 'Personal', amount: 10000, transactions: 5 },
-            operational_expenses: { id: '5', name: 'Ops', amount: 30000, transactions: 10 },
-            project_expenses: { id: '6', name: 'Project', amount: 10000, transactions: 2 }
-          },
-          milestones: [],
-          fraud_indicators: []
-        })
+        body: JSON.stringify(mockFinancialsResponse)
       });
     });
 
@@ -210,8 +217,8 @@ test.describe('Visualization Page E2E Tests', () => {
 
   test('should display milestone with details', async ({ page }) => {
     const caseId = 'MILESTONE_CASE_ID';
-    // Mock API with milestone data
-    await page.route(`**/cases/${caseId}/financials`, async (route) => {
+    // Mock API with milestone data - using Regex to ensure match
+    await page.route(new RegExp(`cases/${caseId}/financials`), async (route) => {
       await route.fulfill({
         status: 200,
         body: JSON.stringify({
@@ -241,15 +248,15 @@ test.describe('Visualization Page E2E Tests', () => {
     await page.locator('button:has-text("Milestone Tracker")').click();
     
     // Verify milestone details
-    await expect(page.locator('text=Initial Deposit')).toBeVisible();
-    await expect(page.locator('text=Phase 1')).toBeVisible();
-    await expect(page.locator('text=$500,000')).toBeVisible();
+    await expect(page.locator('text=Initial Deposit').first()).toBeVisible();
+    await expect(page.locator('text=Phase 1').first()).toBeVisible();
+    await expect(page.locator('text=$500,000').first()).toBeVisible();
   });
 
   test('should display fraud indicators with severity', async ({ page }) => {
     const caseId = 'FRAUD_CASE_ID';
-    // Mock API with fraud data
-    await page.route(`**/cases/${caseId}/financials`, async (route) => {
+    // Mock API with fraud data - using Regex
+    await page.route(new RegExp(`cases/${caseId}/financials`), async (route) => {
       await route.fulfill({
         status: 200,
         body: JSON.stringify({
@@ -288,15 +295,15 @@ test.describe('Visualization Page E2E Tests', () => {
     await page.locator('button:has-text("Fraud")').click();
     
     // Verify fraud indicators
-    await expect(page.locator('text=Structuring')).toBeVisible();
-    await expect(page.locator('text=Velocity')).toBeVisible();
-    await expect(page.locator('text=75')).toBeVisible();  // Risk score
+    await expect(page.locator('text=Structuring').first()).toBeVisible();
+    await expect(page.locator('text=Velocity').first()).toBeVisible();
+    await expect(page.locator('text=75').first()).toBeVisible();  // Risk score
   });
 
   test('should handle API errors gracefully', async ({ page }) => {
     const errorCaseId = 'ERROR_CASE_ID';
-    // Mock API error specific to this case
-    await page.route(`**/cases/${errorCaseId}/financials`, async (route) => {
+    // Mock API error specific to this case - using Regex
+    await page.route(new RegExp(`cases/${errorCaseId}/financials`), async (route) => {
       await route.fulfill({
         status: 500,
         body: JSON.stringify({ detail: 'Internal server error' })
@@ -306,14 +313,39 @@ test.describe('Visualization Page E2E Tests', () => {
     await page.goto(`/visualization/${errorCaseId}`);
     
     // Verify error state
-    await expect(page.locator('text=Error')).toBeVisible();
+    await expect(page.locator('[data-testid="error-state"]')).toBeVisible({ timeout: 15000 });
   });
-});
 
-test.describe.skip('Phase Control Panel E2E Tests', () => {
+
+test.describe('Phase Control Panel E2E Tests', () => {
   test('should show mark complete button for pending milestones', async ({ page }) => {
-    // Set up page with pending milestone
-    await page.goto('/cases/MOCK_CASE_ID/milestones/MOCK_MILESTONE_ID');
+    // Update mock data
+    mockFinancialsResponse.milestones = [
+      {
+        id: 'pending-1',
+        name: 'Pending Milestone',
+        date: '2024-02-15',
+        amount: 50000,
+        status: 'pending',
+        phase: 'Phase 2',
+        description: 'Next phase funding'
+      }
+    ];
+
+    // Reload to fetch with new mock
+    await page.reload();
+    
+    // Wait for loading to finish
+    await page.waitForTimeout(1000); // Give React request time to start
+    await expect(page.locator('[data-testid="kpi-card"]').first()).toBeVisible({ timeout: 10000 });
+
+    await page.locator('button:has-text("Milestone Tracker")').click();
+    
+    // Click the milestone to open modal
+    await page.locator('text=Pending Milestone').first().click();
+
+    // Verify Modal Title
+    await expect(page.locator('text=Manage Milestone Phase')).toBeVisible();
     
     // Verify "Mark Phase as Complete" button is visible
     const markCompleteButton = page.locator('button:has-text("Mark Phase as Complete")');
@@ -321,20 +353,46 @@ test.describe.skip('Phase Control Panel E2E Tests', () => {
   });
 
   test('should show completion form when mark complete is clicked', async ({ page }) => {
-    await page.goto('/cases/MOCK_CASE_ID/milestones/MOCK_MILESTONE_ID');
+    mockFinancialsResponse.milestones = [
+      {
+        id: 'pending-2',
+        name: 'Milestone to Complete',
+        date: '2024-02-15',
+        amount: 50000,
+        status: 'pending',
+        phase: 'Phase 2'
+      }
+    ];
+
+    await page.reload();
+    await page.locator('button:has-text("Milestone Tracker")').click();
+    await page.locator('text=Milestone to Complete').first().click();
     
     const markCompleteButton = page.locator('button:has-text("Mark Phase as Complete")');
     await markCompleteButton.click();
     
     // Verify form elements appear
     await expect(page.locator('textarea[placeholder*="notes"]')).toBeVisible();
-    await expect(page.locator('text=Supporting Evidence')).toBeVisible();
+    await expect(page.locator('text=Supporting Evidence (Optional)')).toBeVisible();
     await expect(page.locator('button:has-text("Confirm Completion")')).toBeVisible();
     await expect(page.locator('button:has-text("Cancel")')).toBeVisible();
   });
 
   test('should allow canceling completion', async ({ page }) => {
-    await page.goto('/cases/MOCK_CASE_ID/milestones/MOCK_MILESTONE_ID');
+    mockFinancialsResponse.milestones = [
+      {
+        id: 'pending-3',
+        name: 'Milestone to Cancel',
+        date: '2024-02-15',
+        amount: 50000,
+        status: 'pending',
+        phase: 'Phase 2'
+      }
+    ];
+
+    await page.reload();
+    await page.locator('button:has-text("Milestone Tracker")').click();
+    await page.locator('text=Milestone to Cancel').first().click();
     
     // Click mark complete
     await page.locator('button:has-text("Mark Phase as Complete")').click();
@@ -342,8 +400,9 @@ test.describe.skip('Phase Control Panel E2E Tests', () => {
     // Click cancel
     await page.locator('button:has-text("Cancel")').click();
     
-    // Verify form is hidden
+    // Verify form is hidden and we are back to initial state
     await expect(page.locator('button:has-text("Mark Phase as Complete")' )).toBeVisible();
     await expect(page.locator('button:has-text("Confirm Completion")')).not.toBeVisible();
   });
+});
 });

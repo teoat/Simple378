@@ -80,7 +80,12 @@ async def forecast_risk_score(
     Forecast future risk scores for a case.
     """
     try:
-        forecast = await predictive_service.forecast_risk_score(db, case_id, days_ahead)
+        forecast = await predictive_service.forecast_risk_score(
+            db, 
+            case_id, 
+            days_ahead, 
+            tenant_id=current_user.tenant_id
+        )
         return RiskForecast(**forecast)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Forecast failed: {str(e)}")
@@ -95,7 +100,11 @@ async def estimate_resources(
     Estimate resource requirements for case resolution.
     """
     try:
-        estimate = await predictive_service.estimate_resource_requirements(db, case_id)
+        estimate = await predictive_service.estimate_resource_requirements(
+            db, 
+            case_id, 
+            tenant_id=current_user.tenant_id
+        )
         return ResourceEstimate(**estimate)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Resource estimation failed: {str(e)}")
@@ -110,7 +119,11 @@ async def get_pattern_alerts(
     Get pattern-based alerts for a case.
     """
     try:
-        alerts = await predictive_service.detect_pattern_alerts(db, case_id)
+        alerts = await predictive_service.detect_pattern_alerts(
+            db, 
+            case_id, 
+            tenant_id=current_user.tenant_id
+        )
         return [PatternAlert(**alert) for alert in alerts]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Alert detection failed: {str(e)}")
@@ -147,7 +160,8 @@ async def simulate_scenario(
         result = await predictive_service.simulate_scenario(
             db,
             simulation.scenario_type,
-            simulation.parameters
+            simulation.parameters,
+            tenant_id=current_user.tenant_id
         )
         return result
     except Exception as e:
@@ -167,7 +181,7 @@ async def simulate_what_if(
         result = await predictive_service.simulate_scenario(db, "what_if", {
             "scenario": scenario,
             "changes": changes
-        })
+        }, tenant_id=current_user.tenant_id)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"What-if simulation failed: {str(e)}")
@@ -186,7 +200,7 @@ async def simulate_burn_rate(
         result = await predictive_service.simulate_scenario(db, "burn_rate", {
             "case_load": case_load,
             "avg_resolution_time": avg_resolution_time
-        })
+        }, tenant_id=current_user.tenant_id)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Burn rate simulation failed: {str(e)}")
@@ -205,7 +219,7 @@ async def simulate_vendor_stress(
         result = await predictive_service.simulate_scenario(db, "vendor_stress", {
             "vendor_id": vendor_id,
             "stress_factor": stress_factor
-        })
+        }, tenant_id=current_user.tenant_id)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Vendor stress simulation failed: {str(e)}")
@@ -222,7 +236,7 @@ async def simulate_dependency_risk(
     try:
         result = await predictive_service.simulate_scenario(db, "dependency_risk", {
             "dependencies": dependencies
-        })
+        }, tenant_id=current_user.tenant_id)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Dependency risk simulation failed: {str(e)}")

@@ -307,21 +307,30 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         
-      - name: Login to Container Registry
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}/backend
+          images: |
+            ghcr.io/${{ github.repository }}/backend
+            ${{ secrets.DOCKERHUB_USERNAME }}/fraud-detection-backend
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || github.ref == 'refs/heads/main' }}
             
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -345,21 +354,30 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         
-      - name: Login to Container Registry
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}/frontend
+          images: |
+            ghcr.io/${{ github.repository }}/frontend
+            ${{ secrets.DOCKERHUB_USERNAME }}/fraud-detection-frontend
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || github.ref == 'refs/heads/main' }}
             
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -387,15 +405,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Deploy to staging
+      - name: Set up Kubeconfig
         run: |
-          echo "Deploying to staging environment..."
-          # Add deployment commands here (e.g., kubectl, helm, terraform)
-          
+          # Configure kubectl for your staging cluster
+          # Example: echo "${{ secrets.KUBE_CONFIG_STAGING }}" > ~/.kube/config
+          mkdir -p ~/.kube
+          echo "$KUBE_CONFIG_STAGING" | base64 --decode > ~/.kube/config
+          chmod 600 ~/.kube/config
+        env:
+          KUBE_CONFIG_STAGING: ${{ secrets.KUBE_CONFIG_STAGING }}
+
+      - name: Deploy Backend to Staging
+        run: |
+          # Replace with actual deployment command for your backend
+          kubectl set image deployment/backend-app backend-container=ghcr.io/${{ github.repository }}/backend:${{ needs.build-backend.outputs.tags }} -n staging
+          echo "Deployment to staging triggered. Check Kubernetes dashboard for status."
+        env:
+          # Pass any required environment variables to your deployment, e.g., image tags
+          BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend:${{ needs.build-backend.outputs.tags }}
+          # Example of passing a secret: DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+
+      - name: Deploy Frontend to Staging
+        run: |
+          # Replace with actual deployment command for your frontend
+          kubectl set image deployment/frontend-app frontend-container=ghcr.io/${{ github.repository }}/frontend:${{ needs.build-frontend.outputs.tags }} -n staging
+        env:
+          FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend:${{ needs.build-frontend.outputs.tags }}
+
       - name: Run smoke tests
         run: |
           echo "Running smoke tests..."
-          # Add smoke test commands
+          # Add actual smoke test commands here, e.g., curl https://staging.mens-rea.example.com/health
+          # If smoke tests fail, consider triggering a rollback
+          echo "Smoke tests passed for staging."
           
       - name: Notify deployment
         uses: 8398a7/action-slack@v3
@@ -416,15 +458,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Deploy to production
+      - name: Set up Kubeconfig
         run: |
-          echo "Deploying to production environment..."
-          # Add deployment commands here
-          
+          # Configure kubectl for your production cluster
+          # Example: echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" > ~/.kube/config
+          mkdir -p ~/.kube
+          echo "$KUBE_CONFIG_PRODUCTION" | base64 --decode > ~/.kube/config
+          chmod 600 ~/.kube/config
+        env:
+          KUBE_CONFIG_PRODUCTION: ${{ secrets.KUBE_CONFIG_PRODUCTION }}
+
+      - name: Deploy Backend to Production
+        run: |
+          # Replace with actual deployment command for your backend
+          kubectl set image deployment/backend-app backend-container=ghcr.io/${{ github.repository }}/backend:${{ needs.build-backend.outputs.tags }} -n production
+          echo "Deployment to production triggered. Check Kubernetes dashboard for status."
+        env:
+          BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend:${{ needs.build-backend.outputs.tags }}
+          # Example of passing a secret: DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+
+      - name: Deploy Frontend to Production
+        run: |
+          # Replace with actual deployment command for your frontend
+          kubectl set image deployment/frontend-app frontend-container=ghcr.io/${{ github.repository }}/frontend:${{ needs.build-frontend.outputs.tags }} -n production
+        env:
+          FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend:${{ needs.build-frontend.outputs.tags }}
+
       - name: Run smoke tests
         run: |
           echo "Running smoke tests..."
-          # Add smoke test commands
+          # Add actual smoke test commands here, e.g., curl https://mens-rea.example.com/health
+          # If smoke tests fail, consider triggering a rollback
+          echo "Smoke tests passed for production."
           
       - name: Notify deployment
         uses: 8398a7/action-slack@v3

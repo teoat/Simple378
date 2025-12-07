@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Dict, Any, Optional, List
 
 class DomainEventBase(BaseModel):
@@ -20,8 +20,7 @@ class DomainEventCreate(DomainEventBase):
 class DomainEvent(DomainEventBase):
     id: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class SyncRequest(BaseModel):
     events: List[DomainEvent]

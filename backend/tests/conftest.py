@@ -11,7 +11,7 @@ os.environ["ENABLE_OTEL"] = "false"
 os.environ["TESTING"] = "true"
 import asyncio
 from typing import AsyncGenerator
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -76,14 +76,29 @@ async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """
     Create test client with overridden database dependency.
     """
-    from app.api import deps
+    import app.api.deps
+    from app.db.models import User
+    import uuid
     
     async def override_get_db():
         yield db
     
-    fastapi_app.dependency_overrides[deps.get_db] = override_get_db
+    async def override_get_current_user():
+        # Return a mock admin user
+        return User(
+            id=uuid.uuid4(),
+            email="test@example.com",
+            full_name="Test User",
+            hashed_password="hashed_password",
+            role="admin"
+        )
     
-    async with AsyncClient(app=fastapi_app, base_url="http://test") as ac:
+    print(f"DEBUG: Overriding get_db: {app.api.deps.get_db}")
+    print(f"DEBUG: Overriding get_current_user: {app.api.deps.get_current_user}")
+    fastapi_app.dependency_overrides[app.api.deps.get_db] = override_get_db
+    fastapi_app.dependency_overrides[app.api.deps.get_current_user] = override_get_current_user
+    
+    async with AsyncClient(transport=ASGITransport(app=fastapi_app), base_url="http://test") as ac:
         yield ac
     
     fastapi_app.dependency_overrides.clear()

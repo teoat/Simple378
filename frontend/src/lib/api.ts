@@ -69,7 +69,7 @@ export async function apiRequest<T = any>(
   const response = await fetch(url, requestOptions);
 
   if (!response.ok) {
-    const errorText = await response.text().catch(() => 'Unknown error');
+    await response.text().catch(() => 'Unknown error');
     throw new Error(`API request failed: ${response.status} ${response.statusText}`);
   }
 

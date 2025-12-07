@@ -213,7 +213,7 @@ export function Login() {
         <p className="text-center text-slate-500 text-sm mt-8">
           © 2025 Simple378. All rights reserved.
         </p>
-      </div>
+      </main>
     </div>
   );
 }

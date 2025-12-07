@@ -1,5 +1,13 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import { LoadBalancer } from '../hooks/useScaling';
+import { APIResponse, FrontendAPIError } from '../types/api.d'; // Import new types
+
+// Extend AxiosRequestConfig to include custom properties
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    _retry?: boolean;
+  }
+}
 
 /**
  * Enhanced API client with load balancing and distributed caching
@@ -43,16 +51,24 @@ export class ScalableApiClient {
     this.client.interceptors.request.use(
       async (config) => {
         // Add auth token if available
-        const secureToken = localStorage.getItem('auth_token');
+        const secureToken = localStorage.getItem('token'); // Use 'token' for consistency
         if (secureToken) {
           try {
             const tokenData = JSON.parse(atob(secureToken)) as TokenData;
             // Check expiry
             if (tokenData.expires > Date.now()) {
               config.headers.Authorization = `Bearer ${tokenData.token}`;
+            } else {
+              // Token expired, trigger logout
+              window.dispatchEvent(new CustomEvent('auth-error', {
+                detail: { status: 401, message: 'Token expired' }
+              }));
             }
           } catch (e) {
-            // Invalid token, ignore
+            // Invalid token, trigger logout
+            window.dispatchEvent(new CustomEvent('auth-error', {
+              detail: { status: 401, message: 'Invalid token format' }
+            }));
           }
         }
 
@@ -79,10 +95,23 @@ export class ScalableApiClient {
         if (response.config.method === 'get' && response.config.url) {
           this.setCacheEntry(response.config.url, response.data);
         }
-        return response;
+
+        // Always expect APIResponse structure for successful calls
+        const apiResponse = response.data as APIResponse;
+        if (apiResponse && apiResponse.status === false) {
+          // If backend indicates an error, throw FrontendAPIError
+          throw new FrontendAPIError(
+            apiResponse.message || 'Unknown API error',
+            apiResponse.code || response.status,
+            false,
+            apiResponse.data
+          );
+        }
+        return response; // Return the full response, data will be response.data.data
       },
-      async (error) => {
+      async (error: AxiosError) => {
         const config = error.config;
+        const responseData = error.response?.data as APIResponse;
 
         // If GET request failed, try in-memory cache
         if (config?.method === 'get') {
@@ -94,17 +123,27 @@ export class ScalableApiClient {
         }
 
         // If server error and has backup, try next server
-        if (error.response?.status >= 500 && config && this.servers.length > 1) {
+        if (error.response?.status && error.response.status >= 500 && config && this.servers.length > 1 && !config._retry) {
           const nextServer = this.loadBalancer.getNextServer();
           if (nextServer !== config.baseURL) {
             console.log('[ScalableApi] Retrying with server:', nextServer);
             config.baseURL = nextServer;
-            config._retry = true;
+            config._retry = true; // Mark as retried to prevent infinite loops
             return this.client(config);
           }
         }
 
-        return Promise.reject(error);
+        // Centralized error handling for non-2xx responses
+        const errorMessage = responseData?.message || error.message || 'Network Error';
+        const errorCode = responseData?.code || error.response?.status || 500;
+        const errorData = responseData?.data || null;
+
+        throw new FrontendAPIError(
+          errorMessage,
+          errorCode,
+          false, // Backend status is false for errors
+          errorData
+        );
       }
     );
   }
@@ -155,28 +194,37 @@ export class ScalableApiClient {
   }
 
   async get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.get<T>(url, config);
-    return response.data;
+    const response = await this.client.get(url, config);
+    return this.unwrapResponse<T>(response.data);
   }
 
   async post<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.post<T>(url, data, config);
-    return response.data;
+    const response = await this.client.post(url, data, config);
+    return this.unwrapResponse<T>(response.data);
   }
 
   async put<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.put<T>(url, data, config);
-    return response.data;
+    const response = await this.client.put(url, data, config);
+    return this.unwrapResponse<T>(response.data);
   }
 
   async patch<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.patch<T>(url, data, config);
-    return response.data;
+    const response = await this.client.patch(url, data, config);
+    return this.unwrapResponse<T>(response.data);
   }
 
   async delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.delete<T>(url, config);
-    return response.data;
+    const response = await this.client.delete(url, config);
+    return this.unwrapResponse<T>(response.data);
+  }
+
+  private unwrapResponse<T>(data: any): T {
+    // If the response is wrapped in APIResponse format, return the inner data
+    if (data && typeof data === 'object' && 'data' in data && 'status' in data) {
+      return data.data as T;
+    }
+    // Otherwise return as is
+    return data as T;
   }
 
   /**
@@ -227,3 +275,4 @@ if (BACKUP_URL) {
 export const scalableApi = new ScalableApiClient(serverList);
 
 export default scalableApi;
+

@@ -17,6 +17,8 @@ import { MilestoneTracker } from '../components/visualization/MilestoneTracker';
 import { FraudDetectionPanel } from '../components/visualization/FraudDetectionPanel';
 import { VisualizationDashboard } from '../components/visualization/VisualizationDashboard';
 import { VisualizationNetwork, GraphData, FinancialData } from '../components/visualization/VisualizationNetwork';
+import { Modal } from '../components/ui/Modal';
+import { PhaseControlPanel } from '../components/visualization/PhaseControlPanel';
 import { api } from '../lib/api';
 
 type ViewType = 'cashflow' | 'milestones' | 'fraud' | 'graphs';
@@ -69,9 +71,10 @@ interface FullFinancialData extends FinancialData {
 export function Visualization() {
   const { caseId } = useParams<{ caseId: string }>();
   const [view, setView] = useState<ViewType>('cashflow');
+  const [selectedMilestone, setSelectedMilestone] = useState<FullFinancialData['milestones'][0] | null>(null);
 
   // Fetch financial visualization data
-  const { data, isLoading, refetch } = useQuery<FullFinancialData>({
+  const { data, isLoading, isError, error, refetch } = useQuery<FullFinancialData>({
     queryKey: ['visualization', caseId],
     queryFn: () => api.get<FullFinancialData>(`/cases/${caseId}/financials`),
     enabled: !!caseId
@@ -171,6 +174,25 @@ export function Visualization() {
         <div className="text-center">
           <RefreshCw className="h-12 w-12 animate-spin text-blue-500 mx-auto mb-4" />
           <p className="text-slate-600 dark:text-slate-400">Loading visualization...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center" data-testid="error-state">
+        <div className="text-center">
+          <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            Error loading data
+          </h3>
+          <p className="text-slate-500 mt-2">
+            {(error as Error)?.message || 'Failed to load visualization data'}
+          </p>
+          <Button variant="outline" className="mt-4" onClick={() => refetch()}>
+            Try Again
+          </Button>
         </div>
       </div>
     );
@@ -295,22 +317,39 @@ export function Visualization() {
           )}
 
           {view === 'milestones' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-purple-500" />
-                  Financial Milestones
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MilestoneTracker 
-                  milestones={data?.milestones}
-                  onMilestoneClick={(milestone) => {
-                    console.log('Clicked milestone:', milestone);
-                  }}
-                />
-              </CardContent>
-            </Card>
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-purple-500" />
+                    Financial Milestones
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MilestoneTracker 
+                    milestones={data?.milestones}
+                    onMilestoneClick={(milestone) => setSelectedMilestone(milestone)}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Milestone Action Modal */}
+              <Modal
+                isOpen={!!selectedMilestone}
+                onClose={() => setSelectedMilestone(null)}
+                title="Manage Milestone Phase"
+              >
+                {selectedMilestone && (
+                  <PhaseControlPanel 
+                    milestone={selectedMilestone} 
+                    onStatusUpdate={() => {
+                      refetch();
+                      setSelectedMilestone(null);
+                    }} 
+                  />
+                )}
+              </Modal>
+            </>
           )}
 
           {view === 'fraud' && (

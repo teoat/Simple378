@@ -7,10 +7,14 @@ class AppException(Exception):
         self,
         status_code: int,
         detail: str,
+        code: int = 1, # Default error code
+        data: Optional[Any] = None,
         headers: Optional[Dict[str, Any]] = None,
     ):
         self.status_code = status_code
         self.detail = detail
+        self.code = code
+        self.data = data
         self.headers = headers
 
 class NotFoundException(AppException):

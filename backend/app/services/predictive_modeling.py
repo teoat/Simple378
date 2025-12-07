@@ -52,13 +52,14 @@ class PredictiveModelingService:
         self,
         db: AsyncSession,
         case_id: str,
-        days_ahead: int = 30
+        days_ahead: int = 30,
+        tenant_id: Optional[Any] = None
     ) -> Dict[str, Any]:
         """
         Forecast future risk scores based on current trends and patterns.
         """
         # Get risk score history
-        risk_history = await self._get_risk_history(db, case_id)
+        risk_history = await self._get_risk_history(db, case_id, tenant_id=tenant_id)
 
         if len(risk_history) < 2:
             return {
@@ -76,12 +77,13 @@ class PredictiveModelingService:
     async def estimate_resource_requirements(
         self,
         db: AsyncSession,
-        case_id: str
+        case_id: str,
+        tenant_id: Optional[Any] = None
     ) -> Dict[str, Any]:
         """
         Estimate resource requirements (time, personnel, budget) for case resolution.
         """
-        case_data = await self._get_case_data(db, case_id)
+        case_data = await self._get_case_data(db, case_id, tenant_id=tenant_id)
 
         if not case_data:
             return {
@@ -102,12 +104,13 @@ class PredictiveModelingService:
     async def detect_pattern_alerts(
         self,
         db: AsyncSession,
-        case_id: str
+        case_id: str,
+        tenant_id: Optional[Any] = None
     ) -> List[Dict[str, Any]]:
         """
         Detect patterns that should trigger alerts based on case data.
         """
-        case_data = await self._get_case_data(db, case_id)
+        case_data = await self._get_case_data(db, case_id, tenant_id=tenant_id)
 
         if not case_data:
             return []
@@ -145,7 +148,8 @@ class PredictiveModelingService:
         self,
         db: AsyncSession,
         scenario_type: str,
-        parameters: Dict[str, Any]
+        parameters: Dict[str, Any],
+        tenant_id: Optional[Any] = None
     ) -> Dict[str, Any]:
         """
         Run scenario simulations (what-if analysis, burn rate, vendor stress testing, etc.)
@@ -298,7 +302,12 @@ Return your analysis as JSON with these fields:
                 "recommendations": ["Manual review required"]
             }
 
-    async def _get_risk_history(self, db: AsyncSession, case_id: str) -> List[Tuple[datetime, float]]:
+    async def _get_risk_history(
+        self, 
+        db: AsyncSession, 
+        case_id: str, 
+        tenant_id: Optional[Any] = None
+    ) -> List[Tuple[datetime, float]]:
         """Get historical risk scores for a case."""
         try:
             case_uuid = UUID(case_id)
@@ -306,11 +315,12 @@ Return your analysis as JSON with these fields:
             return []
 
         # Get all analysis results for this case
-        result = await db.execute(
-            select(AnalysisResult)
-            .where(AnalysisResult.subject_id == case_uuid)
-            .order_by(AnalysisResult.created_at)
-        )
+        query = select(AnalysisResult).join(Subject).where(AnalysisResult.subject_id == case_uuid)
+        
+        if tenant_id:
+            query = query.where(Subject.tenant_id == tenant_id)
+            
+        result = await db.execute(query.order_by(AnalysisResult.created_at))
         analyses = result.scalars().all()
 
         return [(a.created_at, a.risk_score) for a in analyses if a.created_at and a.risk_score is not None]

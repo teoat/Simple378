@@ -33,7 +33,6 @@ jobs:
           poetry install
           poetry add --group dev safety
           poetry run safety check --json --output safety-report.json
-        continue-on-error: true
         
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -44,7 +43,7 @@ jobs:
         working-directory: ./frontend
         run: |
           npm ci
-          npm audit --json > npm-audit-report.json || true
+          npm audit --json > npm-audit-report.json
           
       - name: Upload audit reports
         uses: actions/upload-artifact@v3

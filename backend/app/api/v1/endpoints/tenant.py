@@ -9,7 +9,7 @@ from typing import Dict, List, Optional
 from app.schemas.tenant import TenantCreate, TenantUpdate, TenantResponse, TenantConfigUpdate
 from app.api import deps
 # from app.core.auth import get_current_user # Fixed bad import
-from app.db.base import get_db
+from app.db.session import get_db
 from app.db.models import User
 import os
 from datetime import datetime

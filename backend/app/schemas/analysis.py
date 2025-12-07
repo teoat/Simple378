@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 class HeuristicRule(BaseModel):
     id: str
@@ -16,7 +16,7 @@ class RuleResult(BaseModel):
     triggered: bool
     context: Dict[str, Any] = {}
     severity: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class RiskForecastRequest(BaseModel):
     subject_id: str
@@ -60,8 +60,7 @@ class AnalysisResultResponse(BaseModel):
     reviewer_notes: Optional[str] = None
     reviewer_id: Optional[str] = None
     
-    class Config:
-        from_attributes = True  # Allows conversion from ORM models
+    model_config = ConfigDict(from_attributes=True)  # Allows conversion from ORM models
 
 class AnalysisResult(BaseModel):
     """Schema for analysis evaluation results"""
