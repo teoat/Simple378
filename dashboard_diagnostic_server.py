@@ -8,6 +8,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
 import uvicorn
+import base64
+import json
 
 app = FastAPI(title="Dashboard Diagnostic Server")
 
@@ -27,13 +29,8 @@ async def health_check():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
 
-@app.post("/api/v1/login")
-async def login(credentials: dict):
-    """Mock login endpoint - accepts any credentials"""
-    # Mock JWT token (base64 encoded JSON)
-    import base64
-    import json
-    
+def create_mock_login_response(credentials: dict) -> dict:
+    """Create a mock login response with JWT token"""
     token_data = {
         "token": "mock-jwt-token-for-testing",
         "expires": int((datetime.utcnow() + timedelta(hours=24)).timestamp() * 1000)
@@ -49,30 +46,18 @@ async def login(credentials: dict):
             "role": "admin"
         }
     }
+
+
+@app.post("/api/v1/login")
+async def login(credentials: dict):
+    """Mock login endpoint - accepts any credentials"""
+    return create_mock_login_response(credentials)
 
 
 @app.post("/auth/login")
 async def auth_login(credentials: dict):
     """Mock auth login endpoint - accepts any credentials"""
-    # Mock JWT token (base64 encoded JSON)
-    import base64
-    import json
-    
-    token_data = {
-        "token": "mock-jwt-token-for-testing",
-        "expires": int((datetime.utcnow() + timedelta(hours=24)).timestamp() * 1000)
-    }
-    
-    return {
-        "access_token": base64.b64encode(json.dumps(token_data).encode()).decode(),
-        "token_type": "bearer",
-        "user": {
-            "id": "1",
-            "email": credentials.get("email", "test@example.com"),
-            "full_name": "Test User",
-            "role": "admin"
-        }
-    }
+    return create_mock_login_response(credentials)
 
 
 @app.get("/api/v1/dashboard/metrics")
