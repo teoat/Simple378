@@ -1,0 +1,35 @@
+# AntiGravity AI Automation Configuration
+# Integrated with Frenly AI for intelligent automation
+
+# Frenly AI Configuration
+FRENLY_API_URL=http://localhost:8000
+FRENLY_PERSONA=analyst
+FRENLY_TIMEOUT=30
+
+# Automation Settings
+AUTO_FIX_CRITICAL=true
+AUTO_PERFORMANCE_OPT=true
+AUTO_SECURITY_ENHANCE=true
+AUTO_ACCESSIBILITY=true
+AUTO_OFFLINE_SUPPORT=true
+AUTO_ERROR_HANDLING=true
+AUTO_E2E_TESTING=true
+
+# Decision Making
+AI_DECISION_ENABLED=true
+RULE_BASED_FALLBACK=true
+MAX_CONCURRENT_TASKS=3
+
+# Logging
+LOG_LEVEL=INFO
+LOG_TO_FILE=true
+LOG_TO_CONSOLE=true
+
+# Safety Settings
+CONFIRM_DESTRUCTIVE_ACTIONS=true
+BACKUP_BEFORE_CHANGES=true
+ROLLBACK_ON_FAILURE=true
+
+# Performance
+TASK_TIMEOUT_SECONDS=300
+SYSTEM_ANALYSIS_INTERVAL=60

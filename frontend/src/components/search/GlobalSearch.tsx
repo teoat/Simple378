@@ -55,8 +55,8 @@ export function GlobalSearch({
   // Search query
   const { data: searchResults, isLoading } = useQuery<SearchResponse>({
     queryKey: ['search', query, selectedFilters],
-    queryFn: async () => {
-      const response = await api.post<SearchResponse>('/search/advanced-search', {
+    queryFn: async (): Promise<SearchResponse> => {
+      return api.post<SearchResponse>('/search/advanced-search', {
         query,
         index: 'all',
         limit: 10,
@@ -64,7 +64,6 @@ export function GlobalSearch({
           type: selectedFilters
         } : null
       });
-      return response;
     },
     enabled: query.length > 2,
     staleTime: 30000 // 30 seconds
@@ -73,9 +72,9 @@ export function GlobalSearch({
   // Search suggestions
   const { data: suggestions } = useQuery<string[]>({
     queryKey: ['search-suggestions', query],
-    queryFn: async () => {
+    queryFn: async (): Promise<string[]> => {
       const response = await api.get<{ suggestions: string[] }>(`/search/suggestions?q=${encodeURIComponent(query)}`);
-      return response.suggestions || []; 
+      return response.suggestions || [];
     },
     enabled: query.length > 1 && query.length < 3,
     staleTime: 60000 // 1 minute
@@ -84,7 +83,7 @@ export function GlobalSearch({
   // Search presets
   const { data: presets } = useQuery<SearchPreset[]>({
     queryKey: ['search-presets'],
-    queryFn: () => api.get<SearchPreset[]>('/search/presets'),
+    queryFn: (): Promise<SearchPreset[]> => api.get<SearchPreset[]>('/search/presets'),
     staleTime: 300000 // 5 minutes
   });
 
@@ -221,7 +220,7 @@ export function GlobalSearch({
               {/* Facets */}
               {showFacets && searchResults?.facets && (
                 <div className="space-y-2">
-                  {Object.entries(searchResults.facets).map(([indexName, facets]) => (
+                  {Object.entries(searchResults.facets as Record<string, Record<string, Record<string, number>>>).map(([indexName, facets]) => (
                     <div key={indexName} className="text-xs">
                       <div className="font-medium text-slate-700 dark:text-slate-300 mb-1 capitalize">
                         {indexName} Filters:
@@ -262,9 +261,9 @@ export function GlobalSearch({
 
           {/* Search Results */}
           {!isLoading && searchResults?.hits && (
-            <div className="max-h-80 overflow-y-auto">
-              {searchResults.hits.length > 0 ? (
-                searchResults.hits.map((result: SearchResult) => (
+              <div className="space-y-1">
+                {(searchResults.hits as SearchResult[]).length > 0 ? (
+                (searchResults.hits as SearchResult[]).map((result: SearchResult) => (
                   <button
                     key={`${result._index}_${result.id}`}
                     onClick={() => handleResultClick(result)}

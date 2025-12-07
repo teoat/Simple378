@@ -60,7 +60,11 @@ async def predict_case_outcome(
     Predict the outcome of a case using AI analysis.
     """
     try:
-        prediction = await predictive_service.predict_case_outcome(db, case_id)
+        prediction = await predictive_service.predict_case_outcome(
+            db, 
+            case_id,
+            tenant_id=current_user.tenant_id
+        )
         return CaseOutcomePrediction(**prediction)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
@@ -121,7 +125,11 @@ async def analyze_trends(
     Analyze trends across all cases for the specified time period.
     """
     try:
-        trends = await predictive_service.analyze_trends(db, time_period)
+        trends = await predictive_service.analyze_trends(
+            db, 
+            time_period, 
+            tenant_id=current_user.tenant_id
+        )
         return TrendAnalysis(**trends)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Trend analysis failed: {str(e)}")

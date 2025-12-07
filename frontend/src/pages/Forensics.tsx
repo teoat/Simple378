@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Search, Network, Eye, AlertTriangle, FileText, Clock, Brain, Link, FileSearch, Upload, ArrowRight, Loader2 } from 'lucide-react';
+import { Search, Network, Eye, AlertTriangle, FileText, Clock, Brain, Link, FileSearch, Upload, ArrowRight, Loader2, ShieldCheck } from 'lucide-react';
 import { apiRequest } from '../lib/api';
 import toast from 'react-hot-toast';
 import { ProcessingPipeline } from '../components/forensics/ProcessingPipeline';
@@ -13,12 +13,16 @@ interface ForensicEntity {
   risk_score: number;
   connections: number;
   last_activity: string;
+  entity_name_a?: string;
+  entity_name_b?: string;
+  similarity_score?: number;
+  reason?: string;
 }
 
 interface AnalysisResult {
   file_path: string;
   file_type: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   manipulation_analysis: {
     ela_score: number;
     is_suspicious: boolean;
@@ -27,11 +31,33 @@ interface AnalysisResult {
   summary: string;
 }
 
+interface GraphNode {
+  id: string;
+  name: string;
+  val: number;
+  color: string;
+}
+
+interface GraphLink {
+  source: string;
+  target: string;
+}
+
+interface EntityResolutionRequest {
+  entity_id: string;
+  search_criteria: Record<string, unknown>;
+}
+
+interface EntityResolutionResponse {
+  matches: ForensicEntity[];
+  confidence: number;
+}
+
 export function Forensics() {
   const [activeTab, setActiveTab] = useState<'entity' | 'document'>('entity');
   
   // Graph Refs
-  const fgRef = useRef<any>();
+  const fgRef = useRef<any>(null);
   const [graphDimensions, setGraphDimensions] = useState({ width: 0, height: 0 });
   const graphContainerRef = useRef<HTMLDivElement>(null);
 
@@ -41,10 +67,10 @@ export function Forensics() {
   // Entity Forensics State
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntity, setSelectedEntity] = useState<ForensicEntity | null>(null);
-  const [entityMatches, setEntityMatches] = useState<any[]>([]);
+  const [entityMatches, setEntityMatches] = useState<ForensicEntity[]>([]);
 
   // Calculate generic graph data based on selected entity
-  const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+  const [graphData, setGraphData] = useState<{ nodes: GraphNode[]; links: GraphLink[] }>({ nodes: [], links: [] });
 
   useEffect(() => {
     if (graphContainerRef.current) {
@@ -55,21 +81,29 @@ export function Forensics() {
     }
   }, [selectedEntity, activeTab]);
 
-  useEffect(() => {
-    if (selectedEntity) {
-      // Generate mock network for visualization
-      const nodes: any = [{ id: selectedEntity.id, name: selectedEntity.name, val: 20, color: '#3b82f6' }];
-      const links: any = [];
-      const connectionCount = Math.min(selectedEntity.connections, 10); // Limit for visual sanity
-      
-      for (let i = 0; i < connectionCount; i++) {
-        const id = `conn-${i}`;
-        nodes.push({ id, name: `Associate ${i+1}`, val: 10, color: '#64748b' });
-        links.push({ source: selectedEntity.id, target: id });
-      }
-      setGraphData({ nodes, links });
+  // Generate graph data when selectedEntity changes
+  const graphDataMemo = useMemo(() => {
+    if (!selectedEntity) {
+      return { nodes: [], links: [] };
     }
+
+    // Generate mock network for visualization
+    const nodes: GraphNode[] = [{ id: selectedEntity.id, name: selectedEntity.name, val: 20, color: '#3b82f6' }];
+    const links: GraphLink[] = [];
+    const connectionCount = Math.min(selectedEntity.connections, 10); // Limit for visual sanity
+
+    for (let i = 0; i < connectionCount; i++) {
+      const id = `conn-${i}`;
+      nodes.push({ id, name: `Associate ${i+1}`, val: 10, color: '#64748b' });
+      links.push({ source: selectedEntity.id, target: id });
+    }
+
+    return { nodes, links };
   }, [selectedEntity]);
+
+  useEffect(() => {
+    setGraphData(graphDataMemo);
+  }, [graphDataMemo]);
 
   // Entity Query
   const { data: entities, isLoading } = useQuery({
@@ -80,15 +114,15 @@ export function Forensics() {
 
   // AI Entity Resolution mutation
   const entityResolutionMutation = useMutation({
-    mutationFn: (entityData: any) => apiRequest('/forensics/entity-resolution', {
+    mutationFn: (entityData: EntityResolutionRequest) => apiRequest<EntityResolutionResponse>('/forensics/entity-resolution', {
       method: 'POST',
       body: JSON.stringify(entityData),
     }),
-    onSuccess: (data: any) => {
-      setEntityMatches(data);
+    onSuccess: (data: EntityResolutionResponse) => {
+      setEntityMatches(data.matches);
       toast.success('Entity resolution complete');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Entity resolution failed:', error);
       toast.error('Resolution failed');
     }
@@ -208,18 +242,21 @@ export function Forensics() {
               {/* AI Entity Resolution Button */}
               <button
                 onClick={() => {
-                  const entityData = {
-                    entities: displayEntities.map(e => ({
-                      id: e.id,
-                      name: e.name,
-                      type: e.type,
-                      aliases: [],
-                      context: `Risk score: ${e.risk_score}, connections: ${e.connections}`,
-                      metadata: { risk_score: e.risk_score, connections: e.connections }
-                    })),
-                    context_data: {
-                      investigation_type: 'fraud_detection',
-                      total_entities: displayEntities.length
+                  const entityData: EntityResolutionRequest = {
+                    entity_id: 'some-id',
+                    search_criteria: {
+                      entities: displayEntities.map(e => ({
+                        id: e.id,
+                        name: e.name,
+                        type: e.type,
+                        aliases: [],
+                        context: `Risk score: ${e.risk_score}, connections: ${e.connections}`,
+                        metadata: { risk_score: e.risk_score, connections: e.connections }
+                      })),
+                      context_data: {
+                        investigation_type: 'fraud_detection',
+                        total_entities: displayEntities.length
+                      }
                     }
                   };
                   entityResolutionMutation.mutate(entityData);
@@ -293,7 +330,7 @@ export function Forensics() {
                           <span className="font-medium">{match.entity_name_b}</span>
                         </div>
                         <span className="text-sm bg-blue-100 dark:bg-blue-500/20 px-2 py-1 rounded">
-                          {(match.similarity_score * 100).toFixed(0)}% match
+                          {((match.similarity_score || 0) * 100).toFixed(0)}% match
                         </span>
                       </div>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -343,7 +380,7 @@ export function Forensics() {
                          height={300}
                          graphData={graphData}
                          nodeLabel="name"
-                         nodeColor={(node: any) => node.color}
+                          nodeColor={(node: any) => node.color}
                          nodeRelSize={6}
                          linkColor={() => "#cbd5e1"}
                       />
@@ -471,11 +508,11 @@ export function Forensics() {
                                                     </div>
                                                     <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded">
                                                         <span className="block text-xs text-slate-400">Software</span>
-                                                        <span className="font-medium truncate">{analysisResult.metadata.Software || "N/A"}</span>
+                                                        <span className="font-medium truncate">{analysisResult.metadata.Software as string || "N/A"}</span>
                                                     </div>
                                                     <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded">
                                                         <span className="block text-xs text-slate-400">Created</span>
-                                                        <span className="font-medium truncate">{analysisResult.metadata.CreateDate || "Unknown"}</span>
+                                                        <span className="font-medium truncate">{analysisResult.metadata.CreateDate as string || "Unknown"}</span>
                                                     </div>
                                                     <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded">
                                                         <span className="block text-xs text-slate-400">ELA Score</span>

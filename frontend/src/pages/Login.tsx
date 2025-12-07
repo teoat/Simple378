@@ -18,11 +18,35 @@ export function Login() {
     setError('');
     setIsLoading(true);
 
+    // Client-side validation
+    if (!email.trim()) {
+      setError('Email is required');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!password.trim()) {
+      setError('Password is required');
+      setIsLoading(false);
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       await login(email, password);
       navigate('/dashboard');
-    } catch {
-      setError('Invalid email or password');
+    } catch (error) {
+      // Enhanced error handling with specific messages
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -30,29 +54,42 @@ export function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Skip to main content link for accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded-md z-50"
+      >
+        Skip to main content
+      </a>
+
       {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-md px-6">
+      <main id="main-content" className="relative w-full max-w-md px-6" role="main">
         {/* Logo / Brand */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4 shadow-lg">
+        <header className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4 shadow-lg" role="img" aria-label="Simple378 logo">
             <span className="text-2xl font-bold text-white">S</span>
           </div>
           <h1 className="text-2xl font-bold text-white">Simple378</h1>
           <p className="text-slate-400 mt-2">Fraud Detection Platform</p>
-        </div>
+        </header>
 
         {/* Login Card */}
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-xl font-semibold text-white mb-6">Sign in to your account</h2>
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl" role="region" aria-labelledby="login-heading">
+          <h2 id="login-heading" className="text-xl font-semibold text-white mb-6">Sign in to your account</h2>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate aria-describedby={error ? "login-error" : undefined}>
             {error && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+              <div
+                id="login-error"
+                className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm"
+                role="alert"
+                aria-live="polite"
+              >
                 {error}
               </div>
             )}
@@ -71,7 +108,11 @@ export function Login() {
                   className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                   placeholder="you@example.com"
                   required
+                  autoComplete="email"
+                  aria-describedby="email-help"
+                  aria-invalid={error?.toLowerCase().includes('email') ? 'true' : 'false'}
                 />
+                <div id="email-help" className="sr-only">Enter your email address to sign in</div>
               </div>
             </div>
 
@@ -89,13 +130,20 @@ export function Login() {
                   className="w-full pl-10 pr-12 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                   placeholder="••••••••"
                   required
+                  autoComplete="current-password"
+                  aria-describedby="password-help"
+                  aria-invalid={error?.toLowerCase().includes('password') ? 'true' : 'false'}
+                  minLength={8}
                 />
+                <div id="password-help" className="sr-only">Enter your password (minimum 8 characters)</div>
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 rounded"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <EyeOff className="w-5 h-5" aria-hidden="true" /> : <Eye className="w-5 h-5" aria-hidden="true" />}
                 </button>
               </div>
             </div>
@@ -119,9 +167,13 @@ export function Login() {
               type="submit"
               disabled={isLoading}
               className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
+              aria-describedby={isLoading ? "loading-status" : undefined}
             >
               {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto" aria-hidden="true" />
+                  <span id="loading-status" className="sr-only">Signing you in...</span>
+                </>
               ) : (
                 'Sign in'
               )}

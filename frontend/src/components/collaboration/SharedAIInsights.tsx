@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
-import { Button } from '../ui/Button';
 import {
   Brain,
   Share2,
@@ -9,8 +8,6 @@ import {
   MessageSquare,
   User,
   Clock,
-  Tag,
-  Filter,
   Search,
   Star,
   StarOff
@@ -54,7 +51,6 @@ interface SharedAIInsightsProps {
   onInsightClick?: (insight: AIInsight) => void;
   onVote?: (insightId: string, voteType: 'up' | 'down') => void;
   onShare?: (insightId: string) => void;
-  onAddComment?: (insightId: string, content: string) => void;
   onToggleFavorite?: (insightId: string) => void;
   favorites?: string[]; // insight IDs
 }
@@ -65,7 +61,6 @@ export function SharedAIInsights({
   onInsightClick,
   onVote,
   onShare,
-  onAddComment,
   onToggleFavorite,
   favorites = []
 }: SharedAIInsightsProps) {
@@ -98,10 +93,11 @@ export function SharedAIInsights({
     // Sort
     filtered.sort((a, b) => {
       switch (sortBy) {
-        case 'popular':
+        case 'popular': {
           const aScore = a.votes.upvotes.length - a.votes.downvotes.length;
           const bScore = b.votes.upvotes.length - b.votes.downvotes.length;
           return bScore - aScore;
+        }
         case 'confidence':
           return b.confidence - a.confidence;
         case 'recent':
@@ -139,10 +135,6 @@ export function SharedAIInsights({
     if (diffHours < 1) return 'Just now';
     if (diffHours < 24) return `${Math.floor(diffHours)}h ago`;
     return date.toLocaleDateString();
-  };
-
-  const getVoteScore = (insight: AIInsight) => {
-    return insight.votes.upvotes.length - insight.votes.downvotes.length;
   };
 
   const hasUserVoted = (insight: AIInsight, voteType: 'up' | 'down') => {

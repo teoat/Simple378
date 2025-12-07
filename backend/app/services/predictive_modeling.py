@@ -22,13 +22,14 @@ class PredictiveModelingService:
         self,
         db: AsyncSession,
         case_id: str,
-        historical_cases: Optional[List[Dict[str, Any]]] = None
+        historical_cases: Optional[List[Dict[str, Any]]] = None,
+        tenant_id: Optional[Any] = None
     ) -> Dict[str, Any]:
         """
         Predict the outcome of a case based on historical data and current case characteristics.
         """
         # Get current case data
-        case_data = await self._get_case_data(db, case_id)
+        case_data = await self._get_case_data(db, case_id, tenant_id=tenant_id)
 
         if not case_data:
             return {
@@ -38,9 +39,9 @@ class PredictiveModelingService:
                 "factors": []
             }
 
-        # Get historical cases for training data
+        # Get historical cases for training data (filtered by tenant)
         if not historical_cases:
-            historical_cases = await self._get_historical_cases(db)
+            historical_cases = await self._get_historical_cases(db, tenant_id=tenant_id)
 
         # Use AI to analyze and predict
         prediction = await self._analyze_case_outcome(case_data, historical_cases)
@@ -119,13 +120,14 @@ class PredictiveModelingService:
     async def analyze_trends(
         self,
         db: AsyncSession,
-        time_period: str = "30d"
+        time_period: str = "30d",
+        tenant_id: Optional[Any] = None
     ) -> Dict[str, Any]:
         """
         Analyze trends across all cases for the specified time period.
         """
         # Get cases from the time period
-        cases = await self._get_cases_by_period(db, time_period)
+        cases = await self._get_cases_by_period(db, time_period, tenant_id=tenant_id)
 
         if not cases:
             return {
@@ -161,7 +163,7 @@ class PredictiveModelingService:
 
     # Helper methods
 
-    async def _get_case_data(self, db: AsyncSession, case_id: str) -> Optional[Dict[str, Any]]:
+    async def _get_case_data(self, db: AsyncSession, case_id: str, tenant_id: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         """Get comprehensive case data."""
         try:
             case_uuid = UUID(case_id)
@@ -169,11 +171,12 @@ class PredictiveModelingService:
             return None
 
         # Get subject with analysis results
-        result = await db.execute(
-            select(Subject)
-            .options(selectinload(Subject.analysis_results))
-            .where(Subject.id == case_uuid)
-        )
+        query = select(Subject).options(selectinload(Subject.analysis_results)).where(Subject.id == case_uuid)
+        
+        if tenant_id:
+            query = query.where(Subject.tenant_id == tenant_id)
+            
+        result = await db.execute(query)
         subject = result.scalars().first()
 
         if not subject:
@@ -211,13 +214,19 @@ class PredictiveModelingService:
             ]
         }
 
-    async def _get_historical_cases(self, db: AsyncSession, limit: int = 100) -> List[Dict[str, Any]]:
-        """Get historical cases for training."""
-        result = await db.execute(
-            select(Subject)
-            .options(selectinload(Subject.analysis_results))
-            .limit(limit)
-        )
+    async def _get_historical_cases(
+        self, 
+        db: AsyncSession, 
+        limit: int = 100,
+        tenant_id: Optional[Any] = None
+    ) -> List[Dict[str, Any]]:
+        """Get historical cases for training, filtered by tenant."""
+        query = select(Subject).options(selectinload(Subject.analysis_results))
+        
+        if tenant_id:
+            query = query.where(Subject.tenant_id == tenant_id)
+            
+        result = await db.execute(query.limit(limit))
         subjects = result.scalars().all()
 
         historical_cases = []
@@ -445,8 +454,13 @@ Return your analysis as JSON with these fields:
 
         return alerts
 
-    async def _get_cases_by_period(self, db: AsyncSession, time_period: str) -> List[Dict[str, Any]]:
-        """Get cases from a specific time period."""
+    async def _get_cases_by_period(
+        self, 
+        db: AsyncSession, 
+        time_period: str,
+        tenant_id: Optional[Any] = None
+    ) -> List[Dict[str, Any]]:
+        """Get cases from a specific time period, filtered by tenant."""
 
         # Parse time period
         if time_period == "7d":
@@ -460,11 +474,12 @@ Return your analysis as JSON with these fields:
 
         cutoff_date = datetime.utcnow() - timedelta(days=days)
 
-        result = await db.execute(
-            select(Subject)
-            .options(selectinload(Subject.analysis_results))
-            .where(Subject.created_at >= cutoff_date)
-        )
+        query = select(Subject).options(selectinload(Subject.analysis_results)).where(Subject.created_at >= cutoff_date)
+        
+        if tenant_id:
+            query = query.where(Subject.tenant_id == tenant_id)
+
+        result = await db.execute(query)
         subjects = result.scalars().all()
 
         cases = []

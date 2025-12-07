@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
 import {
@@ -42,7 +42,6 @@ interface ActivityFeedProps {
   onMarkAsRead?: (activityId: string) => void;
   onRefresh?: () => void;
   isLoading?: boolean;
-  realTime?: boolean;
 }
 
 export function ActivityFeed({
@@ -51,8 +50,7 @@ export function ActivityFeed({
   onActivityClick,
   onMarkAsRead,
   onRefresh,
-  isLoading = false,
-  realTime = true
+  isLoading = false
 }: ActivityFeedProps) {
   const [filter, setFilter] = useState<'all' | 'unread' | 'mine'>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');

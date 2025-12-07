@@ -30,19 +30,17 @@ interface QueueResponse {
   pages: number;
 }
 
-interface RecentDecision {
-  alertId: string;
-  timestamp: number;
-  data: any;
-}
+
 
 export function AdjudicationQueue() {
-  const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
+  const [selectedAlertId, setSelectedAlertId] = useState<string | null>(() => {
+    // Initialize with first alert ID if data is available immediately
+    return null;
+  });
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'flagged'>('pending');
   const [sortBy, setSortBy] = useState<'risk_score' | 'created_at'>('risk_score');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [recentDecision, setRecentDecision] = useState<RecentDecision | null>(null);
   const queryClient = useQueryClient();
   const undoTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -80,11 +78,8 @@ export function AdjudicationQueue() {
   });
 
   // Auto-select first alert if none selected
-  useEffect(() => {
-    if (!selectedAlertId && queueData?.items && queueData.items.length > 0) {
-      setSelectedAlertId(queueData.items[0].id);
-    }
-  }, [queueData, selectedAlertId]);
+  const effectiveSelectedId = selectedAlertId ||
+    (queueData?.items && queueData.items.length > 0 ? queueData.items[0].id : null);
 
   // Undo mutation
   const undoMutation = useMutation({
@@ -95,7 +90,6 @@ export function AdjudicationQueue() {
     },
     onSuccess: () => {
       toast.success('Decision reverted successfully');
-      setRecentDecision(null);
       queryClient.invalidateQueries({ queryKey: ['adjudication', 'queue'] });
     },
     onError: (err) => {
@@ -153,20 +147,12 @@ export function AdjudicationQueue() {
 
       return { previousData };
     },
-    onSuccess: (_, { decision, alertId }, context) => {
+    onSuccess: (_, { decision, alertId }) => {
       const actionLabel = decision === 'approve' ? 'approved' : decision === 'reject' ? 'rejected' : 'escalated';
       
-      // Set recent decision for undo window
-      setRecentDecision({
-        alertId,
-        timestamp: Date.now(),
-        data: context?.previousData
-      });
-
       // Clear undo after 5 seconds
       if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
       undoTimeoutRef.current = setTimeout(() => {
-        setRecentDecision(null);
       }, 5000);
 
       // Show undo toast
@@ -198,10 +184,10 @@ export function AdjudicationQueue() {
   });
 
   const handleDecision = (decision: 'approve' | 'reject' | 'escalate', confidence: string, comment?: string) => {
-    if (!selectedAlertId) return;
-    
+    if (!effectiveSelectedId) return;
+
     decisionMutation.mutate({
-      alertId: selectedAlertId,
+      alertId: effectiveSelectedId,
       decision,
       comment: comment || `Decision: ${decision} (Confidence: ${confidence})`
     });
@@ -211,7 +197,7 @@ export function AdjudicationQueue() {
     setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
   };
 
-  const selectedAlert = queueData?.items.find(a => a.id === selectedAlertId);
+  const selectedAlert = queueData?.items.find(a => a.id === effectiveSelectedId);
 
   // Keyboard shortcuts
   useHotkeys('ctrl+r,cmd+r', (e) => {
@@ -243,7 +229,7 @@ export function AdjudicationQueue() {
             <div className="flex items-center gap-2 bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-1">
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as 'risk_score' | 'created_at')}
                 className="bg-transparent text-sm text-slate-300 px-3 py-2 outline-none"
                 aria-label="Sort by"
               >
@@ -306,7 +292,7 @@ export function AdjudicationQueue() {
               {queueData?.items && queueData.items.length > 0 ? (
                 <AlertList
                   alerts={queueData.items}
-                  selectedId={selectedAlertId}
+                  selectedId={effectiveSelectedId}
                   onSelect={setSelectedAlertId}
                 />
               ) : (
@@ -347,12 +333,12 @@ export function AdjudicationQueue() {
               <div className="space-y-4">
                 {/* Alert Card */}
                 <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-6 shadow-2xl">
-                  <AlertCard alert={selectedAlert} />
+                  <AlertCard alert={selectedAlert} onDecision={handleDecision} />
                 </div>
 
                 {/* Context Tabs */}
                 <div className="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl">
-                  <ContextTabs alertId={selectedAlert.id} />
+                  <ContextTabs alertId={selectedAlert.id} subjectId={selectedAlert.subject_id} activeTab="context" onTabChange={() => {}} />
                 </div>
 
                 {/* Decision Panel */}

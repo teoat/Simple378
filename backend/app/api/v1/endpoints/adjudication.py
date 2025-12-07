@@ -7,7 +7,7 @@ from pydantic import BaseModel
 import uuid
 
 from app.api import deps
-from app.models import mens_rea as models
+from app.db import models
 from app.schemas import mens_rea as schemas
 from app.core.websocket import emit_alert_resolved, emit_queue_updated
 from app.core.rbac import require_analyst

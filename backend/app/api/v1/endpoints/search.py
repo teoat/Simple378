@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from app.api import deps
 from app.services.meilisearch_service import meilisearch_service
 from app.db.models import Subject, Transaction
-from app.models import mens_rea as models
+from app.db import models
 from sqlalchemy.future import select
 import uuid
 

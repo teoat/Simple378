@@ -1,0 +1,11 @@
+transaction_id,date,amount,type,description,party
+TX001,2024-01-15,15000.00,credit,Initial deposit,Chase Bank
+TX002,2024-01-20,2500.50,debit,Payment to vendor,Acme Corp
+TX003,2024-01-25,8000.00,credit,Client payment,John Doe
+TX004,2024-02-01,1200.00,debit,Office supplies,Office Depot
+TX005,2024-02-05,25000.00,credit,Investment return,Investment Co
+TX006,2024-02-10,3500.00,debit,Contractor payment,Tech Solutions
+TX007,2024-02-15,500.00,debit,Utilities,Electric Company
+TX008,2024-02-20,12000.00,credit,Sales revenue,Customer ABC
+TX009,2024-02-25,4500.00,debit,Marketing expenses,AdCo
+TX010,2024-03-01,18000.00,credit,Project milestone,Client XYZ

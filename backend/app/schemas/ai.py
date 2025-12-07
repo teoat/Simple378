@@ -18,3 +18,4 @@ class ChatResponse(BaseModel):
     persona: str
     suggestions: Optional[List[str]] = None
     insights: Optional[List[CaseInsight]] = None
+    timestamp: Optional[int] = None

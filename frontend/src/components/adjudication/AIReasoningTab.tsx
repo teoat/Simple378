@@ -15,7 +15,9 @@ interface AIAnalysisResponse {
 export function AIReasoningTab({ subjectId }: AIReasoningTabProps) {
   const { data: aiAnalysis, isLoading, error } = useQuery({
     queryKey: ['ai-analysis', subjectId],
-    queryFn: () => apiRequest<AIAnalysisResponse>(`/ai/analysis/${subjectId}`),
+    queryFn: () => apiRequest<AIAnalysisResponse>(`/cases/${subjectId}/ai-analysis`, {
+      method: 'POST'
+    }),
     enabled: !!subjectId,
   });
   if (isLoading) {

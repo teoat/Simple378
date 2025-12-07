@@ -4,16 +4,11 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import {
   Shield,
-  Lock,
-  Eye,
   Download,
-  AlertTriangle,
-  CheckCircle,
   Clock,
   User,
   FileText,
   Database,
-  Key,
   Settings
 } from 'lucide-react';
 

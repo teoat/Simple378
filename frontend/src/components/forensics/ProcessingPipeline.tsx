@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Circle, Loader2, AlertTriangle, FileText, Search, ShieldCheck, Binary } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { CheckCircle2, Loader2, AlertTriangle, FileText, Search, ShieldCheck, Binary } from 'lucide-react';
 
 interface ProcessingPipelineProps {
   status: 'idle' | 'processing' | 'completed' | 'error';

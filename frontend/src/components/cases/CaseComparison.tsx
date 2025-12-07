@@ -6,12 +6,9 @@ import {
   Plus,
   X,
   TrendingUp,
-  TrendingDown,
   DollarSign,
   FileText,
-  AlertTriangle,
-  CheckCircle,
-  Clock
+  CheckCircle
 } from 'lucide-react';
 
 interface CaseData {
@@ -29,13 +26,11 @@ interface CaseData {
 
 interface CaseComparisonProps {
   availableCases: CaseData[];
-  onCaseSelect?: (caseId: string) => void;
   maxComparisons?: number;
 }
 
 export function CaseComparison({
   availableCases,
-  onCaseSelect,
   maxComparisons = 3
 }: CaseComparisonProps) {
   const [selectedCases, setSelectedCases] = useState<CaseData[]>([]);
@@ -281,7 +276,7 @@ export function CaseComparison({
               <div className="grid gap-4" style={{
                 gridTemplateColumns: `repeat(${Math.min(selectedCases.length, 3)}, minmax(0, 1fr))`
               }}>
-                {selectedCases.map((caseData, index) => (
+                {selectedCases.map((caseData) => (
                   <Card key={caseData.id} className="relative">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">

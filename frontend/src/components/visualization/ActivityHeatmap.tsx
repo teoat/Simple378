@@ -91,7 +91,7 @@ export function ActivityHeatmap({ title = 'Activity Heatmap', data = [], onExpor
                           rx={6}
                           ry={6}
                           fill={cellColor(value)}
-                          onMouseEnter={(e) => {
+                          onMouseEnter={() => {
                             setTooltip({
                               show: true,
                               day,

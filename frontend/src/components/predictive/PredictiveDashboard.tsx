@@ -9,11 +9,9 @@ import {
   Users,
   DollarSign,
   Target,
-  BarChart3,
   Zap
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
-import { Button } from '../ui/Button';
 import { api } from '../../lib/api';
 
 interface CaseOutcomePrediction {

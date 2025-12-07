@@ -1,0 +1,48 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: S
+      - heading "Simple378" [level=1] [ref=e7]
+      - paragraph [ref=e8]: Fraud Detection Platform
+    - generic [ref=e9]:
+      - heading "Sign in to your account" [level=2] [ref=e10]
+      - generic [ref=e11]:
+        - generic [ref=e12]: Invalid email or password
+        - generic [ref=e13]:
+          - text: Email
+          - generic [ref=e14]:
+            - img [ref=e15]
+            - textbox "Email" [ref=e18]:
+              - /placeholder: you@example.com
+              - text: admin@example.com
+        - generic [ref=e19]:
+          - text: Password
+          - generic [ref=e20]:
+            - img [ref=e21]
+            - textbox "Password" [ref=e24]:
+              - /placeholder: ••••••••
+              - text: password
+            - button [ref=e25]:
+              - img [ref=e26]
+        - generic [ref=e29]:
+          - generic [ref=e30]:
+            - checkbox "Remember me" [ref=e31]
+            - text: Remember me
+          - link "Forgot password?" [ref=e32] [cursor=pointer]:
+            - /url: "#"
+        - button "Sign in" [ref=e33]
+      - generic [ref=e35]: Or continue with
+      - generic [ref=e36]:
+        - button "Google" [ref=e37]:
+          - img [ref=e38]
+          - text: Google
+        - button "Microsoft" [ref=e43]:
+          - img [ref=e44]
+          - text: Microsoft
+    - paragraph [ref=e46]: © 2025 Simple378. All rights reserved.
+  - button "Open AI Assistant" [ref=e47]:
+    - img [ref=e48]
+```

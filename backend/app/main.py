@@ -108,7 +108,7 @@ async def error_handling_middleware(request: Request, call_next):
             method=request.method,
             path=request.url.path,
             status_code=response.status_code,
-            duration=process_time
+            duration=duration
         )
         
         # Record metrics
@@ -117,45 +117,31 @@ async def error_handling_middleware(request: Request, call_next):
             # Determine if it was an error based on status code
             is_error = response.status_code >= 400
             await global_metrics.record_request(
-                response_time_ms=process_time * 1000,
+                response_time_ms=duration * 1000,
                 is_error=is_error
             )
         except Exception:
             pass
             
         return response
-        
     except Exception as e:
-        # Log error with full context
-        process_time = (datetime.utcnow() - start_time).total_seconds()
+        # Log unhandled exception
+        duration = (datetime.utcnow() - start_time).total_seconds()
         logger.error(
             "request_failed",
             request_id=request_id,
             method=request.method,
             path=request.url.path,
-            duration=process_time,
             error=str(e),
-            traceback=traceback.format_exc()
+            traceback=traceback.format_exc(),
+            duration=duration
         )
-        
-        # Record error metrics
-        try:
-            from app.core.monitoring import global_metrics
-            await global_metrics.record_request(
-                response_time_ms=process_time * 1000,
-                is_error=True
-            )
-        except Exception:
-            pass
-            
-        # Return consistent error response
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
                 "error": "internal_server_error",
-                "message": "An unexpected error occurred. Please try again.",
-                "request_id": request_id,
-                "timestamp": datetime.utcnow().isoformat()
+                "message": "An unexpected error occurred",
+                "request_id": request_id
             }
         )
 
@@ -229,9 +215,10 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimitHeadersMiddleware)
 
 # 3. CORS
+cors_origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(',')]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
     allow_headers=["Content-Type", "Authorization"],
@@ -276,58 +263,6 @@ async def shutdown_event():
 from app.core.cache import set_cache_headers, set_no_cache, CACHE_PRESETS
 
 # ... (existing imports)
-
-# Enhanced health check endpoints
-@app.get("/health", tags=["Health"])
-async def health_check(response: JSONResponse):
-    """Basic health check"""
-    # Prevent caching of health status
-    set_no_cache(response)
-    return {
-        "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
-        "version": "1.0.0"
-    }
-
-@app.get("/health/ready", tags=["Health"])
-async def readiness_check(response: JSONResponse):
-    """Readiness check (for Kubernetes)"""
-    # Prevent caching of readiness status
-    set_no_cache(response)
-    
-    checks = {
-        "database": "unknown",
-        "redis": "unknown",
-    }
-    
-    # ... (existing check logic)
-    
-    all_healthy = all(v == "healthy" for v in checks.values())
-    status_code = 200 if all_healthy else 503
-    
-    # Create response with proper status code
-    json_response = JSONResponse(
-        status_code=status_code,
-        content={
-            "status": "ready" if all_healthy else "not_ready",
-            "checks": checks,
-            "timestamp": datetime.utcnow().isoformat()
-        }
-    )
-    
-    # Apply headers to the JSONResponse object
-    set_no_cache(json_response)
-    
-    return json_response
-
-@app.get("/health/live", tags=["Health"])
-async def liveness_check(response: JSONResponse):
-    """Liveness check (for Kubernetes)"""
-    set_no_cache(response)
-    return {
-        "status": "alive",
-        "timestamp": datetime.utcnow().isoformat()
-    }
 
 # Root endpoint
 @app.get("/", tags=["Root"])

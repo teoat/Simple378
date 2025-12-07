@@ -1,4 +1,3 @@
-import React from 'react';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { Cloud, CloudOff, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';

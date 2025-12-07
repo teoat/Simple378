@@ -7,7 +7,7 @@ import uuid
 
 from app.api import deps
 from app.db.models import Subject, AuditLog, ActionType, Transaction
-from app.models import mens_rea as models
+from app.db import models
 from app.core.websocket import emit_case_created, emit_case_updated, emit_case_deleted
 from app.services.risk_forecast import RiskForecastService
 from app.services.anomaly_detection import AnomalyDetectionService

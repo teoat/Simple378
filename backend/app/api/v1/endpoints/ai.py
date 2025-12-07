@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
+import time
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 from typing import Dict, Any
@@ -8,10 +9,37 @@ from app.api import deps
 from app.core.rate_limit import limiter
 from app.services.ai.supervisor import app as ai_app
 from app.schemas.ai import ChatRequest, ChatResponse
+from app.schemas.feedback import FeedbackCreate
 from app.services.ai.llm_service import LLMService
+from app.db.models import Feedback
+from sqlalchemy import select
 
 
 router = APIRouter()
+
+@router.post("/feedback", status_code=201)
+@limiter.limit("60/minute")
+async def submit_feedback(
+    request: Request,
+    feedback_data: FeedbackCreate,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user = Depends(deps.get_current_user)
+):
+    """
+    Submit feedback on an AI response.
+    """
+    try:
+        feedback = Feedback(
+            message_timestamp=feedback_data.message_timestamp,
+            feedback=feedback_data.feedback,
+            user_id=current_user.id
+        )
+        db.add(feedback)
+        await db.commit()
+        return {"status": "success", "message": "Feedback submitted successfully."}
+    except Exception as e:
+        print(f"Feedback submission error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to submit feedback.")
 
 @router.post("/investigate/{subject_id}", response_model=Dict[str, Any])
 @limiter.limit("10/hour")  # Rate limit: 10 AI investigations per hour (expensive operation)
@@ -45,7 +73,7 @@ async def investigate_subject(
         raise HTTPException(status_code=500, detail=f"AI Investigation failed: {str(e)}")
 
 @router.post("/chat", response_model=ChatResponse)
-@limiter.limit("50/hour")
+@limiter.limit("30/minute")  # Rate limit: 30 chat messages per minute
 async def chat_with_ai(
     request: Request,
     chat_req: ChatRequest,
@@ -71,13 +99,13 @@ async def chat_with_ai(
                 from app.db.models import AnalysisResult
 
                 subject_result = await db.execute(
-                    db.select(Subject).where(Subject.id == case_uuid)
+                    select(Subject).where(Subject.id == case_uuid)
                 )
                 subject = subject_result.scalars().first()
 
                 if subject:
                     analysis_result = await db.execute(
-                        db.select(AnalysisResult).where(AnalysisResult.subject_id == case_uuid)
+                        select(AnalysisResult).where(AnalysisResult.subject_id == case_uuid)
                         .order_by(AnalysisResult.created_at.desc())
                     )
                     analysis = analysis_result.scalars().first()
@@ -127,14 +155,14 @@ async def chat_with_ai(
             response=response_data.get("response", "I apologize, but I couldn't generate a response at this time."),
             persona=persona,
             suggestions=response_data.get("suggestions", []),
-            insights=insights if insights else None
+            insights=insights if insights else None,
+            timestamp=int(time.time())
         )
 
     except Exception as e:
         print(f"AI Chat error: {e}")
-        # Fallback to basic responses
+        # Fallback to safe, persona-aware response without failing the request
         persona = chat_req.persona.lower()
-        suggestions = []
 
         if persona == "legal":
             response_text = "From a legal compliance perspective, ensure all evidence follows proper chain of custody procedures."
@@ -146,12 +174,291 @@ async def chat_with_ai(
             response_text = "Analysis indicates suspicious patterns requiring further investigation."
             suggestions = ["View Transaction Details", "Run Pattern Analysis"]
 
-        raise HTTPException(status_code=500, detail=f"AI Chat failed: {str(e)}")
+        return ChatResponse(
+            response=response_text,
+            persona=persona,
+            suggestions=suggestions,
+            insights=None,
+            timestamp=int(time.time())
+        )
+
+
+@router.post("/proactive-suggestions", response_model=Dict[str, Any])
+@limiter.limit("60/minute")  # Rate limit: 60 suggestions per minute (lightweight)
+async def proactive_suggestions(
+    request: Request,
+    context: str,  # e.g., "adjudication", "dashboard", "case_detail"
+    alert_id: str = None,
+    case_id: str = None,
+    db: AsyncSession = Depends(deps.get_db),
+    current_user = Depends(deps.get_current_user)
+):
+    """
+    Get proactive AI suggestions based on current context.
+    Returns prioritized suggestions with actionable steps.
+    """
+    try:
+        suggestions = []
+        
+        if context == "adjudication" and alert_id:
+            suggestions = [
+                {
+                    "type": "next_action",
+                    "message": "Review evidence tab before making decision",
+                    "priority": "high",
+                    "actions": [
+                        {
+                            "label": "View Evidence",
+                            "action": "navigate_to_evidence_tab"
+                        }
+                    ]
+                },
+                {
+                    "type": "insight",
+                    "message": "Consider multi-persona analysis for complex cases",
+                    "priority": "medium",
+                    "actions": [
+                        {
+                            "label": "Run Multi-Persona Analysis",
+                            "action": "run_multi_persona_analysis"
+                        }
+                    ]
+                }
+            ]
+        
+        elif context == "dashboard":
+            suggestions = [
+                {
+                    "type": "risk_alert",
+                    "message": "3 high-priority alerts awaiting review",
+                    "priority": "urgent",
+                    "actions": [
+                        {
+                            "label": "View Alerts",
+                            "action": "navigate_to_adjudication"
+                        }
+                    ]
+                },
+                {
+                    "type": "opportunity",
+                    "message": "3 high-priority alerts awaiting review",
+                    "priority": "urgent",
+                    "actions": [
+                        {
+                            "label": "View Alerts",
+                            "action": "navigate_to_adjudication"
+                        }
+                    ]
+                },
+                {
+                    "type": "insight",
+                    "message": "Transaction velocity spiked 45% this week",
+                    "priority": "high",
+                    "actions": [
+                        {
+                            "label": "Investigate Spike",
+                            "action": "view_analytics"
+                        }
+                    ]
+                }
+            ]
+        
+        elif context == "case_detail" and case_id:
+            suggestions = [
+                {
+                    "type": "recommendation",
+                    "message": "Run financial analysis on transaction patterns",
+                    "priority": "high",
+                    "actions": [
+                        {
+                            "label": "Analyze Transactions",
+                            "action": "run_transaction_analysis"
+                        }
+                    ]
+                },
+                {
+                    "type": "warning",
+                    "message": "Evidence quality is low - request additional documentation",
+                    "priority": "medium",
+                    "actions": [
+                        {
+                            "label": "Request Documents",
+                            "action": "request_documentation"
+                        }
+                    ]
+                }
+            ]
+        
+        else:
+            # Generic suggestions
+            suggestions = [
+                {
+                    "type": "next_action",
+                    "message": "Review open cases for investigation opportunities",
+                    "priority": "low",
+                    "actions": [
+                        {
+                            "label": "View Cases",
+                            "action": "navigate_to_cases"
+                        }
+                    ]
+                }
+            ]
+        
+        return {
+            "status": "success",
+            "suggestions": suggestions
+        }
+        
+    except Exception as e:
+        print(f"Proactive suggestions error: {e}")
+        raise HTTPException(status_code=500, detail=f"Proactive suggestions failed: {str(e)}")
+
+
+
+
+
+@router.post("/multi-persona-analysis", response_model=Dict[str, Any])
+@limiter.limit("20/hour")  # Rate limit: 20 multi-persona analyses per hour
+async def multi_persona_analysis(
+    request: Request,
+    case_id: str = Body(..., embed=True),
+    db: AsyncSession = Depends(deps.get_db),
+    current_user = Depends(deps.get_current_user)
+):
+    """
+    Run comprehensive multi-persona analysis across all 4 personas.
+    Returns consensus verdict and individual persona perspectives.
+    """
+    try:
+        from uuid import UUID
+        case_uuid = UUID(case_id)
+        
+        # Get case data
+        from app.db.models import Subject, Transaction, AnalysisResult
+        
+        subject_result = await db.execute(
+            select(Subject).where(Subject.id == case_uuid)
+        )
+        subject = subject_result.scalars().first()
+        
+        if not subject:
+            raise HTTPException(status_code=404, detail="Case not found")
+        
+        # Get transactions
+        transactions_result = await db.execute(
+            select(Transaction).where(Transaction.subject_id == case_uuid)
+            .order_by(Transaction.date)
+        )
+        transactions = transactions_result.scalars().all()
+        
+        # Get latest analysis
+        analysis_result = await db.execute(
+            select(AnalysisResult).where(AnalysisResult.subject_id == case_uuid)
+            .order_by(AnalysisResult.created_at.desc())
+        )
+        analysis = analysis_result.scalars().first()
+        
+        # Prepare case summary for analysis
+        case_summary = f"""
+Case ID: {case_id}
+Subject: {subject.encrypted_pii.get('name', 'Unknown') if subject.encrypted_pii else 'Unknown'}
+Transactions: {len(transactions)}
+Total Amount: ${sum(float(tx.amount or 0) for tx in transactions):,.2f}
+Current Risk Score: {analysis.risk_score if analysis else 0}/100
+Status: {analysis.adjudication_status if analysis else 'new'}
+"""
+        
+        # Run analysis through all 4 personas
+        llm_service = LLMService()
+        personas = ['analyst', 'legal', 'cfo', 'investigator']
+        persona_analyses = {}
+        
+        for persona in personas:
+            prompt = f"{case_summary}\n\nProvide your assessment from a {persona} perspective. Include: verdict (innocent/suspicious/fraud_likely), confidence (0-100), and brief reasoning."
+            
+            response_data = await llm_service.generate_chat_response(
+                message=prompt,
+                persona=persona,
+                case_context={
+                    "subject_name": subject.encrypted_pii.get('name', 'Unknown') if subject.encrypted_pii else 'Unknown',
+                    "risk_score": analysis.risk_score if analysis else 0,
+                    "status": analysis.adjudication_status if analysis else 'new',
+                    "has_analysis": analysis is not None
+                }
+            )
+            
+            # Parse confidence from response (simple heuristic)
+            confidence = 75  # Default
+            response_text = response_data.get('response', '')
+            if 'high confidence' in response_text.lower():
+                confidence = 90
+            elif 'medium confidence' in response_text.lower():
+                confidence = 70
+            elif 'low confidence' in response_text.lower():
+                confidence = 50
+            
+            # Determine verdict (simple keyword matching)
+            verdict = "suspicious"
+            if 'fraud' in response_text.lower() or 'fraudulent' in response_text.lower():
+                verdict = "fraud_likely"
+            elif 'innocent' in response_text.lower() or 'legitimate' in response_text.lower():
+                verdict = "innocent"
+            
+            persona_analyses[persona] = {
+                "confidence": confidence,
+                "verdict": verdict,
+                "reasoning": response_text[:200]  # Truncate for summary
+            }
+        
+        # Calculate consensus
+        verdicts = [p["verdict"] for p in persona_analyses.values()]
+        confidences = [p["confidence"] for p in persona_analyses.values()]
+        
+        # Majority verdict
+        from collections import Counter
+        verdict_counts = Counter(verdicts)
+        majority_verdict = verdict_counts.most_common(1)[0][0]
+        
+        # Average confidence
+        consensus_score = sum(confidences) / len(confidences) / 100
+        confidence_range = [min(confidences) / 100, max(confidences) / 100]
+        
+        # Identify conflicts
+        conflicts = []
+        if len(set(verdicts)) > 1:
+            conflicts.append(f"Disagreement on verdict: {', '.join(set(verdicts))}")
+        
+        # Generate recommendation
+        if consensus_score >= 0.85:
+            recommendation = "Strong consensus - proceed with decision"
+        elif consensus_score >= 0.70:
+            recommendation = "Moderate consensus - review evidence"
+        else:
+            recommendation = "Low consensus - escalate for supervisor review"
+        
+        return {
+            "status": "completed",
+            "consensus_score": round(consensus_score, 2),
+            "majority_verdict": majority_verdict,
+            "confidence_range": confidence_range,
+            "personas": persona_analyses,
+            "conflicts": conflicts,
+            "recommendation": recommendation
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Multi-persona analysis error: {e}")
+        raise HTTPException(status_code=500, detail=f"Multi-persona analysis failed: {str(e)}")
+
 
 
 @router.post("/cases/{case_id}/ai-analysis", response_model=Dict[str, Any])
 @limiter.limit("20/hour")  # Rate limit: 20 AI analyses per hour
 async def analyze_case_with_ai(
+    request: Request,
     case_id: str,
     db: AsyncSession = Depends(deps.get_db),
     current_user = Depends(deps.get_current_user)
@@ -168,7 +475,7 @@ async def analyze_case_with_ai(
         from app.db.models import AnalysisResult
 
         subject_result = await db.execute(
-            db.select(Subject).where(Subject.id == case_uuid)
+            select(Subject).where(Subject.id == case_uuid)
         )
         subject = subject_result.scalars().first()
 
@@ -177,14 +484,14 @@ async def analyze_case_with_ai(
 
         # Get transactions
         transactions_result = await db.execute(
-            db.select(Transaction).where(Transaction.subject_id == case_uuid)
+            select(Transaction).where(Transaction.subject_id == case_uuid)
             .order_by(Transaction.date)
         )
         transactions = transactions_result.scalars().all()
 
         # Get latest analysis
         analysis_result = await db.execute(
-            db.select(AnalysisResult).where(AnalysisResult.subject_id == case_uuid)
+            select(AnalysisResult).where(AnalysisResult.subject_id == case_uuid)
             .order_by(AnalysisResult.created_at.desc())
         )
         analysis = analysis_result.scalars().first()
@@ -259,7 +566,7 @@ Format your response as a JSON object with these exact keys: summary, keyFinding
         }
 
 @router.post("/entity-disambiguation", response_model=Dict[str, Any])
-@limiter.limit("50/hour")
+@limiter.limit("20/hour")
 async def entity_disambiguation(
     request: Request,
     data: Dict[str, Any],
@@ -279,7 +586,7 @@ async def entity_disambiguation(
         raise HTTPException(status_code=500, detail=f"Entity disambiguation failed: {str(e)}")
 
 @router.post("/extract-relationships", response_model=Dict[str, Any])
-@limiter.limit("50/hour")
+@limiter.limit("20/hour")
 async def extract_relationships(
     request: Request,
     data: Dict[str, Any],

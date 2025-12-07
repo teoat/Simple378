@@ -4,14 +4,12 @@ import {
   TrendingUp,
   TrendingDown,
   BarChart3,
-  Calendar,
   AlertTriangle,
   CheckCircle,
   Clock,
   Users
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
-import { Button } from '../ui/Button';
 import { api } from '../../lib/api';
 
 interface TrendData {

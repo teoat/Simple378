@@ -11,6 +11,11 @@ import { LoadBalancer } from '../hooks/useScaling';
 const BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 const BACKUP_URL = import.meta.env.VITE_API_BACKUP_URL || null;
 
+interface TokenData {
+  token: string;
+  expires: number;
+}
+
 export class ScalableApiClient {
   private client: AxiosInstance;
   private loadBalancer: LoadBalancer;
@@ -38,9 +43,17 @@ export class ScalableApiClient {
     this.client.interceptors.request.use(
       async (config) => {
         // Add auth token if available
-        const token = localStorage.getItem('token');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+        const secureToken = localStorage.getItem('auth_token');
+        if (secureToken) {
+          try {
+            const tokenData = JSON.parse(atob(secureToken)) as TokenData;
+            // Check expiry
+            if (tokenData.expires > Date.now()) {
+              config.headers.Authorization = `Bearer ${tokenData.token}`;
+            }
+          } catch (e) {
+            // Invalid token, ignore
+          }
         }
 
         // For relative URLs, prepend the base URL

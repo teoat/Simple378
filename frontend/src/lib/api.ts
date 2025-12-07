@@ -13,33 +13,72 @@ import { scalableApi } from './scalableApi';
  * apiRequest function for backward compatibility
  * Used in components that expect a function-style API call
  */
+interface TokenData {
+  token: string;
+  expires: number;
+  fingerprint: string;
+}
+
 export async function apiRequest<T = any>(
   url: string,
   options?: RequestInit
 ): Promise<T> {
   const method = options?.method?.toUpperCase() || 'GET';
-  
-  // Fix double parsing: If body is string, parse it. If object, use as is.
-  let body = options?.body;
-  if (typeof body === 'string') {
+
+  // Prepare headers
+  const headers = new Headers(options?.headers);
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  // Add secure auth token if available
+  const secureToken = localStorage.getItem('auth_token');
+  if (secureToken) {
     try {
-        body = JSON.parse(body);
-    } catch {
-        // use as string if not valid JSON
+      const tokenData = JSON.parse(atob(secureToken)) as TokenData;
+
+      // Validate token hasn't expired
+      if (tokenData.expires > Date.now()) {
+        headers.set('Authorization', `Bearer ${tokenData.token}`);
+      } else {
+        // Token expired, trigger logout
+        window.dispatchEvent(new CustomEvent('auth-error', {
+          detail: { status: 401, message: 'Token expired' }
+        }));
+      }
+    } catch (error) {
+      // Invalid token format, trigger logout
+      window.dispatchEvent(new CustomEvent('auth-error', {
+        detail: { status: 401, message: 'Invalid token format' }
+      }));
     }
   }
-  
-  switch (method) {
-    case 'POST':
-      return scalableApi.post<T>(url, body);
-    case 'PUT':
-      return scalableApi.put<T>(url, body);
-    case 'PATCH':
-      return scalableApi.patch<T>(url, body);
-    case 'DELETE':
-      return scalableApi.delete<T>(url);
-    default:
-      return scalableApi.get<T>(url);
+
+  // Prepare request options
+  const requestOptions: RequestInit = {
+    method,
+    headers,
+    ...options,
+  };
+
+  // Handle body for different methods
+  if (method !== 'GET' && method !== 'HEAD' && options?.body) {
+    requestOptions.body = options.body;
+  }
+
+  const response = await fetch(url, requestOptions);
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Unknown error');
+    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+  }
+
+  // Handle empty responses
+  const contentType = response.headers?.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    return response.json();
+  } else {
+    return response.text() as T;
   }
 }
 
@@ -75,4 +114,3 @@ export const subjectsApi = {
   batchUpdateCases: (data: { case_ids: string[]; status?: string; assigned_to?: string }) =>
     scalableApi.patch('/cases/batch', data),
 };
-

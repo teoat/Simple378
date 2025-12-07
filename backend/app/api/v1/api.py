@@ -3,12 +3,6 @@ from app.api.v1.endpoints import login, mens_rea, adjudication, ingestion, audit
 
 api_router = APIRouter()
 
-# Health check endpoint
-@api_router.get("/health")
-async def health_check():
-    """API health check endpoint"""
-    return {"status": "healthy", "api_version": "v1"}
-
 api_router.include_router(login.router, prefix="/login", tags=["login"])
 api_router.include_router(mens_rea.router, prefix="/analysis/mens-rea", tags=["mens-rea"])
 api_router.include_router(analysis.router, prefix="/analysis/advanced", tags=["analysis-advanced"])

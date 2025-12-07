@@ -88,10 +88,11 @@ export const FinalSummary: FC = () => {
   
   const handleGenerateReport = async (template: string) => {
       try {
-          // The template string from the child component might be "executive_CASE-001", split it if needed or just send the raw template ID if passing correctly.
-          // The previous child component passed `selectedTemplate + '_' + caseId`.
-          // We should parse that or adjust the child to just pass the template ID, but let's handle what we wrote.
-          const actualTemplate = template.split('_')[0]; 
+          // Handle both "template" and "template_caseId" formats safely
+          const actualTemplate = template.includes('_') 
+            ? template.split('_')[0] 
+            : template;
+            
           await apiRequest(`/summary/${caseId}/report`, { 
               method: 'POST',
               body: JSON.stringify({ template: actualTemplate })

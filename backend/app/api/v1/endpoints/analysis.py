@@ -2,14 +2,17 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Dict
 from datetime import datetime, timedelta
 from app.schemas.analysis import (
-    AnalysisResult, 
     RiskForecastRequest, 
     RiskForecast, 
     ShortestPathRequest,
     ShortestPathResult,
     CommunityResult,
-    CentralityResult
+    ShortestPathResult,
+    CommunityResult,
+    CentralityResult,
+    AnalysisResult
 )
+# from app.db.models import AnalysisResult
 from app.services.heuristic_engine import HeuristicEngine
 from app.services.risk_forecast import RiskForecastService
 from app.services.graph_analytics import GraphAnalyticsService

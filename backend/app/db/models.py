@@ -28,6 +28,20 @@ class ActionType(str, enum.Enum):
     DELETE = "delete"
     EXPORT = "export"
 
+class Tenant(Base):
+    __tablename__ = "tenants"
+
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    domain = Column(String)
+    plan = Column(String, default="standard")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    users = relationship("User", back_populates="tenant")
+    subjects = relationship("Subject", back_populates="tenant")
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -36,7 +50,10 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     full_name = Column(String)
     role = Column(String, default="analyst")
+    tenant_id = Column(Uuid, ForeignKey("tenants.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    tenant = relationship("Tenant", back_populates="users")
 
 
 
@@ -48,6 +65,10 @@ class Subject(Base):
     encrypted_pii = Column(JSON, nullable=False) 
     created_at = Column(DateTime, default=datetime.utcnow)
     retention_policy_id = Column(String, nullable=True)
+    tenant_id = Column(Uuid, ForeignKey("tenants.id"), nullable=True)
+    
+    # Relationships
+    tenant = relationship("Tenant", back_populates="subjects")
     # Relationships
     analysis_results = relationship("AnalysisResult", back_populates="subject", cascade="all, delete-orphan")
     transactions = relationship("Transaction", back_populates="subject", cascade="all, delete-orphan")
@@ -276,6 +297,31 @@ class Indicator(Base):
     # Relationships
     analysis_result = relationship("AnalysisResult", back_populates="indicators")
 
+
+class Milestone(Base):
+    """Milestone model for tracking project phases and fund releases."""
+    __tablename__ = "milestones"
+
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    project_id = Column(Uuid, ForeignKey("subjects.id"), nullable=False, index=True)  # Using Subject as project
+    name = Column(String, nullable=False)
+    type = Column(String, nullable=False)  # DOWN_PAYMENT, PROGRESS, HANDOVER, RETENTION
+    status = Column(String, default="LOCKED")  # LOCKED, ACTIVE, COMPLETE, PAID
+    amount_released = Column(Numeric, nullable=False)
+    actual_spend = Column(Numeric, default=0.0)
+    due_date = Column(DateTime, nullable=True)
+    phase = Column(String, nullable=True)
+    description = Column(String, nullable=True)
+    notes = Column(String, nullable=True)  # Completion notes
+    evidence_url = Column(String, nullable=True)  # Uploaded evidence
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    project = relationship("Subject", foreign_keys=[project_id])
+
+
 class Event(Base):
     __tablename__ = "events"
 
@@ -287,3 +333,14 @@ class Event(Base):
     payload = Column(JSON, nullable=False)
     metadata_ = Column("metadata", JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+    message_timestamp = Column(DateTime, nullable=False)
+    feedback = Column(String, nullable=False) # positive or negative
+    user_id = Column(Uuid, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User")

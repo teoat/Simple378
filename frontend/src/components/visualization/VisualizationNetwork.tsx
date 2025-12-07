@@ -50,16 +50,16 @@ interface SankeyNode {
   color?: string;
 }
 
-interface SankeyLink {
+interface NetworkSankeyLink {
   source: string;
   target: string;
   value: number;
   color?: string;
 }
 
-interface SankeyData {
+interface NetworkSankeyData {
   nodes: SankeyNode[];
-  links: SankeyLink[];
+  links: NetworkSankeyLink[];
 }
 
 interface HeatmapData {
@@ -113,11 +113,11 @@ export function VisualizationNetwork({ graphData, financialData, isLoading = fal
   }, [graphData]);
 
   // Transform data for Sankey diagram
-  const sankeyData = useMemo((): SankeyData => {
+  const sankeyData = useMemo((): NetworkSankeyData => {
     if (!financialData?.cashflow_data) return { nodes: [], links: [] };
 
     const nodes: SankeyNode[] = [];
-    const links: SankeyLink[] = [];
+    const links: NetworkSankeyLink[] = [];
     const nodeMap = new Map<string, number>();
 
     const addNode = (name: string, color?: string) => {
@@ -245,7 +245,7 @@ export function VisualizationNetwork({ graphData, financialData, isLoading = fal
             </h3>
             {sankeyData.nodes.length > 0 ? (
             <SankeyFlow
-                data={sankeyData}
+                data={sankeyData as any}
                 onExport={(id) => exportBoth(id, 'sankey-flow', true)}
             />
             ) : (

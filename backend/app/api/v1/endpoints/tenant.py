@@ -6,12 +6,13 @@ Provides tenant configuration, feature flags, data residency, and usage quotas.
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Dict, List, Optional
-import os
-from datetime import datetime
-
-from app.core.auth import get_current_user
+from app.schemas.tenant import TenantCreate, TenantUpdate, TenantResponse, TenantConfigUpdate
+from app.api import deps
+# from app.core.auth import get_current_user # Fixed bad import
 from app.db.base import get_db
 from app.db.models import User
+import os
+from datetime import datetime
 
 router = APIRouter(prefix="/tenant", tags=["tenant"])
 
@@ -134,7 +135,7 @@ def get_tenant_config(tenant_id: str) -> TenantConfig:
 
 @router.get("/config")
 async def get_tenant_configuration(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(deps.get_current_user),
     db: Session = Depends(get_db),
 ) -> Dict:
     """
@@ -156,7 +157,7 @@ async def get_tenant_configuration(
 
 @router.get("/features")
 async def get_tenant_features(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(deps.get_current_user),
 ) -> Dict:
     """
     Get list of enabled features for this tenant.
@@ -174,7 +175,7 @@ async def get_tenant_features(
 @router.get("/feature/{feature_name}")
 async def check_feature_enabled(
     feature_name: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(deps.get_current_user),
 ) -> Dict:
     """
     Check if a specific feature is enabled for this tenant.
@@ -199,7 +200,7 @@ async def check_feature_enabled(
 
 @router.get("/limits")
 async def get_tenant_limits(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(deps.get_current_user),
 ) -> Dict:
     """
     Get usage limits for this tenant.
@@ -215,7 +216,7 @@ async def get_tenant_limits(
 
 @router.get("/usage")
 async def get_tenant_usage(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(deps.get_current_user),
     db: Session = Depends(get_db),
 ) -> Dict:
     """
@@ -250,7 +251,7 @@ async def get_tenant_usage(
 
 @router.get("/compliance")
 async def get_tenant_compliance(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(deps.get_current_user),
 ) -> Dict:
     """
     Get compliance standards and certifications for this tenant.
@@ -270,7 +271,7 @@ async def get_tenant_compliance(
 @router.get("/region/{feature_path}")
 async def get_api_endpoint_for_region(
     feature_path: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(deps.get_current_user),
 ) -> Dict:
     """
     Get the appropriate API endpoint for a given feature based on tenant's data residency region.

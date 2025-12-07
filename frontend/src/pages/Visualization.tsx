@@ -21,6 +21,14 @@ import { api } from '../lib/api';
 
 type ViewType = 'cashflow' | 'milestones' | 'fraud' | 'graphs';
 
+interface CategoryData {
+  id: string;
+  name: string;
+  amount: number;
+  transactions: number;
+  isExcluded?: boolean;
+}
+
 // Extending FinancialData to include extra fields used in Visualization.tsx
 interface FullFinancialData extends FinancialData {
   total_inflow: number;
@@ -38,14 +46,14 @@ interface FullFinancialData extends FinancialData {
     phase?: string;
   }>;
   income_breakdown?: {
-    income_sources: any;
-    mirror_transactions: any;
-    external_transfers: any;
+    income_sources: CategoryData;
+    mirror_transactions: CategoryData;
+    external_transfers: CategoryData;
   };
   expense_breakdown?: {
-    personal_expenses: any;
-    operational_expenses: any;
-    project_expenses: any;
+    personal_expenses: CategoryData;
+    operational_expenses: CategoryData;
+    project_expenses: CategoryData;
   };
   fraud_indicators: Array<{
     id: string;
@@ -199,7 +207,7 @@ export function Visualization() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/10 border-green-200 dark:border-green-800">
+          <Card data-testid="kpi-card" className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/10 border-green-200 dark:border-green-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">Total Inflow</CardTitle>
               <TrendingUp className="h-4 w-4 text-green-500" />
@@ -212,7 +220,7 @@ export function Visualization() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/10 border-red-200 dark:border-red-800">
+          <Card data-testid="kpi-card" className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/10 border-red-200 dark:border-red-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300">Total Outflow</CardTitle>
               <TrendingUp className="h-4 w-4 text-red-500 rotate-180" />
@@ -225,7 +233,7 @@ export function Visualization() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/10 border-blue-200 dark:border-blue-800">
+          <Card data-testid="kpi-card" className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/10 border-blue-200 dark:border-blue-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Net Cashflow</CardTitle>
               <DollarSign className="h-4 w-4 text-blue-500" />
@@ -240,7 +248,7 @@ export function Visualization() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/10 border-amber-200 dark:border-amber-800">
+          <Card data-testid="kpi-card" className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/10 border-amber-200 dark:border-amber-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-amber-700 dark:text-amber-300">Suspect Items</CardTitle>
               <AlertTriangle className="h-4 w-4 text-amber-500" />

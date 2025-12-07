@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 /**
  * Horizontal scaling utilities for load distribution
@@ -144,4 +144,54 @@ export function useDistributedCache(cacheServers: string[]) {
   }, []);
 
   return { get, set };
+}
+
+interface UseScalingOptions {
+  initialScale?: number;
+  minScale?: number;
+  maxScale?: number;
+  step?: number;
+}
+
+/**
+ * Hook for zoom/scaling functionality
+ */
+export function useScaling(options: UseScalingOptions = {}) {
+  const {
+    initialScale = 1,
+    minScale = 0.1,
+    maxScale = 3,
+    step = 0.1
+  } = options;
+
+  const [scale, setScaleState] = useState(initialScale);
+  const [isScaling, setIsScaling] = useState(false);
+
+  const setScale = useCallback((newScale: number) => {
+    setIsScaling(true);
+    const clampedScale = Math.max(minScale, Math.min(maxScale, newScale));
+    setScaleState(clampedScale);
+    setIsScaling(false);
+  }, [minScale, maxScale]);
+
+  const zoomIn = useCallback(() => {
+    setScale(scale + step);
+  }, [scale, step, setScale]);
+
+  const zoomOut = useCallback(() => {
+    setScale(scale - step);
+  }, [scale, step, setScale]);
+
+  const resetScale = useCallback(() => {
+    setScale(initialScale);
+  }, [initialScale, setScale]);
+
+  return {
+    scale,
+    isScaling,
+    setScale,
+    zoomIn,
+    zoomOut,
+    resetScale
+  };
 }

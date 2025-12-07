@@ -55,7 +55,6 @@ export function ForceDirectedGraph({
   highlightedNodes,
   highlightedLinks,
   isRunningExternal,
-  fitToContainer,
   onReset,
 }: ForceDirectedGraphProps) {
   // Use data prop if provided, otherwise fall back to individual props
@@ -169,7 +168,7 @@ export function ForceDirectedGraph({
             if (!event.active) simulation.alphaTarget(0);
             d.fx = null;
             d.fy = null;
-          })
+          }) as any
       );
 
     const labels = svg

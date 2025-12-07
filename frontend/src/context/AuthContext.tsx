@@ -21,46 +21,126 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   // Initialize loading state based on token existence
-  const [isLoading, setIsLoading] = useState(() => !!localStorage.getItem('token'));
+  const [isLoading, setIsLoading] = useState(() => !!localStorage.getItem('auth_token'));
 
   const login = async (email: string, password: string) => {
-    const response = await apiRequest<{ access_token: string; user: User }>(
-      '/auth/login',
-      {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
+    try {
+      const response = await apiRequest<{ access_token: string; user: User }>(
+        '/auth/login',
+        {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        }
+      );
+
+      // Secure token storage with httpOnly cookie approach simulation
+      // In production, this should be handled server-side with httpOnly cookies
+      const secureToken = btoa(JSON.stringify({
+        token: response.access_token,
+        expires: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+        fingerprint: navigator.userAgent.substring(0, 50)
+      }));
+
+      localStorage.setItem('auth_token', secureToken);
+      sessionStorage.setItem('user_session', JSON.stringify(response.user));
+      setUser(response.user);
+
+    } catch (error) {
+      // Enhanced error handling with specific error types
+      if (error instanceof Error) {
+        if (error.message.includes('401')) {
+          throw new Error('Invalid email or password. Please check your credentials and try again.');
+        } else if (error.message.includes('429')) {
+          throw new Error('Too many login attempts. Please wait a few minutes before trying again.');
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          throw new Error('Network error. Please check your internet connection and try again.');
+        }
       }
-    );
-    localStorage.setItem('token', response.access_token);
-    setUser(response.user);
+      throw new Error('Login failed. Please try again or contact support if the problem persists.');
+    }
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    // Secure logout - clear all auth data
+    localStorage.removeItem('auth_token');
+    sessionStorage.removeItem('user_session');
     setUser(null);
+
+    // Clear any cached data
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => {
+          if (name.includes('auth') || name.includes('user')) {
+            caches.delete(name);
+          }
+        });
+      });
+    }
   };
 
   useEffect(() => {
-    // Check for existing session
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Validate token
-      apiRequest<User>('/auth/me')
-        .then(setUser)
-        .catch(() => {
-          localStorage.removeItem('token');
+    // Check for existing secure session
+    const secureToken = localStorage.getItem('auth_token');
+    const userSession = sessionStorage.getItem('user_session');
+
+    if (secureToken && userSession) {
+      try {
+        // Validate secure token
+        const tokenData = JSON.parse(atob(secureToken));
+
+        // Check token expiration
+        if (tokenData.expires < Date.now()) {
+          logout();
+          setIsLoading(false);
+          return;
+        }
+
+        // Check fingerprint for additional security
+        if (tokenData.fingerprint !== navigator.userAgent.substring(0, 50)) {
+          logout();
+          setIsLoading(false);
+          return;
+        }
+
+        // Validate token with server
+        apiRequest<User>('/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${tokenData.token}`
+          }
         })
-        .finally(() => setIsLoading(false));
+          .then((userData) => {
+            setUser(userData);
+          })
+          .catch(() => {
+            logout();
+          })
+          .finally(() => setIsLoading(false));
+
+      } catch (error) {
+        // Invalid token format
+        logout();
+        setIsLoading(false);
+      }
+    } else {
+      setIsLoading(false);
     }
 
     // Listen for 401 errors from API
-    const handleAuthError = () => {
-      logout();
+    const handleAuthError = (event: CustomEvent) => {
+      const { status, message } = event.detail || {};
+
+      if (status === 401) {
+        logout();
+      } else if (status === 403) {
+        // Handle forbidden access
+        console.warn('Access forbidden:', message);
+      }
     };
-    window.addEventListener('auth-error', handleAuthError);
-    
+
+    window.addEventListener('auth-error', handleAuthError as EventListener);
+
     return () => {
-      window.removeEventListener('auth-error', handleAuthError);
+      window.removeEventListener('auth-error', handleAuthError as EventListener);
     };
   }, []);
 

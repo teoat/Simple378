@@ -15,6 +15,13 @@ interface SankeyLink {
   color?: string;
 }
 
+interface RechartsSankeyLink {
+  source: number;
+  target: number;
+  value: number;
+  color?: string;
+}
+
 interface SankeyData {
   nodes: SankeyNode[];
   links: SankeyLink[];
@@ -41,12 +48,12 @@ export function SankeyFlow({
 }: SankeyFlowProps) {
   // Use data prop if provided, otherwise fall back to individual props
   const nodes = data ? data.nodes : (propNodes || []);
-  const links = data ? data.links.map(link => ({
-    source: typeof link.source === 'string' ? nodes.findIndex(n => n.id === link.source) : link.source,
-    target: typeof link.target === 'string' ? nodes.findIndex(n => n.id === link.target) : link.target,
+  const links = data ? data.links.map((link): RechartsSankeyLink => ({
+    source: typeof link.source === 'string' ? nodes.findIndex((n: SankeyNode) => n.id === (link.source as string)) : link.source as number,
+    target: typeof link.target === 'string' ? nodes.findIndex((n: SankeyNode) => n.id === (link.target as string)) : link.target as number,
     value: link.value,
     color: link.color
-  })) : (propLinks || []);
+  })) : (propLinks as RechartsSankeyLink[] || []);
   const chartId = `sankey-${Math.random().toString(36).slice(2, 8)}`;
 
   return (

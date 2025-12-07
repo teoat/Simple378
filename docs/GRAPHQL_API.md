@@ -15,16 +15,18 @@ The AntiGravity system now includes a GraphQL API alongside the REST API, provid
 - **Method**: POST
 - **Content-Type**: `application/json`
 
-## Example Queries
+## Example Queries and Mutations
 
-### 1. Hello World Test
+### Queries
+
+#### 1. Hello World Test
 ```graphql
 query {
   hello
 }
 ```
 
-### 2. Fetch All Events (Limited to 100)
+#### 2. Fetch All Events (Limited to 100)
 ```graphql
 query {
   events {
@@ -40,7 +42,7 @@ query {
 }
 ```
 
-### 3. Fetch Events for Specific Aggregate
+#### 3. Fetch Events for Specific Aggregate
 ```graphql
 query GetCaseEvents {
   events(aggregateId: "your-uuid-here", limit: 50) {
@@ -53,7 +55,7 @@ query GetCaseEvents {
 }
 ```
 
-### 4. Query with Variables
+#### 4. Query with Variables
 ```graphql
 query GetEvents($aggregateId: String, $limit: Int) {
   events(aggregateId: $aggregateId, limit: $limit) {
@@ -71,6 +73,39 @@ query GetEvents($aggregateId: String, $limit: Int) {
 {
   "aggregateId": "123e4567-e89b-12d3-a456-426614174000",
   "limit": 20
+}
+```
+
+### Mutations
+
+#### 1. Add New Event
+```graphql
+mutation AddEvent($eventInput: EventInput!) {
+  addEvent(eventInput: $eventInput) {
+    id
+    aggregateId
+    aggregateType
+    eventType
+    timestamp
+    data
+  }
+}
+```
+
+**Variables:**
+```json
+{
+  "eventInput": {
+    "aggregateId": "case-123",
+    "aggregateType": "Case",
+    "eventType": "case_created",
+    "data": {
+      "title": "New Fraud Case",
+      "description": "Suspicious transaction pattern detected"
+    },
+    "correlationId": "request-456",
+    "causationId": "analysis-789"
+  }
 }
 ```
 
@@ -134,6 +169,14 @@ print(response.json())
 - `correlationId`: String - Link to related events
 - `causationId`: String - What caused this event
 
+#### EventInput (for mutations)
+- `aggregateId`: String! - Entity this event affects
+- `aggregateType`: String! - Type of entity
+- `eventType`: String! - Event name
+- `data`: JSON! - Event payload
+- `correlationId`: String - Link to related events
+- `causationId`: String - What caused this event
+
 ## Troubleshooting
 
 ### Playground Not Loading
@@ -148,7 +191,7 @@ print(response.json())
 - Verify event data exists in the `events` table
 
 ## Future Enhancements
-- [ ] Mutations for creating/updating events
+- [x] Mutations for creating/updating events (implemented)
 - [ ] Subscriptions for real-time event streaming
 - [ ] DataLoader for batch optimization
 - [ ] More complex filters and sorting options

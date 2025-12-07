@@ -5,7 +5,7 @@ from sqlalchemy.future import select
 from sqlalchemy import func, String, desc, asc
 from typing import Optional
 from app.api import deps
-from app.models import mens_rea as models
+from app.db import models
 from app.services.subject import SubjectService
 from app.db.models import Subject
 from app.core.cache import apply_cache_preset, add_etag, check_etag_match, CACHE_PRESETS

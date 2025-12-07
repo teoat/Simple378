@@ -5,6 +5,19 @@ from app.db.session import get_db
 from app.db.models import Event
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.services.event_service import EventService # Import the new service
+import uuid
+from datetime import datetime
+from strawberry.scalars import JSON
+
+@strawberry.input
+class EventInput:
+    aggregateId: str
+    aggregateType: str
+    eventType: str
+    data: JSON
+    correlationId: Optional[str] = None
+    causationId: Optional[str] = None
 
 @strawberry.type
 class Query:
@@ -13,36 +26,67 @@ class Query:
         return "Hello from GraphQL"
 
     @strawberry.field
-    async def events(self, aggregate_id: Optional[str] = None, limit: int = 100) -> List[EventType]:
-        """Fetch events from database, optionally filtered by aggregate_id"""
-        async for db in get_db():
-            query = select(Event).order_by(desc(Event.created_at)).limit(limit)
+    async def events(
+        self, 
+        info, # strawberry passes info as the first arg in resolvers
+        aggregate_id: Optional[str] = None, 
+        limit: int = 100
+    ) -> List[EventType]:
+        """Fetch events from database using EventService, optionally filtered by aggregate_id"""
+        async for db in get_db(): # get_db is an async_generator
+            event_service = EventService(db)
+            domain_events = await event_service.get_events(aggregate_id=aggregate_id, limit=limit)
             
-            if aggregate_id:
-                query = query.where(Event.aggregate_id == aggregate_id)
-            
-            result = await db.execute(query)
-            db_events = result.scalars().all()
-            
-            # Map DB events to GraphQL EventType
+            # Since EventService returns DomainEvent, we need to map to EventType
+            # Assuming EventType has a constructor that takes keyword arguments matching DomainEvent fields
             event_list = []
-            for event in db_events:
-                meta = event.metadata_ or {}
+            for de in domain_events:
                 event_list.append(EventType(
-                    id=str(event.id),
-                    aggregateId=str(event.aggregate_id),
-                    aggregateType=event.aggregate_type,
-                    eventType=event.event_type,
-                    timestamp=event.created_at.timestamp() * 1000,
-                    nodeId=meta.get("node_id", "backend"),
-                    clock=event.version,
-                    version=event.version,
-                    data=event.payload,
-                    checksum=meta.get("checksum", ""),
-                    correlationId=meta.get("correlation_id"),
-                    causationId=meta.get("causation_id"),
-                ))
-            
+                    id=de.id,
+                    aggregateId=de.aggregateId,
+                    aggregateType=de.aggregateType,
+                    eventType=de.eventType,
+                    timestamp=de.timestamp,
+                    nodeId=de.nodeId,
+                    clock=de.clock,
+                    version=de.version,
+                    data=de.data,
+                    checksum=de.checksum,
+                    correlationId=de.correlationId,
+                    causationId=de.causationId,
+                 ))
             return event_list
 
-schema = strawberry.Schema(query=Query)
+@strawberry.type
+class Mutation:
+    @strawberry.mutation
+    async def add_event(self, info, event_input: EventInput) -> EventType:
+        """Add a new event to the event store"""
+        async for db in get_db():
+            event_service = EventService(db)
+            domain_event = await event_service.add_event(
+                aggregate_id=event_input.aggregateId,
+                aggregate_type=event_input.aggregateType,
+                event_type=event_input.eventType,
+                data=event_input.data,
+                correlation_id=event_input.correlationId,
+                causation_id=event_input.causationId,
+            )
+
+            # Convert DomainEvent to EventType
+            return EventType(
+                id=domain_event.id,
+                aggregateId=domain_event.aggregateId,
+                aggregateType=domain_event.aggregateType,
+                eventType=domain_event.eventType,
+                timestamp=domain_event.timestamp,
+                nodeId=domain_event.nodeId,
+                clock=domain_event.clock,
+                version=domain_event.version,
+                data=domain_event.data,
+                checksum=domain_event.checksum,
+                correlationId=domain_event.correlationId,
+                causationId=domain_event.causationId,
+            )
+
+schema = strawberry.Schema(query=Query, mutation=Mutation)

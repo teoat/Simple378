@@ -6,6 +6,7 @@ from app.schemas.event import SyncRequest, SyncResponse, DomainEvent
 from app.api import deps
 from app.db.models import User, Event
 import structlog
+from app.services.event_service import EventService # Import the new service
 
 router = APIRouter()
 logger = structlog.get_logger()
@@ -20,37 +21,8 @@ async def get_events(
     """
     Retrieve events, optionally filtered by aggregate_id.
     """
-    query = select(Event).order_by(desc(Event.created_at)).limit(limit)
-    
-    if aggregate_id:
-        # aggregate_id is Uuid in DB, so cast or let SQLAlchemy handle string UUID
-        query = query.where(Event.aggregate_id == aggregate_id)
-
-    result = await db.execute(query)
-    events = result.scalars().all()
-    
-    domain_events = []
-    for event in events:
-        # Map DB Event to DomainEvent
-        # Assuming metadata_ contains things like nodeId, or default to 'backend'
-        meta = event.metadata_ or {}
-        
-        domain_events.append(DomainEvent(
-            id=str(event.id),
-            aggregateId=str(event.aggregate_id),
-            aggregateType=event.aggregate_type,
-            eventType=event.event_type,
-            timestamp=event.created_at.timestamp() * 1000,
-            nodeId=meta.get("node_id", "backend"),
-            clock=event.version, # Using version as primitive clock
-            version=event.version,
-            data=event.payload,
-            checksum=meta.get("checksum", ""),
-            correlationId=meta.get("correlation_id"),
-            causationId=meta.get("causation_id"),
-        ))
-
-    return domain_events
+    event_service = EventService(db)
+    return await event_service.get_events(aggregate_id=aggregate_id, limit=limit)
     
 @router.post("/sync", response_model=SyncResponse)
 async def sync_events(

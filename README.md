@@ -1,148 +1,110 @@
-# Fraud Detection System
+# Simple378
 
-## Overview
+This is a simple project that contains a frontend and a backend.
 
-A privacy-focused, AI-powered fraud detection system with offline capabilities.
+## Frontend
 
-## Prerequisites
+The frontend is a React application that uses Vite as a build tool. It is written in TypeScript and uses a number of libraries, including:
 
-- Docker & Docker Compose
-- Node.js 20+ (for local frontend dev)
-- Python 3.12+ (for local backend dev)
+*   React Router
+*   TanStack Query
+*   Tailwind CSS
+*   ESLint
+*   Playwright
 
-## Agent Coordination
+### Frontend Code Analysis
 
-⚠️ **IMPORTANT**: This project enforces strict agent coordination. All IDE agents MUST use the `agent-coordination` MCP server.
+A detailed analysis of the frontend code can be found in the [lint_analysis.md](frontend/lint_analysis.md) file. The analysis includes a summary of the issues found, a breakdown of the issues by file, and a set of recommendations for fixing them.
 
-- **Rules**: [.agent/rules/agent_coordination.mdc](.agent/rules/agent_coordination.mdc)
-- **Verification**: Run `.agent/workflows/verify_mcp_config.md`
+The linter found a total of **227 problems**, including **214 errors** and **13 warnings**. The issues have been prioritized based on their severity and potential impact on the application. The following is a summary of the scorecard:
 
-## Getting Started
+| Page | Score |
+| --- | --- |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/visualization/FraudDetectionPanel.tsx | 30 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/cases/EntityGraph.tsx | 36 |
+| /Users/Arief/Desktop/Simple378/frontend/src/lib/reportGenerator.ts | 34 |
+| /Users/Arief/Desktop/Simple378/frontend/src/hooks/performance.tsx | 18 |
+| /Users/Arief/Desktop/Simple378/frontend/src/lib/api.test.ts | 18 |
+| /Users/Arief/Desktop/Simple378/frontend/src/test/test-utils.tsx | 15 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/collaboration/SharedAIInsights.tsx | 12 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/settings/AuditLogViewer.tsx | 12 |
+| /Users/Arief/Desktop/Simple378/frontend/src/pages/Visualization.tsx | 12 |
+| /Users/Arief/Desktop/Simple378/frontend/src/types/react-force-graph.d.ts | 12 |
+| /Users/Arief/Desktop/Simple378/frontend/src/lib/exportUtils.ts | 11 |
+| /Users/Arief/Desktop/Simple378/frontend/src/hooks/useOfflineSync.tsx | 10 |
+| /Users/Arief/Desktop/Simple378/frontend/src/hooks/useWebSocket.tsx | 10 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/analytics/AdvancedAnalyticsDashboard.tsx | 10 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/reports/ScheduledReports.tsx | 10 |
+| /Users/Arief/Desktop/Simple378/frontend/src/pages/Ingestion.tsx | 7 |
+| /Users/Arief/Desktop/Simple378/frontend/src/pages/Settings.tsx | 7 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/ui/ExportComponents.tsx | 7 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/visualization/ForceDirectedGraph.tsx | 6 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/visualization/TimelineZoom.tsx | 6 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/cases/FinancialFlowAnalysis.tsx | 6 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/collaboration/MentionsNotifications.tsx | 6 |
+| /Users/Arief/Desktop/Simple378/frontend/src/context/AIContext.tsx | 6 |
+| /Users/Arief/Desktop/Simple378/frontend/src/lib/evidenceApi.ts | 6 |
+| /Users/Arief/Desktop/Simple378/frontend/src/lib/utils.test.ts | 6 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/ai/AIAssistant.tsx | 5 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/forensics/ProcessingPipeline.tsx | 5 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/graphs/EntityGraph.tsx | 5 |
+| /Users/Arief/Desktop/Simple378/frontend/src/__tests__/visualization-helpers.test.tsx | 4 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/ai/NaturalLanguageSearch.tsx | 4 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/collaboration/ActivityFeed.tsx | 4 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/compliance/AuditTrail.tsx | 4 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/reconciliation/TransactionColumns.tsx | 4 |
+| /Users/Arief/Desktop/Simple378/frontend/src/hooks/useCamera.tsx | 4 |
+| /Users/Arief/Desktop/Simple378/frontend/src/hooks/usePWA.ts | 4 |
+| /Users/Arief/Desktop/Simple378/frontend/src/App.test.tsx | 4 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/visualization/ActivityHeatmap.tsx | 3 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/visualization/SankeyFlow.tsx | 3 |
+| /Users/Arief/Desktop/Simple378/frontend/tests/file-upload.spec.ts | 3 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/ai/AutomatedCaseSummaries.tsx | 2 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/ai/RelationshipExtraction.tsx | 2 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/cases/EvidenceCorrelationViewer.tsx | 2 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/cases/EvidenceLibrary.tsx | 2 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/forensics/FileUploader.tsx | 2 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/predictive/PredictiveDashboard.tsx | 2 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/predictive/ScenarioSimulation.tsx | 2 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/pwa/OfflineSyncStatus.tsx | 2 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/settings/SecuritySettings.tsx | 2 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/visualization/VisualizationNetwork.tsx | 2 |
+| /Users/Arief/Desktop/Simple378/frontend/src/lib/api.ts | 2 |
+| /Users/Arief/Desktop/Simple378/frontend/src/test/setup.ts | 2 |
+| /Users/Arief/Desktop/Simple378/frontend/src/__tests__/DecisionPanel.test.tsx | 2 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/cases/Timeline.tsx | 2 |
+| /Users/Arief/Desktop/Simple378/frontend/tests/e2e/case-management.spec.ts | 2 |
+| /Users/Arief/Desktop/Simple378/frontend/src/__tests__/AlertList.test.tsx | 1 |
+| /Users/Arief/Desktop/Simple378/frontend/src/__tests__/UploadZone.test.tsx | 1 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/ai/AIAssistant.test.tsx | 1 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/ui/ErrorBoundary.test.tsx | 1 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/visualization/AIInsightPanel.tsx | 1 |
+| /Users/Arief/Desktop/Simple378/frontend/src/pages/CaseList.test.tsx | 1 |
+| /Users/Arief/Desktop/Simple378/frontend/src/pages/__tests__/CaseDetail.test.tsx | 1 |
+| /Users/Arief/Desktop/Simple378/frontend/src/vite-env.d.ts | 1 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/cases/VirtualCaseList.tsx | 0 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/reconciliation/VirtualTransactionList.tsx | 0 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/ui/Input.tsx | 0 |
+| /Users/Arief/Desktop/Simple378/frontend/src/components/ui/VirtualTable.tsx | 0 |
+| /Users/Arief/Desktop/Simple378/frontend/src/context/AuthContext.tsx | 0 |
+| /Users/Arief/Desktop/Simple378/frontend/src/hooks/useAuth.test.ts | 0 |
+| /Users/Arief/Desktop/Simple378/frontend/src/lib/eventSourcing.test.ts | 0 |
 
-### 1. Environment Setup
+The recommendations for fixing the issues can be found in the [lint_analysis.md](frontend/lint_analysis.md) file.
 
-Copy the example environment file:
+## Docker Deployment
 
-```bash
-cp .env.example .env
-```
+To run the application using Docker Compose, follow these steps:
 
-### 2. **Quick Deploy (Recommended)**
+1.  **Build the Docker images:**
+    ```bash
+    docker-compose build
+    ```
+2.  **Start the services:**
+    ```bash
+    docker-compose up
+    ```
+3.  **Access the application:**
+    The frontend will be available at `http://localhost`.
 
-Deploy all services with one command:
-
-```bash
-./deploy.sh
-```
-
-This will start:
-- Backend API (FastAPI + GraphQL)
-- Frontend (React + Vite)
-- PostgreSQL, Redis, Qdrant, Meilisearch
-- MCP Coordination Server
-- Monitoring stack (Prometheus, Grafana, Jaeger)
-- Object storage (MinIO)
-
-**See:** [Deployment Guide](docs/DEPLOYMENT_SUMMARY.md)
-
-### 3. Manual Docker Compose
-
-Start individual service groups:
-
-```bash
-# Infrastructure only
-docker-compose up -d db cache vector_db meilisearch
-
-# Full stack
-docker-compose up --build
-```
-
-- **Frontend:** [http://localhost:5173](http://localhost:5173)
-- **Backend API:** [http://localhost:8000/docs](http://localhost:8000/docs)
-- **GraphQL:** [http://localhost:8000/graphql](http://localhost:8000/graphql)
-- **Grafana:** [http://localhost:3000](http://localhost:3000)
-- **Qdrant UI:** [http://localhost:6333/dashboard](http://localhost:6333/dashboard)
-
-### 3. Local Development
-
-#### Backend
-
-```bash
-cd backend
-poetry install
-poetry run uvicorn app.main:app --reload
-```
-
-#### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-## Architecture
-
-See `docs/architecture/` for detailed design documents.
-
-## Contributing
-
-We welcome contributions! Please see:
-
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Guidelines for contributors (humans and AI)
-- **[AGENTS.md](AGENTS.md)** - Comprehensive guide for GitHub Copilot coding agents
-- **[Task Guidelines](docs/COPILOT_TASK_GUIDELINES.md)** - Which tasks are suitable for AI agents
-
-### For GitHub Copilot Coding Agents
-
-If you're an AI coding agent:
-1. Read **[AGENTS.md](AGENTS.md)** for repository context and coding standards
-2. Review **[COPILOT_TASK_GUIDELINES.md](docs/COPILOT_TASK_GUIDELINES.md)** to understand task suitability
-3. Use issue templates in `.github/ISSUE_TEMPLATE/` for well-structured tasks
-4. Follow the pull request template for comprehensive PR descriptions
-
-### Quick Start for Contributors
-
-```bash
-# Clone and setup
-git clone https://github.com/teoat/Simple378.git
-cd Simple378
-cp .env.example .env
-
-# Backend
-cd backend && poetry install && poetry run pytest
-
-# Frontend
-cd frontend && npm install && npm test
-
-# All services with Docker
-docker-compose up --build
-```
-
-## Documentation
-
-### 📚 Quick Links
-
-- **[Documentation Index](docs/INDEX.md)** - Complete documentation navigation with diagrams
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines (developers & AI agents)
-- **[CODEOWNERS](CODEOWNERS)** - Code review responsibilities
-
-### 🏗️ Technical Documentation
-
-- **[Backend README](backend/README.md)** - Backend setup, testing, API development
-- **[Frontend README](frontend/README.md)** - Frontend build, deployment, E2E testing
-- **[Architecture Docs](docs/architecture/)** - System design and decision records
-
-### 🔒 Security & Quality
-
-- **[Security & Quality Guide](docs/SECURITY_AND_QUALITY.md)** - Comprehensive guide covering:
-  - Vulnerability management & scanning
-  - Testing strategy (80%+ coverage required)
-  - Incident response procedures
-  - Monitoring and alerting (Prometheus)
-  - Performance optimization
-
-### 🤖 For AI Agents
-
-- **[AGENTS.md](AGENTS.md)** - Comprehensive guide for GitHub Copilot
-- **[Task Guidelines](docs/COPILOT_TASK_GUIDELINES.md)** - Which tasks are suitable for AI
+**Note:** Make sure you have Docker and Docker Compose installed on your system.

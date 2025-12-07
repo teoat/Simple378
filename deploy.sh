@@ -6,6 +6,9 @@
 
 set -e
 
+# Add Docker to PATH
+export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+
 echo "🚀 AntiGravity Fraud Detection - Full Deployment"
 echo "=================================================="
 echo ""
@@ -33,15 +36,15 @@ fi
 source .env
 
 echo -e "${BLUE}📦 Step 1: Stopping existing containers...${NC}"
-docker-compose down
+docker compose down
 
 echo ""
 echo -e "${BLUE}📦 Step 2: Building containers...${NC}"
-docker-compose build
+docker compose build
 
 echo ""
 echo -e "${BLUE}📦 Step 3: Starting infrastructure services...${NC}"
-docker-compose up -d db cache vector_db meilisearch prometheus grafana jaeger minio
+docker compose up -d db cache vector_db meilisearch prometheus grafana jaeger minio
 
 echo ""
 echo -e "${BLUE}⏳ Waiting for infrastructure to be ready...${NC}"
@@ -49,7 +52,7 @@ sleep 10
 
 # Check database health
 echo -e "${BLUE}🔍 Checking PostgreSQL...${NC}"
-docker-compose exec -T db pg_isready -U ${POSTGRES_USER} || {
+docker compose exec -T db pg_isready -U ${POSTGRES_USER} || {
     echo -e "${RED}✗ PostgreSQL not ready${NC}"
     exit 1
 }
@@ -57,7 +60,7 @@ echo -e "${GREEN}✓ PostgreSQL ready${NC}"
 
 # Check Redis health
 echo -e "${BLUE}🔍 Checking Redis...${NC}"
-docker-compose exec -T cache redis-cli ping | grep PONG || {
+docker compose exec -T cache redis-cli ping | grep PONG || {
     echo -e "${RED}✗ Redis not ready${NC}"
     exit 1
 }
@@ -65,7 +68,7 @@ echo -e "${GREEN}✓ Redis ready${NC}"
 
 echo ""
 echo -e "${BLUE}📦 Step 4: Starting application services...${NC}"
-docker-compose up -d backend mcp-server frontend
+docker compose up -d backend mcp-server frontend
 
 echo ""
 echo -e "${BLUE}⏳ Waiting for backend to be ready...${NC}"
@@ -111,8 +114,8 @@ echo "  Grafana:              admin / ${GRAFANA_ADMIN_PASSWORD:-admin}"
 echo "  MinIO:                ${MINIO_ROOT_USER:-fraud_storage_admin} / [see .env]"
 echo ""
 echo "📝 View logs:"
-echo "  docker-compose logs -f [service_name]"
+echo "  docker compose logs -f [service_name]"
 echo ""
 echo "🛑 Stop all services:"
-echo "  docker-compose down"
+echo "  docker compose down"
 echo ""

@@ -114,7 +114,12 @@ Use the route_to_agent function to make your decision."""
 
             "cfo": """You are Frenly AI, a Chief Financial Officer with deep expertise in financial risk management.
             Focus on financial exposure, business impact, cost-benefit analysis, and strategic financial decisions.
-            Provide quantitative analysis and business-oriented recommendations."""
+            Provide quantitative analysis and business-oriented recommendations.""",
+
+            "investigator": """You are Frenly AI, a Senior Investigator with decades of experience in fraud detection and criminal investigations.
+            Provide practical, street-smart advice on investigation strategies, interview tactics, and case-building techniques.
+            Share insights from real-world experience, suggest tactical approaches, and help navigate complex investigations.
+            Focus on actionable investigation steps and practical detective work."""
         }
 
         system_prompt = persona_prompts.get(persona, persona_prompts["analyst"])
@@ -179,9 +184,18 @@ Current Case Context:
             else:
                 suggestions.extend(["Analyze Financial Exposure", "Review Business Impact", "Assess Mitigation Costs"])
 
+        elif persona == "investigator":
+            if "interview" in message_lower or "interrogation" in message_lower:
+                suggestions.extend(["Prepare Interview Questions", "Review Suspect Background", "Plan Interrogation Strategy"])
+            elif "evidence" in message_lower or "case" in message_lower:
+                suggestions.extend(["Build Evidence Timeline", "Identify Key Witnesses", "Strengthen Case Documentation"])
+            else:
+                suggestions.extend(["Plan Investigation Strategy", "Identify Next Steps", "Review Case Progress"])
+
         # Add case-specific suggestions if context is available
         if case_context and case_context.get('has_analysis'):
             suggestions.append("View Case Analysis")
             suggestions.append("Generate Investigation Report")
 
         return suggestions[:4]  # Limit to 4 suggestions
+

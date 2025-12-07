@@ -6,7 +6,8 @@ import { queryClient } from './lib/queryClient';
 import { AuthProvider } from './context/AuthContext';
 import { AIProvider } from './context/AIContext';
 import { AuthGuard } from './components/auth/AuthGuard';
-import { ErrorBoundary } from './components/ErrorBoundary';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
+import { LoadingState } from './components/ui/Loading';
 import { AppShell } from './components/layout/AppShell';
 import { AIAssistant } from './components/ai/AIAssistant';
 import { NetworkMonitor } from './components/NetworkMonitor';
@@ -37,10 +38,7 @@ const Offline = lazy(() => import('./pages/errors/Offline').then(m => ({ default
 function PageLoader() {
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">Loading...</p>
-      </div>
+      <LoadingState message="Loading page..." />
     </div>
   );
 }
@@ -69,9 +67,11 @@ function App() {
                 {/* Protected routes */}
                 <Route
                   element={
-                    <AuthGuard>
-                      <AppShell />
-                    </AuthGuard>
+                    <ErrorBoundary>
+                      <AuthGuard>
+                        <AppShell />
+                      </AuthGuard>
+                    </ErrorBoundary>
                   }
                 >
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />

@@ -9,7 +9,7 @@ from sqlalchemy.future import select
 from app.services.forensics import ForensicsService
 from app.services.entity_resolution import EntityResolutionService
 from app.api import deps
-from app.models import mens_rea as models
+from app.db import models
 from pydantic import BaseModel
 from typing import List, Dict, Any
 

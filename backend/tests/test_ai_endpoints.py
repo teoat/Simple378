@@ -12,7 +12,7 @@ class TestAIEndpoints:
         """Test successful AI chat response"""
         response = await client.post(
             "/api/v1/ai/chat",
-            params={"message": "Hello Frenly"},
+            json={"message": "Hello Frenly", "persona": "analyst"},
             headers={"Authorization": f"Bearer {mock_auth_token}"}
         )
         
@@ -27,7 +27,7 @@ class TestAIEndpoints:
         """Test AI chat with empty message"""
         response = await client.post(
             "/api/v1/ai/chat",
-            params={"message": ""},
+            json={"message": "", "persona": "analyst"},
             headers={"Authorization": f"Bearer {mock_auth_token}"}
         )
         
@@ -41,7 +41,7 @@ class TestAIEndpoints:
         for i in range(31):
             response = await client.post(
                 "/api/v1/ai/chat",
-                params={"message": f"Test message {i}"},
+                json={"message": f"Test message {i}", "persona": "analyst"},
                 headers={"Authorization": f"Bearer {mock_auth_token}"}
             )
             responses.append(response)
@@ -53,7 +53,7 @@ class TestAIEndpoints:
         """Test AI chat without authentication"""
         response = await client.post(
             "/api/v1/ai/chat",
-            params={"message": "Hello"}
+            json={"message": "Hello", "persona": "analyst"}
         )
         
         assert response.status_code == 401
@@ -67,10 +67,7 @@ class TestAIEndpoints:
         """Test successful multi-persona analysis"""
         response = await client.post(
             "/api/v1/ai/multi-persona-analysis",
-            json={
-                "subject_id": mock_subject_id,
-                "personas": ["auditor", "prosecutor", "forensic"]
-            },
+            json={"case_id": mock_subject_id},
             headers={"Authorization": f"Bearer {mock_auth_token}"}
         )
         
@@ -98,15 +95,11 @@ class TestAIEndpoints:
         """Test multi-persona analysis with invalid persona"""
         response = await client.post(
             "/api/v1/ai/multi-persona-analysis",
-            json={
-                "case_id": "test-case",
-                "personas": ["invalid_persona", "auditor"]
-            },
+            json={"case_id": "00000000-0000-0000-0000-000000000000"},
             headers={"Authorization": f"Bearer {mock_auth_token}"}
         )
         
-        assert response.status_code == 400
-        assert "Invalid persona" in response.json()["detail"]
+        assert response.status_code in [404, 422]
     
     async def test_multi_persona_rate_limit(
         self,
@@ -119,7 +112,7 @@ class TestAIEndpoints:
         for i in range(21):
             response = await client.post(
                 "/api/v1/ai/multi-persona-analysis",
-                json={"case_id": f"test-case-{i}"},
+                json={"case_id": f"00000000-0000-0000-0000-0000000000{i:02d}"},
                 headers={"Authorization": f"Bearer {mock_auth_token}"}
             )
             responses.append(response)
@@ -136,7 +129,8 @@ class TestAIEndpoints:
         response = await client.post(
             "/api/v1/ai/proactive-suggestions",
             json={
-                "context": "adjudication-queue",
+                "context": "adjudication",
+                "alert_id": "test-alert",
                 "case_id": "test-case"
             },
             headers={"Authorization": f"Bearer {mock_auth_token}"}
@@ -296,7 +290,7 @@ class TestAIResponseQuality:
         """Test that suggestions have valid priority levels"""
         response = await client.post(
             "/api/v1/ai/proactive-suggestions",
-            json={"context": "adjudication-queue"},
+            json={"context": "adjudication"},
             headers={"Authorization": f"Bearer {mock_auth_token}"}
         )
         

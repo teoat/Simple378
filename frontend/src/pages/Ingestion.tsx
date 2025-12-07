@@ -282,7 +282,7 @@ export function Ingestion() {
                             onChange={(e) => setSubjectId(e.target.value)}
                         >
                             <option value="">Select a subject...</option>
-                            {subjectsData?.items?.map((subject: any) => (
+                            {((subjectsData as any)?.items || (subjectsData as any) || []).map((subject: any) => (
                                 <option key={subject.id} value={subject.id}>
                                     {subject.subject_name || subject.id}
                                 </option>

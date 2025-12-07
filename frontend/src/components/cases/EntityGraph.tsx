@@ -3,15 +3,11 @@ import * as d3 from 'd3';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
 import {
-  ZoomIn,
-  ZoomOut,
   RotateCcw,
   Play,
   Pause,
   Search,
-  Filter,
-  Settings,
-  Info
+  Settings
 } from 'lucide-react';
 
 interface EntityNode extends d3.SimulationNodeDatum {
@@ -156,8 +152,8 @@ export function EntityGraph({
     // Create zoom behavior
     const zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 4])
-      .on('zoom', (event) => {
-        g.attr('transform', event.transform);
+      .on('zoom', (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
+        g.attr('transform', event.transform.toString());
         setZoom(event.transform.k);
       });
 
@@ -291,7 +287,7 @@ export function EntityGraph({
   const resetView = () => {
     const svg = d3.select(svgRef.current);
     svg.transition().duration(750).call(
-      d3.zoom<SVGSVGElement, unknown>().transform,
+      d3.zoom<SVGSVGElement, unknown>().transform as any,
       d3.zoomIdentity
     );
     setZoom(1);

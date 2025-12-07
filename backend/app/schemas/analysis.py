@@ -46,3 +46,9 @@ class ShortestPathRequest(BaseModel):
 class ShortestPathResult(BaseModel):
     path: List[str]
     length: int
+
+class AnalysisResult(BaseModel):
+    subject_id: str
+    risk_score: float
+    triggered_rules: List[RuleResult]
+    created_at: Optional[datetime] = None

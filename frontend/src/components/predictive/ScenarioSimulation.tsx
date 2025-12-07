@@ -8,7 +8,8 @@ import {
   DollarSign,
   Users,
   Zap,
-  Target
+  Target,
+  LucideIcon
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -31,11 +32,34 @@ interface ScenarioResult {
   overall_risk?: number;
 }
 
+interface ScenarioParamConfig {
+  type: 'text' | 'number' | 'textarea';
+  label: string;
+  placeholder?: string;
+  default?: string | number;
+  min?: number;
+  max?: number;
+  step?: number;
+}
+
+interface ScenarioDef {
+  id: string;
+  name: string;
+  description: string;
+  icon: LucideIcon;
+  params: Record<string, ScenarioParamConfig>;
+}
+
 export function ScenarioSimulation() {
   const [activeScenario, setActiveScenario] = useState<string>('what_if');
   const [scenarioParams, setScenarioParams] = useState<Record<string, unknown>>({});
 
-  const scenarios = [
+  const handleScenarioChange = (id: string) => {
+    setActiveScenario(id);
+    setScenarioParams({});
+  };
+
+  const scenarios: ScenarioDef[] = [
     {
       id: 'what_if',
       name: 'What-If Analysis',
@@ -103,7 +127,7 @@ export function ScenarioSimulation() {
     }));
   };
 
-  const renderParameterInput = (key: string, config: any) => {
+  const renderParameterInput = (key: string, config: ScenarioParamConfig) => {
     const value = scenarioParams[key] ?? config.default ?? '';
 
     switch (config.type) {
@@ -111,7 +135,7 @@ export function ScenarioSimulation() {
         return (
           <input
             type="text"
-            value={value}
+            value={value as string}
             onChange={(e) => updateParam(key, e.target.value)}
             placeholder={config.placeholder}
             className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
@@ -121,7 +145,7 @@ export function ScenarioSimulation() {
         return (
           <input
             type="number"
-            value={value}
+            value={value as number}
             onChange={(e) => updateParam(key, parseFloat(e.target.value))}
             placeholder={config.placeholder}
             min={config.min}
@@ -133,7 +157,7 @@ export function ScenarioSimulation() {
       case 'textarea':
         return (
           <textarea
-            value={value}
+            value={value as string}
             onChange={(e) => updateParam(key, e.target.value)}
             placeholder={config.placeholder}
             rows={3}
@@ -315,7 +339,7 @@ export function ScenarioSimulation() {
                   <Settings className="h-8 w-8 text-blue-500 mx-auto mb-2" />
                   <div className="text-lg font-medium text-slate-600 dark:text-slate-400">Stress Factor</div>
                   <div className="text-2xl font-bold text-blue-600">
-                    {scenarioParams.stress_factor || 1.0}x
+                    {(scenarioParams.stress_factor as number) || 1.0}x
                   </div>
                 </div>
               </CardContent>
@@ -413,7 +437,7 @@ export function ScenarioSimulation() {
                   return (
                     <button
                       key={scenario.id}
-                      onClick={() => setActiveScenario(scenario.id)}
+                      onClick={() => handleScenarioChange(scenario.id)}
                       className={`w-full text-left p-4 rounded-lg border transition-all ${
                         activeScenario === scenario.id
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10'

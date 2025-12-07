@@ -1,15 +1,12 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
 import {
   MessageSquare,
   Send,
   User,
-  Clock,
   Reply,
-  MoreVertical,
-  Edit,
-  Trash2
+  MoreVertical
 } from 'lucide-react';
 
 interface Comment {
@@ -35,7 +32,6 @@ interface CommentThreadProps {
   };
   onAddComment: (content: string, parentId?: string) => void;
   onEditComment: (commentId: string, content: string) => void;
-  onDeleteComment: (commentId: string) => void;
   onAddReaction: (commentId: string, emoji: string) => void;
   title?: string;
   maxDepth?: number;
@@ -46,7 +42,6 @@ export function CommentThread({
   currentUser,
   onAddComment,
   onEditComment,
-  onDeleteComment,
   onAddReaction,
   title = "Comments",
   maxDepth = 3
@@ -55,7 +50,6 @@ export function CommentThread({
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
-  const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Organize comments into threads
@@ -102,10 +96,7 @@ export function CommentThread({
     setEditContent('');
   };
 
-  const startEditing = (comment: Comment) => {
-    setEditingComment(comment.id);
-    setEditContent(comment.content);
-  };
+
 
   const cancelEditing = () => {
     setEditingComment(null);
@@ -220,12 +211,7 @@ export function CommentThread({
                   </button>
                 )}
 
-                <button
-                  onClick={() => setShowEmojiPicker(comment.id)}
-                  className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                >
-                  👍
-                </button>
+
 
                 {(canEdit || canDelete) && (
                   <div className="relative">

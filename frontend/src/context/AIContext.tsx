@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { apiRequest } from '../lib/api';
 
-export type Persona = 'analyst' | 'legal' | 'cfo';
+export type Persona = 'analyst' | 'legal' | 'cfo' | 'investigator';
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -11,6 +11,7 @@ export interface Message {
   suggestions?: string[];
   caseId?: string;
   insights?: CaseInsight[];
+  feedback?: 'positive' | 'negative';
 }
 
 export interface CaseInsight {
@@ -49,6 +50,7 @@ interface AIContextType {
   setPersona: (p: Persona) => void;
   messages: Message[];
   sendMessage: (content: string, caseId?: string) => Promise<void>;
+  updateMessage: (timestamp: number, newContent: string) => void; // New function
   analyzeCase: (caseId: string) => Promise<CaseAnalysis>;
   isProcessing: boolean;
   isOpen: boolean;
@@ -56,32 +58,53 @@ interface AIContextType {
   clearHistory: () => void;
   currentCaseId?: string;
   setCurrentCaseId: (caseId?: string) => void;
+  setFeedback: (timestamp: number, feedback: 'positive' | 'negative') => void;
 }
 
 const AIContext = createContext<AIContextType | undefined>(undefined);
 
-export function AIProvider({ children }: { children: ReactNode }) {
+export function AIProvider({ children }: { ReactNode }) {
   const [persona, setPersona] = useState<Persona>('analyst');
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: "Hello! I'm Frenly AI, your intelligent fraud investigation assistant. I can help analyze cases, identify patterns, and provide recommendations. Select a persona above or ask me about a specific case.",
-      persona: 'analyst',
-      timestamp: Date.now(),
-      suggestions: ["Analyze case patterns", "Review risk factors", "Suggest next steps"]
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const saved = localStorage.getItem('frenly-conversation');
+      if (saved) {
+        return JSON.parse(saved) as Message[];
+      }
+    } catch (e) {
+      console.warn('Failed to load Frenly conversation from storage', e);
     }
-  ]);
+    return [
+      {
+        role: 'assistant',
+        content: "Hello! I'm Frenly AI, your intelligent fraud investigation assistant. I can help analyze cases, identify patterns, and provide recommendations. Select a persona above or ask me about a specific case.",
+        persona: 'analyst',
+        timestamp: Date.now(),
+        suggestions: ["Analyze case patterns", "Review risk factors", "Suggest next steps"]
+      }
+    ];
+  });
   const [isProcessing, setIsProcessing] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [currentCaseId, setCurrentCaseId] = useState<string | undefined>();
 
+  // Persist conversation history
+  useEffect(() => {
+    try {
+      localStorage.setItem('frenly-conversation', JSON.stringify(messages));
+    } catch (e) {
+      console.warn('Failed to persist Frenly conversation', e);
+    }
+  }, [messages]);
+
   const sendMessage = async (content: string, caseId?: string) => {
     if (!content.trim()) return;
 
+    const now = Date.now();
     const userMsg: Message = {
       role: 'user',
       content,
-      timestamp: Date.now(),
+      timestamp: now,
       caseId: caseId || currentCaseId
     };
 
@@ -94,7 +117,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           message: content,
           persona,
-          caseId: caseId || currentCaseId
+          case_id: caseId || currentCaseId
         })
       });
 
@@ -121,6 +144,15 @@ export function AIProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateMessage = (timestamp: number, newContent: string) => {
+    setMessages(prevMessages => 
+        prevMessages.map(msg => 
+            msg.timestamp === timestamp ? { ...msg, content: newContent } : msg
+        )
+    );
+  };
+
+
   const analyzeCase = async (caseId: string): Promise<CaseAnalysis> => {
     try {
       const response = await apiRequest<CaseAnalysis>(`/cases/${caseId}/ai-analysis`, {
@@ -142,19 +174,44 @@ export function AIProvider({ children }: { children: ReactNode }) {
     }]);
   };
 
+  const setFeedback = async (timestamp: number, feedback: 'positive' | 'negative') => {
+    setMessages(prev => prev.map(msg => msg.timestamp === timestamp ? { ...msg, feedback } : msg));
+    try {
+      await apiRequest('/ai/feedback', {
+        method: 'POST',
+        body: JSON.stringify({
+          message_timestamp: new Date(timestamp).toISOString(),
+          feedback: feedback,
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+      // Optionally, revert the feedback state if the API call fails
+      setMessages(prev => prev.map(msg => {
+        if (msg.timestamp === timestamp) {
+          const { feedback, ...revertedMsg } = msg;
+          return revertedMsg;
+        }
+        return msg;
+      }));
+    }
+  };
+
   return (
     <AIContext.Provider value={{
       persona,
       setPersona,
       messages,
       sendMessage,
+      updateMessage, // Add new function here
       analyzeCase,
       isProcessing,
       isOpen,
       setIsOpen,
       clearHistory,
       currentCaseId,
-      setCurrentCaseId
+      setCurrentCaseId,
+      setFeedback
     }}>
       {children}
     </AIContext.Provider>
