@@ -17,6 +17,16 @@ from app.db import models
 from app.api import deps
 from app.core.cache import apply_cache_preset
 from fastapi import Response
+from app.schemas.summary import (
+    Finding,
+    FindingTypeEnum,
+    SeverityEnum,
+    StatusEnum,
+    CaseSummaryResponse,
+    IngestionMetrics,
+    ReconciliationMetrics,
+    AdjudicationMetrics,
+)
 
 router = APIRouter(prefix="/summary", tags=["summary"])
 
@@ -44,22 +54,99 @@ class ArchiveRequest(BaseModel):
     archive_location: str = ""
 
 
-class Finding(BaseModel):
-    id: str
-    type: str  # pattern, amount, confirmation, false_positive, recommendation
-    severity: str  # high, medium, low
-    description: str
-    evidence: List[str] = []
+# ============================================
+# Helper Functions
+# ============================================
 
 
-class CaseSummaryResponse(BaseModel):
-    case_id: str
-    status: str  # success, partial, failed
-    data_quality: float
-    days_to_resolution: int
-    ingestion: Dict[str, Any]
-    reconciliation: Dict[str, Any]
-    adjudication: Dict[str, Any]
+async def _generate_findings(
+    case_uuid: uuid.UUID,
+    db: AsyncSession
+) -> List[Finding]:
+    """
+    Generate findings for a case based on analysis results.
+    Shared logic used by both get_case_summary and get_findings endpoints.
+    """
+    # Get analysis results with high risk scores
+    analysis_results = await db.execute(
+        select(models.AnalysisResult)
+        .where(
+            models.AnalysisResult.subject_id == case_uuid,
+            models.AnalysisResult.risk_score > 60,
+        )
+        .order_by(models.AnalysisResult.risk_score.desc())
+        .limit(10)
+    )
+    results = list(analysis_results.scalars().all())
+
+    # Generate findings
+    findings = []
+
+    if results:
+        # Pattern finding
+        findings.append(
+            Finding(
+                id=f"finding_{uuid.uuid4().hex[:8]}",
+                type=FindingTypeEnum.pattern,
+                severity=SeverityEnum.high,
+                description=f"Identified {len(results)} high-risk patterns involving multiple entities",
+                evidence=[str(r.id) for r in results[:3]],
+            )
+        )
+
+        # Amount summary
+        total_amount = sum(
+            float(r.metadata_.get("total_amount", 0)) if r.metadata_ else 0
+            for r in results
+        )
+        if total_amount > 0:
+            findings.append(
+                Finding(
+                    id=f"finding_{uuid.uuid4().hex[:8]}",
+                    type=FindingTypeEnum.amount,
+                    severity=SeverityEnum.high,
+                    description=f"Total flagged amount: ${total_amount:,.2f}",
+                    evidence=[],
+                )
+            )
+
+        # Confirmation
+        confirmed = [r for r in results if r.decision == "confirmed_fraud"]
+        if confirmed:
+            findings.append(
+                Finding(
+                    id=f"finding_{uuid.uuid4().hex[:8]}",
+                    type=FindingTypeEnum.confirmation,
+                    severity=SeverityEnum.high,
+                    description=f"{len(confirmed)} confirmed fraudulent transactions referred to authorities",
+                    evidence=[str(r.id) for r in confirmed],
+                )
+            )
+
+        # False positives
+        false_positives = [r for r in results if r.decision == "false_positive"]
+        if false_positives:
+            findings.append(
+                Finding(
+                    id=f"finding_{uuid.uuid4().hex[:8]}",
+                    type=FindingTypeEnum.false_positive,
+                    severity=SeverityEnum.low,
+                    description=f"{len(false_positives)} false positives correctly ruled out",
+                    evidence=[],
+                )
+            )
+    else:
+        findings.append(
+            Finding(
+                id=f"finding_{uuid.uuid4().hex[:8]}",
+                type=FindingTypeEnum.recommendation,
+                severity=SeverityEnum.low,
+                description="No high-risk patterns detected. Case appears clean.",
+                evidence=[],
+            )
+        )
+
+    return findings
 
 
 # ============================================
@@ -130,38 +217,42 @@ async def get_case_summary(
 
     # Determine overall status
     if resolved_count == total_alerts and total_alerts > 0:
-        status = "success"
+        status = StatusEnum.success
     elif resolved_count > 0:
-        status = "partial"
+        status = StatusEnum.partial
     else:
-        status = "failed" if total_alerts > 0 else "success"
+        status = StatusEnum.failed if total_alerts > 0 else StatusEnum.success
+
+    # Generate findings
+    findings = await _generate_findings(case_uuid, db)
 
     # Cache for 5 minutes
     apply_cache_preset(response, "short")
 
     return CaseSummaryResponse(
-        case_id=case_id,
+        id=case_id,
         status=status,
-        data_quality=data_quality,
-        days_to_resolution=days_to_resolution,
-        ingestion={
-            "records": transaction_count,
-            "files": 8,  # Mock - could track in future
-            "completion": 100,
-            "status": "complete",
-        },
-        reconciliation={
-            "matchRate": 94.2,  # Mock - calculate from actual matches
-            "newRecords": 890,
-            "rejected": 45,
-            "status": "complete",
-        },
-        adjudication={
-            "resolved": resolved_count,
-            "avgTime": f"{avg_time_minutes} min",
-            "totalAlerts": total_alerts,
-            "status": "complete" if resolved_count == total_alerts else "partial",
-        },
+        dataQuality=data_quality,
+        daysToResolution=days_to_resolution,
+        ingestion=IngestionMetrics(
+            records=transaction_count,
+            files=8,  # Mock - could track in future
+            completion=100.0,
+            status=StatusEnum.complete,
+        ),
+        reconciliation=ReconciliationMetrics(
+            matchRate=94.2,  # Mock - calculate from actual matches
+            newRecords=890,
+            rejected=45,
+            status=StatusEnum.complete,
+        ),
+        adjudication=AdjudicationMetrics(
+            resolved=resolved_count,
+            avgTime=f"{avg_time_minutes} min",
+            totalAlerts=total_alerts,
+            status=StatusEnum.complete if resolved_count == total_alerts else StatusEnum.partial,
+        ),
+        findings=findings,
     )
 
 
@@ -180,84 +271,8 @@ async def get_findings(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid case ID format")
 
-    # Get analysis results with high risk scores
-    analysis_results = await db.execute(
-        select(models.AnalysisResult)
-        .where(
-            models.AnalysisResult.subject_id == case_uuid,
-            models.AnalysisResult.risk_score > 60,
-        )
-        .order_by(models.AnalysisResult.risk_score.desc())
-        .limit(10)
-    )
-    results = list(analysis_results.scalars().all())
-
-    # Generate findings
-    findings = []
-
-    if results:
-        # Pattern finding
-        findings.append(
-            Finding(
-                id=f"finding_{uuid.uuid4().hex[:8]}",
-                type="pattern",
-                severity="high",
-                description=f"Identified {len(results)} high-risk patterns involving multiple entities",
-                evidence=[str(r.id) for r in results[:3]],
-            )
-        )
-
-        # Amount summary
-        total_amount = sum(
-            float(r.metadata_.get("total_amount", 0)) if r.metadata_ else 0
-            for r in results
-        )
-        if total_amount > 0:
-            findings.append(
-                Finding(
-                    id=f"finding_{uuid.uuid4().hex[:8]}",
-                    type="amount",
-                    severity="high",
-                    description=f"Total flagged amount: ${total_amount:,.2f}",
-                    evidence=[],
-                )
-            )
-
-        # Confirmation
-        confirmed = [r for r in results if r.decision == "confirmed_fraud"]
-        if confirmed:
-            findings.append(
-                Finding(
-                    id=f"finding_{uuid.uuid4().hex[:8]}",
-                    type="confirmation",
-                    severity="high",
-                    description=f"{len(confirmed)} confirmed fraudulent transactions referred to authorities",
-                    evidence=[str(r.id) for r in confirmed],
-                )
-            )
-
-        # False positives
-        false_positives = [r for r in results if r.decision == "false_positive"]
-        if false_positives:
-            findings.append(
-                Finding(
-                    id=f"finding_{uuid.uuid4().hex[:8]}",
-                    type="false_positive",
-                    severity="low",
-                    description=f"{len(false_positives)} false positives correctly ruled out",
-                    evidence=[],
-                )
-            )
-    else:
-        findings.append(
-            Finding(
-                id=f"finding_{uuid.uuid4().hex[:8]}",
-                type="recommendation",
-                severity="low",
-                description="No high-risk patterns detected. Case appears clean.",
-                evidence=[],
-            )
-        )
+    # Generate findings using shared helper
+    findings = await _generate_findings(case_uuid, db)
 
     # Cache for 5 minutes
     apply_cache_preset(response, "short")
