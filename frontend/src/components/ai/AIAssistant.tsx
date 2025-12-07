@@ -34,19 +34,19 @@ export function AIAssistant() {
   const MIN_HEIGHT = 200;
 
   // Define default keyboard shortcuts
-  const defaultShortcuts = useRef({
+  const defaultShortcuts = {
     toggleChat: { key: '/', metaKey: true, ctrlKey: false, altKey: false },
     closeChat: { key: 'Escape', metaKey: false, ctrlKey: false, altKey: false },
     // Add other shortcuts here as needed
-  });
+  };
 
   // Load shortcuts from localStorage on component mount
   const [shortcuts] = useState(() => {
     try {
       const savedShortcuts = localStorage.getItem('ai-chat-shortcuts');
-      return savedShortcuts ? JSON.parse(savedShortcuts) : defaultShortcuts.current;
+      return savedShortcuts ? JSON.parse(savedShortcuts) : defaultShortcuts;
     } catch {
-      return defaultShortcuts.current;
+      return defaultShortcuts;
     }
   });
 
