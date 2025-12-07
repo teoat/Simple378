@@ -27,6 +27,54 @@ async def health_check():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
 
+@app.post("/api/v1/login")
+async def login(credentials: dict):
+    """Mock login endpoint - accepts any credentials"""
+    # Mock JWT token (base64 encoded JSON)
+    import base64
+    import json
+    
+    token_data = {
+        "token": "mock-jwt-token-for-testing",
+        "expires": int((datetime.utcnow() + timedelta(hours=24)).timestamp() * 1000)
+    }
+    
+    return {
+        "access_token": base64.b64encode(json.dumps(token_data).encode()).decode(),
+        "token_type": "bearer",
+        "user": {
+            "id": "1",
+            "email": credentials.get("email", "test@example.com"),
+            "full_name": "Test User",
+            "role": "admin"
+        }
+    }
+
+
+@app.post("/auth/login")
+async def auth_login(credentials: dict):
+    """Mock auth login endpoint - accepts any credentials"""
+    # Mock JWT token (base64 encoded JSON)
+    import base64
+    import json
+    
+    token_data = {
+        "token": "mock-jwt-token-for-testing",
+        "expires": int((datetime.utcnow() + timedelta(hours=24)).timestamp() * 1000)
+    }
+    
+    return {
+        "access_token": base64.b64encode(json.dumps(token_data).encode()).decode(),
+        "token_type": "bearer",
+        "user": {
+            "id": "1",
+            "email": credentials.get("email", "test@example.com"),
+            "full_name": "Test User",
+            "role": "admin"
+        }
+    }
+
+
 @app.get("/api/v1/dashboard/metrics")
 async def get_dashboard_metrics():
     """Mock dashboard metrics endpoint"""
