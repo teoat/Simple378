@@ -128,6 +128,19 @@ export function Dashboard() {
     return generatedAlerts;
   }, [dashboardData]);
 
+  // Generate mock sparkline data based on the metric value (for demonstration)
+  // TODO: Replace with actual historical data from API
+  const generateMockSparkline = (currentValue: number, variance: number = 0.15): number[] => {
+    const days = 7;
+    const data: number[] = [];
+    for (let i = 0; i < days; i++) {
+      const randomVariance = (Math.random() - 0.5) * variance;
+      const value = Math.max(0, currentValue * (1 + randomVariance - (days - i) * 0.02));
+      data.push(Math.round(value));
+    }
+    return data;
+  };
+
   const statCards = [
     {
       title: 'Total Cases',
@@ -136,7 +149,7 @@ export function Dashboard() {
       icon: Briefcase,
       color: 'blue' as const,
       link: '/cases',
-      sparklineData: [120, 135, 128, 142, 156, 148, 165], // Mock 7-day data
+      sparklineData: generateMockSparkline(dashboardData?.metrics?.total_cases ?? 150, 0.12),
     },
     {
       title: 'High Risk Subjects',
@@ -145,7 +158,7 @@ export function Dashboard() {
       icon: AlertTriangle,
       color: 'red' as const,
       link: '/cases?risk=high',
-      sparklineData: [35, 38, 42, 39, 45, 43, 48],
+      sparklineData: generateMockSparkline(dashboardData?.metrics?.high_risk_subjects ?? 45, 0.10),
     },
     {
       title: 'Pending Reviews',
@@ -154,7 +167,7 @@ export function Dashboard() {
       icon: Clock,
       color: 'amber' as const,
       link: '/adjudication',
-      sparklineData: [145, 138, 132, 128, 135, 130, 127],
+      sparklineData: generateMockSparkline(dashboardData?.metrics?.pending_reviews ?? 130, 0.08),
     },
     {
       title: 'Resolved Today',
@@ -163,7 +176,7 @@ export function Dashboard() {
       icon: CheckCircle,
       color: 'emerald' as const,
       link: '/cases?status=resolved',
-      sparklineData: [15, 18, 22, 19, 25, 21, 23],
+      sparklineData: generateMockSparkline(dashboardData?.metrics?.resolved_today ?? 20, 0.18),
     },
   ];
 
@@ -199,7 +212,7 @@ export function Dashboard() {
   }
 
   return (
-    <div className="p-6 space-y-8 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
+    <div className="dashboard-page">
       {/* Enhanced Header */}
       <div className="section-header">
         <div>

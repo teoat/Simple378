@@ -346,6 +346,16 @@
   @apply outline-none ring-2 ring-blue-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900;
 }
 
+/* Dashboard Page Background */
+.dashboard-page {
+  @apply p-6 space-y-8 min-h-screen;
+  background: linear-gradient(to bottom right, var(--gray-50), var(--gray-100));
+}
+
+.dark .dashboard-page {
+  background: linear-gradient(to bottom right, #0f172a, #1e293b);
+}
+
 /* Reduce Motion */
 @media (prefers-reduced-motion: reduce) {
   *,
