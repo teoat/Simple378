@@ -209,6 +209,7 @@ export function Forensics() {
           </div>
           <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg" role="tablist">
               <button 
+                id="entity-tab"
                 role="tab"
                 aria-selected={activeTab === 'entity'}
                 aria-controls="entity-panel"
@@ -218,6 +219,7 @@ export function Forensics() {
                   Entity Resolution
               </button>
               <button 
+                id="document-tab"
                 role="tab"
                 aria-selected={activeTab === 'document'}
                 aria-controls="document-panel"
