@@ -41,6 +41,8 @@ email-validator = "^2.3.0"
 simpleeval = "^0.9.13"
 meilisearch = "^0.31.0"
 strawberry-graphql = "^0.287.2"
+pandas = "^2.3.3"
+psutil = "^7.1.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
