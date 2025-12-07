@@ -1,19 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from sqlalchemy import desc, func
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 import uuid
-import json
 
 from app.api import deps
-from app.db.models import Subject, Transaction, AuditLog
-from app.db.models import AnalysisResult
+from app.db.models import AuditLog
 from app.services.reporting import ReportService
 
 router = APIRouter()
+
 
 class ReportComponent(BaseModel):
     id: str
@@ -24,15 +21,18 @@ class ReportComponent(BaseModel):
     config: Dict[str, Any]
     position: Dict[str, Any]
 
+
 class ReportFilter(BaseModel):
     field: str
     operator: str
     value: Any
 
+
 class ReportSchedule(BaseModel):
     frequency: str  # daily, weekly, monthly
     recipients: List[str]
     format: str  # pdf, excel, html
+
 
 class ReportDefinition(BaseModel):
     id: str
@@ -42,6 +42,7 @@ class ReportDefinition(BaseModel):
     layout: str  # grid, freeform
     filters: List[ReportFilter]
     schedule: Optional[ReportSchedule] = None
+
 
 class ReportTemplate(BaseModel):
     id: str
@@ -53,12 +54,13 @@ class ReportTemplate(BaseModel):
     created_by: str
     created_at: datetime
 
+
 @router.post("/generate", response_model=Dict[str, Any])
 async def generate_report(
     report_def: ReportDefinition,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user=Depends(deps.get_current_user),
 ):
     """
     Generate a report based on the provided definition.
@@ -75,8 +77,10 @@ async def generate_report(
             details={
                 "report_title": report_def.title,
                 "component_count": len(report_def.components),
-                "data_sources": list(set(comp.data_source for comp in report_def.components))
-            }
+                "data_sources": list(
+                    set(comp.data_source for comp in report_def.components)
+                ),
+            },
         )
         db.add(audit_log)
         await db.commit()
@@ -85,11 +89,14 @@ async def generate_report(
             "status": "success",
             "report_id": str(uuid.uuid4()),
             "data": report_data,
-            "generated_at": datetime.utcnow().isoformat()
+            "generated_at": datetime.utcnow().isoformat(),
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Report generation failed: {str(e)}"
+        )
+
 
 @router.post("/export/{format}", response_model=Dict[str, Any])
 async def export_report(
@@ -97,12 +104,12 @@ async def export_report(
     report_def: ReportDefinition,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user=Depends(deps.get_current_user),
 ):
     """
     Export a report in the specified format (pdf, excel, html).
     """
-    if format not in ['pdf', 'excel', 'html']:
+    if format not in ["pdf", "excel", "html"]:
         raise HTTPException(status_code=400, detail="Unsupported export format")
 
     try:
@@ -110,7 +117,9 @@ async def export_report(
         report_data = await ReportService.generate_report(report_def, db)
 
         # Create export
-        export_result = await ReportService.export_report(report_data, format, report_def.title)
+        export_result = await ReportService.export_report(
+            report_data, format, report_def.title
+        )
 
         # Log export
         audit_log = AuditLog(
@@ -120,8 +129,10 @@ async def export_report(
             details={
                 "report_title": report_def.title,
                 "export_format": format,
-                "file_size": len(export_result["content"]) if "content" in export_result else 0
-            }
+                "file_size": (
+                    len(export_result["content"]) if "content" in export_result else 0
+                ),
+            },
         )
         db.add(audit_log)
         await db.commit()
@@ -131,22 +142,23 @@ async def export_report(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Report export failed: {str(e)}")
 
+
 @router.post("/schedule", response_model=Dict[str, Any])
 async def schedule_report(
     report_def: ReportDefinition,
     schedule: ReportSchedule,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user=Depends(deps.get_current_user),
 ):
     """
     Schedule a report for automated generation and delivery.
     """
     try:
         # Validate schedule
-        if schedule.frequency not in ['daily', 'weekly', 'monthly']:
+        if schedule.frequency not in ["daily", "weekly", "monthly"]:
             raise HTTPException(status_code=400, detail="Invalid frequency")
 
-        if schedule.format not in ['pdf', 'excel', 'html']:
+        if schedule.format not in ["pdf", "excel", "html"]:
             raise HTTPException(status_code=400, detail="Invalid format")
 
         # Create scheduled report record (would be stored in database)
@@ -157,7 +169,7 @@ async def schedule_report(
             "created_by": str(current_user.id),
             "created_at": datetime.utcnow(),
             "next_run": calculate_next_run(schedule.frequency),
-            "is_active": True
+            "is_active": True,
         }
 
         # In a real implementation, this would be stored in a scheduled_reports table
@@ -171,8 +183,8 @@ async def schedule_report(
             details={
                 "report_title": report_def.title,
                 "frequency": schedule.frequency,
-                "recipient_count": len(schedule.recipients)
-            }
+                "recipient_count": len(schedule.recipients),
+            },
         )
         db.add(audit_log)
         await db.commit()
@@ -180,19 +192,22 @@ async def schedule_report(
         return {
             "status": "success",
             "scheduled_report_id": scheduled_report["id"],
-            "next_run": scheduled_report["next_run"].isoformat()
+            "next_run": scheduled_report["next_run"].isoformat(),
         }
 
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Report scheduling failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Report scheduling failed: {str(e)}"
+        )
+
 
 @router.get("/templates", response_model=List[ReportTemplate])
 async def get_report_templates(
     category: Optional[str] = None,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user=Depends(deps.get_current_user),
 ):
     """
     Get available report templates.
@@ -218,7 +233,7 @@ async def get_report_templates(
                             title="Risk Score Trends",
                             data_source="risk_scores",
                             config={"time_range": "30d"},
-                            position={"x": 0, "y": 0, "width": 400, "height": 300}
+                            position={"x": 0, "y": 0, "width": 400, "height": 300},
                         ),
                         ReportComponent(
                             id="case-status",
@@ -227,15 +242,15 @@ async def get_report_templates(
                             title="Case Status Distribution",
                             data_source="cases",
                             config={},
-                            position={"x": 420, "y": 0, "width": 300, "height": 300}
-                        )
+                            position={"x": 420, "y": 0, "width": 300, "height": 300},
+                        ),
                     ],
                     layout="grid",
-                    filters=[]
+                    filters=[],
                 ),
                 is_public=True,
                 created_by="system",
-                created_at=datetime.utcnow()
+                created_at=datetime.utcnow(),
             ),
             ReportTemplate(
                 id="transaction-analysis",
@@ -254,7 +269,7 @@ async def get_report_templates(
                             title="Transaction Volume by Day",
                             data_source="transactions",
                             config={"group_by": "date"},
-                            position={"x": 0, "y": 0, "width": 500, "height": 300}
+                            position={"x": 0, "y": 0, "width": 500, "height": 300},
                         ),
                         ReportComponent(
                             id="suspicious-transactions",
@@ -262,16 +277,16 @@ async def get_report_templates(
                             title="Suspicious Transactions",
                             data_source="transactions",
                             config={"filter": "risk_score > 0.7"},
-                            position={"x": 0, "y": 320, "width": 800, "height": 400}
-                        )
+                            position={"x": 0, "y": 320, "width": 800, "height": 400},
+                        ),
                     ],
                     layout="grid",
-                    filters=[]
+                    filters=[],
                 ),
                 is_public=True,
                 created_by="system",
-                created_at=datetime.utcnow()
-            )
+                created_at=datetime.utcnow(),
+            ),
         ]
 
         # Filter by category if specified
@@ -281,13 +296,16 @@ async def get_report_templates(
         return templates
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch templates: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch templates: {str(e)}"
+        )
+
 
 @router.post("/templates", response_model=ReportTemplate)
 async def save_report_template(
     template: ReportTemplate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user=Depends(deps.get_current_user),
 ):
     """
     Save a custom report template.
@@ -303,10 +321,7 @@ async def save_report_template(
             actor_id=current_user.id,
             action="template_created",
             resource_id=template.id,
-            details={
-                "template_name": template.name,
-                "category": template.category
-            }
+            details={"template_name": template.name, "category": template.category},
         )
         db.add(audit_log)
         await db.commit()
@@ -316,14 +331,15 @@ async def save_report_template(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Template save failed: {str(e)}")
 
+
 def calculate_next_run(frequency: str) -> datetime:
     """Calculate the next run time based on frequency."""
     now = datetime.utcnow()
-    if frequency == 'daily':
+    if frequency == "daily":
         return now + timedelta(days=1)
-    elif frequency == 'weekly':
+    elif frequency == "weekly":
         return now + timedelta(weeks=1)
-    elif frequency == 'monthly':
+    elif frequency == "monthly":
         # Approximate month as 30 days
         return now + timedelta(days=30)
     else:

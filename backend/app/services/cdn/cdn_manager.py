@@ -1,15 +1,9 @@
 from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
-import asyncio
+from datetime import datetime
 import hashlib
 import json
-import os
 from pathlib import Path
-import boto3
-from botocore.exceptions import ClientError
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
+
 
 class CDNManager:
     """
@@ -32,7 +26,7 @@ class CDNManager:
             "monitoring": await self._configure_monitoring(),
             "fallback_strategy": await self._configure_fallback_strategy(),
             "security": await self._configure_security_headers(),
-            "performance": await self._configure_performance_optimization()
+            "performance": await self._configure_performance_optimization(),
         }
 
         return setup_config
@@ -44,55 +38,47 @@ class CDNManager:
                 "gzip": {
                     "enabled": True,
                     "compression_level": 6,
-                    "file_types": [".js", ".css", ".html", ".json", ".xml", ".txt"]
+                    "file_types": [".js", ".css", ".html", ".json", ".xml", ".txt"],
                 },
                 "brotli": {
                     "enabled": True,
                     "compression_level": 6,
-                    "file_types": [".js", ".css", ".html"]
-                }
+                    "file_types": [".js", ".css", ".html"],
+                },
             },
             "minification": {
                 "javascript": {
                     "enabled": True,
                     "level": "advanced",
-                    "source_maps": True
+                    "source_maps": True,
                 },
-                "css": {
-                    "enabled": True,
-                    "level": "advanced"
-                },
+                "css": {"enabled": True, "level": "advanced"},
                 "html": {
                     "enabled": True,
                     "collapse_whitespace": True,
-                    "remove_comments": True
-                }
+                    "remove_comments": True,
+                },
             },
             "image_optimization": {
                 "formats": ["webp", "avif", "jpg", "png"],
-                "quality": {
-                    "webp": 85,
-                    "avif": 80,
-                    "jpg": 85,
-                    "png": 90
-                },
+                "quality": {"webp": 85, "avif": 80, "jpg": 85, "png": 90},
                 "responsive_images": {
                     "enabled": True,
                     "sizes": [320, 640, 1024, 1920],
-                    "breakpoints": ["sm", "md", "lg", "xl"]
+                    "breakpoints": ["sm", "md", "lg", "xl"],
                 },
                 "lazy_loading": {
                     "enabled": True,
                     "placeholder": "blur",
-                    "threshold": "200px"
-                }
+                    "threshold": "200px",
+                },
             },
             "font_optimization": {
                 "preload_critical": True,
                 "font_display": "swap",
                 "subresource_integrity": True,
-                "unicode_range": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD"
-            }
+                "unicode_range": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD",
+            },
         }
 
     async def _configure_cache_strategy(self) -> Dict[str, Any]:
@@ -103,54 +89,48 @@ class CDNManager:
                     "static_assets": "1 year",
                     "html_pages": "1 hour",
                     "api_responses": "5 minutes",
-                    "user_specific_content": "no-cache"
+                    "user_specific_content": "no-cache",
                 },
                 "cdn_cache": {
                     "static_assets": "1 year",
                     "dynamic_content": "5 minutes",
                     "api_responses": "1 minute",
-                    "error_pages": "10 minutes"
+                    "error_pages": "10 minutes",
                 },
                 "edge_cache": {
                     "popular_content": "24 hours",
                     "regional_content": "6 hours",
-                    "personalized_content": "no-cache"
-                }
+                    "personalized_content": "no-cache",
+                },
             },
             "cache_invalidation": {
                 "strategies": [
                     "Time-based expiration",
                     "Version-based URLs",
                     "Cache purging APIs",
-                    "Event-driven invalidation"
+                    "Event-driven invalidation",
                 ],
                 "purge_zones": [
                     "static-assets",
                     "api-cache",
                     "user-content",
-                    "error-pages"
+                    "error-pages",
                 ],
                 "automated_purge": {
                     "deployment_hooks": True,
                     "content_updates": True,
-                    "emergency_purge": True
-                }
+                    "emergency_purge": True,
+                },
             },
             "cache_optimization": {
-                "stale_while_revalidate": {
-                    "enabled": True,
-                    "max_age": "1 hour"
-                },
-                "stale_if_error": {
-                    "enabled": True,
-                    "max_age": "24 hours"
-                },
+                "stale_while_revalidate": {"enabled": True, "max_age": "1 hour"},
+                "stale_if_error": {"enabled": True, "max_age": "24 hours"},
                 "cache_key_optimization": {
                     "ignore_query_params": ["utm_*", "fbclid", "_ga"],
                     "include_headers": ["Accept-Language", "User-Agent"],
-                    "geo_targeting": True
-                }
-            }
+                    "geo_targeting": True,
+                },
+            },
         }
 
     async def _configure_monitoring(self) -> Dict[str, Any]:
@@ -160,59 +140,69 @@ class CDNManager:
                 "real_user_monitoring": {
                     "enabled": True,
                     "sample_rate": 0.1,
-                    "metrics": ["TTFB", "FCP", "LCP", "CLS", "FID"]
+                    "metrics": ["TTFB", "FCP", "LCP", "CLS", "FID"],
                 },
                 "synthetic_monitoring": {
                     "enabled": True,
-                    "locations": ["us-east-1", "us-west-2", "eu-west-1", "ap-southeast-1"],
+                    "locations": [
+                        "us-east-1",
+                        "us-west-2",
+                        "eu-west-1",
+                        "ap-southeast-1",
+                    ],
                     "frequency": "5 minutes",
-                    "alerts": ["response_time > 3s", "error_rate > 1%"]
+                    "alerts": ["response_time > 3s", "error_rate > 1%"],
                 },
                 "cache_performance": {
                     "hit_rate_monitoring": True,
                     "cache_size_tracking": True,
-                    "eviction_rate_alerts": True
-                }
+                    "eviction_rate_alerts": True,
+                },
             },
             "analytics": {
                 "traffic_analytics": {
                     "enabled": True,
-                    "metrics": ["requests", "bandwidth", "cache_hits", "response_times"],
-                    "dimensions": ["country", "device_type", "browser", "url"]
+                    "metrics": [
+                        "requests",
+                        "bandwidth",
+                        "cache_hits",
+                        "response_times",
+                    ],
+                    "dimensions": ["country", "device_type", "browser", "url"],
                 },
                 "performance_analytics": {
                     "enabled": True,
                     "core_web_vitals": True,
                     "bandwidth_usage": True,
-                    "compression_savings": True
+                    "compression_savings": True,
                 },
                 "security_analytics": {
                     "enabled": True,
                     "attack_patterns": True,
                     "bot_detection": True,
-                    "rate_limiting_effectiveness": True
-                }
+                    "rate_limiting_effectiveness": True,
+                },
             },
             "alerting": {
                 "performance_alerts": [
                     "Origin response time > 5s",
                     "Cache hit rate < 85%",
                     "Error rate > 2%",
-                    "Bandwidth spike > 50%"
+                    "Bandwidth spike > 50%",
                 ],
                 "security_alerts": [
                     "DDoS attack detected",
                     "SQL injection attempt",
                     "Rate limit exceeded",
-                    "Suspicious traffic pattern"
+                    "Suspicious traffic pattern",
                 ],
                 "infrastructure_alerts": [
                     "CDN node down",
                     "Origin unreachable",
                     "SSL certificate expiring",
-                    "Configuration error"
-                ]
-            }
+                    "Configuration error",
+                ],
+            },
         }
 
     async def _configure_fallback_strategy(self) -> Dict[str, Any]:
@@ -222,17 +212,14 @@ class CDNManager:
                 "origin_direct_fallback": {
                     "enabled": True,
                     "timeout": "10s",
-                    "retry_count": 2
+                    "retry_count": 2,
                 },
-                "cached_content_fallback": {
-                    "enabled": True,
-                    "max_age": "24 hours"
-                },
+                "cached_content_fallback": {"enabled": True, "max_age": "24 hours"},
                 "offline_mode": {
                     "enabled": True,
                     "service_worker_cache": True,
-                    "critical_assets_only": True
-                }
+                    "critical_assets_only": True,
+                },
             },
             "regional_failover": {
                 "enabled": True,
@@ -241,15 +228,15 @@ class CDNManager:
                 "health_checks": {
                     "interval": "30s",
                     "timeout": "5s",
-                    "failure_threshold": 3
-                }
+                    "failure_threshold": 3,
+                },
             },
             "content_negotiation": {
                 "accept_language_fallback": True,
                 "content_type_fallback": True,
                 "encoding_fallback": True,
-                "quality_fallback": True
-            }
+                "quality_fallback": True,
+            },
         }
 
     async def _configure_security_headers(self) -> Dict[str, Any]:
@@ -260,7 +247,7 @@ class CDNManager:
                     "enabled": True,
                     "max_age": "31536000",
                     "include_subdomains": True,
-                    "preload": True
+                    "preload": True,
                 },
                 "content_security_policy": {
                     "enabled": True,
@@ -269,50 +256,41 @@ class CDNManager:
                     "style_src": "'self' 'unsafe-inline'",
                     "img_src": "'self' data: https:",
                     "font_src": "'self' https:",
-                    "connect_src": "'self' https:"
+                    "connect_src": "'self' https:",
                 },
-                "x_frame_options": {
-                    "enabled": True,
-                    "value": "DENY"
-                },
-                "x_content_type_options": {
-                    "enabled": True,
-                    "value": "nosniff"
-                },
+                "x_frame_options": {"enabled": True, "value": "DENY"},
+                "x_content_type_options": {"enabled": True, "value": "nosniff"},
                 "referrer_policy": {
                     "enabled": True,
-                    "value": "strict-origin-when-cross-origin"
+                    "value": "strict-origin-when-cross-origin",
                 },
                 "permissions_policy": {
                     "enabled": True,
                     "camera": "none",
                     "microphone": "none",
-                    "geolocation": "none"
-                }
+                    "geolocation": "none",
+                },
             },
             "ddos_protection": {
                 "enabled": True,
-                "rate_limiting": {
-                    "requests_per_minute": 1000,
-                    "burst_limit": 2000
-                },
+                "rate_limiting": {"requests_per_minute": 1000, "burst_limit": 2000},
                 "bot_protection": {
                     "enabled": True,
-                    "challenge_types": ["captcha", "javascript", "browser_fingerprint"]
+                    "challenge_types": ["captcha", "javascript", "browser_fingerprint"],
                 },
                 "waf_rules": {
                     "sql_injection": True,
                     "xss_protection": True,
                     "csrf_protection": True,
-                    "file_upload_protection": True
-                }
+                    "file_upload_protection": True,
+                },
             },
             "ssl_tls": {
                 "certificate": "Let's Encrypt",
                 "minimum_tls_version": "1.2",
                 "hsts_preload": True,
-                "certificate_transparency": True
-            }
+                "certificate_transparency": True,
+            },
         }
 
     async def _configure_performance_optimization(self) -> Dict[str, Any]:
@@ -324,49 +302,51 @@ class CDNManager:
                     "Image optimization",
                     "API response caching",
                     "A/B testing",
-                    "Geolocation-based content"
+                    "Geolocation-based content",
                 ],
                 "runtime": "WebAssembly",
-                "memory_limit": "128MB"
+                "memory_limit": "128MB",
             },
             "content_delivery": {
                 "http2_push": {
                     "enabled": True,
-                    "resources": ["critical-css", "fonts", "above-fold-images"]
+                    "resources": ["critical-css", "fonts", "above-fold-images"],
                 },
                 "resource_hints": {
                     "dns_prefetch": ["api.example.com", "cdn.example.com"],
                     "preconnect": ["fonts.googleapis.com", "fonts.gstatic.com"],
-                    "preload": ["critical.js", "critical.css"]
+                    "preload": ["critical.js", "critical.css"],
                 },
                 "prioritization": {
                     "critical_resources": "highest",
                     "above_fold_content": "high",
                     "below_fold_content": "normal",
-                    "async_content": "low"
-                }
+                    "async_content": "low",
+                },
             },
             "optimization_features": {
                 "mirage": {
                     "enabled": True,
-                    "description": "Smart image optimization and delivery"
+                    "description": "Smart image optimization and delivery",
                 },
                 "polish": {
                     "enabled": True,
-                    "description": "Automatic image optimization and WebP conversion"
+                    "description": "Automatic image optimization and WebP conversion",
                 },
                 "minify": {
                     "enabled": True,
-                    "description": "Automatic minification of HTML, CSS, and JavaScript"
+                    "description": "Automatic minification of HTML, CSS, and JavaScript",
                 },
                 "rocket_loader": {
                     "enabled": True,
-                    "description": "Asynchronous script loading optimization"
-                }
-            }
+                    "description": "Asynchronous script loading optimization",
+                },
+            },
         }
 
-    async def deploy_static_assets(self, asset_dir: str = "frontend/dist") -> Dict[str, Any]:
+    async def deploy_static_assets(
+        self, asset_dir: str = "frontend/dist"
+    ) -> Dict[str, Any]:
         """
         Deploy static assets to CDN with optimization.
         """
@@ -380,7 +360,7 @@ class CDNManager:
             "optimized_files": 0,
             "errors": [],
             "performance_improvements": {},
-            "cache_purge_required": False
+            "cache_purge_required": False,
         }
 
         # Process different file types
@@ -389,7 +369,7 @@ class CDNManager:
             "javascript": ["*.js", "*.mjs"],
             "stylesheets": ["*.css"],
             "fonts": ["*.woff", "*.woff2", "*.ttf", "*.eot"],
-            "documents": ["*.pdf", "*.txt", "*.json"]
+            "documents": ["*.pdf", "*.txt", "*.json"],
         }
 
         for file_type, patterns in file_types.items():
@@ -418,16 +398,17 @@ class CDNManager:
                         self._update_cache_manifest(file_path, upload_result["cdn_url"])
 
                     else:
-                        deployment_results["errors"].append({
-                            "file": str(file_path),
-                            "error": upload_result.get("error", "Upload failed")
-                        })
+                        deployment_results["errors"].append(
+                            {
+                                "file": str(file_path),
+                                "error": upload_result.get("error", "Upload failed"),
+                            }
+                        )
 
                 except Exception as e:
-                    deployment_results["errors"].append({
-                        "file": str(file_path),
-                        "error": str(e)
-                    })
+                    deployment_results["errors"].append(
+                        {"file": str(file_path), "error": str(e)}
+                    )
 
         # Generate cache manifest
         self._generate_cache_manifest()
@@ -436,7 +417,7 @@ class CDNManager:
         deployment_results["performance_improvements"] = {
             "compression_savings": f"{deployment_results['optimized_files'] / max(deployment_results['total_files'], 1) * 100:.1f}%",
             "estimated_load_time_reduction": "20-40%",
-            "cache_hit_rate_improvement": "15-25%"
+            "cache_hit_rate_improvement": "15-25%",
         }
 
         return deployment_results
@@ -472,7 +453,9 @@ class CDNManager:
         # For now, return original content
         return content
 
-    async def _upload_to_cdn(self, file_path: Path, content: bytes, file_type: str) -> Dict[str, Any]:
+    async def _upload_to_cdn(
+        self, file_path: Path, content: bytes, file_type: str
+    ) -> Dict[str, Any]:
         """Upload file to CDN."""
         # In a real implementation, this would upload to CloudFlare, AWS CloudFront, etc.
         # For now, simulate successful upload
@@ -480,11 +463,7 @@ class CDNManager:
         file_hash = hashlib.md5(content).hexdigest()[:8]
         cdn_url = f"https://cdn.example.com/{file_type}/{file_path.name}?v={file_hash}"
 
-        return {
-            "success": True,
-            "cdn_url": cdn_url,
-            "file_hash": file_hash
-        }
+        return {"success": True, "cdn_url": cdn_url, "file_hash": file_hash}
 
     def _update_cache_manifest(self, file_path: Path, cdn_url: str):
         """Update cache manifest with file information."""
@@ -493,7 +472,7 @@ class CDNManager:
         self.cache_manifest[relative_path] = {
             "cdn_url": cdn_url,
             "last_modified": datetime.utcnow().isoformat(),
-            "content_hash": hashlib.md5(file_path.read_bytes()).hexdigest()
+            "content_hash": hashlib.md5(file_path.read_bytes()).hexdigest(),
         }
 
     def _generate_cache_manifest(self):
@@ -507,11 +486,11 @@ class CDNManager:
             "cache_strategy": {
                 "static_assets": "1 year",
                 "html_files": "1 hour",
-                "api_responses": "5 minutes"
-            }
+                "api_responses": "5 minutes",
+            },
         }
 
-        with open(manifest_path, 'w') as f:
+        with open(manifest_path, "w") as f:
             json.dump(manifest, f, indent=2)
 
     async def purge_cache(self, patterns: Optional[List[str]] = None) -> Dict[str, Any]:
@@ -522,7 +501,7 @@ class CDNManager:
             "success": True,
             "purged_files": 0,
             "purged_zones": [],
-            "estimated_propagation_time": "30-300 seconds"
+            "estimated_propagation_time": "30-300 seconds",
         }
 
         if not patterns:
@@ -554,30 +533,26 @@ class CDNManager:
             "cache_performance": {
                 "hit_rate": 0.87,
                 "miss_rate": 0.13,
-                "bypass_rate": 0.02
+                "bypass_rate": 0.02,
             },
-            "response_times": {
-                "p50": 0.15,
-                "p95": 0.45,
-                "p99": 1.2
-            },
+            "response_times": {"p50": 0.15, "p95": 0.45, "p99": 1.2},
             "bandwidth_usage": {
                 "total_gb": 1250.5,
                 "cached_gb": 1087.9,
                 "uncached_gb": 162.6,
-                "savings_percent": 87.0
+                "savings_percent": 87.0,
             },
             "geographic_distribution": {
                 "us": 45.2,
                 "eu": 28.7,
                 "asia": 18.9,
-                "other": 7.2
+                "other": 7.2,
             },
             "top_urls": [
                 {"url": "/static/main.js", "requests": 125000, "bandwidth": 450.5},
                 {"url": "/static/styles.css", "requests": 98000, "bandwidth": 125.8},
-                {"url": "/api/dashboard", "requests": 45000, "bandwidth": 89.2}
-            ]
+                {"url": "/api/dashboard", "requests": 45000, "bandwidth": 89.2},
+            ],
         }
 
         return metrics

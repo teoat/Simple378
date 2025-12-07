@@ -11,9 +11,11 @@ from app.schemas import user as user_schema
 
 router = APIRouter()
 
+
 class PasswordUpdate(BaseModel):
     current_password: str
     new_password: str
+
 
 @router.get("/profile", response_model=user_schema.User)
 async def read_user_me(
@@ -23,6 +25,7 @@ async def read_user_me(
     Get current user.
     """
     return current_user
+
 
 @router.patch("/profile", response_model=user_schema.User)
 async def update_user_me(
@@ -36,19 +39,20 @@ async def update_user_me(
     """
     user_data = jsonable_encoder(current_user)
     update_data = user_in.dict(exclude_unset=True)
-    
+
     # Don't allow password update here
     if "password" in update_data:
         del update_data["password"]
-        
+
     for field in user_data:
         if field in update_data:
             setattr(current_user, field, update_data[field])
-            
+
     db.add(current_user)
     await db.commit()
     await db.refresh(current_user)
     return current_user
+
 
 @router.post("/password", response_model=user_schema.User)
 async def update_password_me(
@@ -60,16 +64,19 @@ async def update_password_me(
     """
     Update own password.
     """
-    if not security.verify_password(password_in.current_password, current_user.hashed_password):
+    if not security.verify_password(
+        password_in.current_password, current_user.hashed_password
+    ):
         raise HTTPException(status_code=400, detail="Incorrect password")
-        
+
     hashed_password = security.get_password_hash(password_in.new_password)
     current_user.hashed_password = hashed_password
-    
+
     db.add(current_user)
     await db.commit()
     await db.refresh(current_user)
     return current_user
+
 
 @router.patch("/preferences")
 async def update_preferences(

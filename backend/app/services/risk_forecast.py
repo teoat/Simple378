@@ -9,15 +9,18 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class RiskForecastService:
-    def forecast_risk(self, request: RiskForecastRequest, history: List[Tuple[datetime, float]]) -> RiskForecast:
+    def forecast_risk(
+        self, request: RiskForecastRequest, history: List[Tuple[datetime, float]]
+    ) -> RiskForecast:
         """
         Forecasts future risk score based on historical data using linear regression.
-        
+
         Args:
             request: The forecast request containing subject ID.
             history: List of (timestamp, score) tuples sorted by time.
-            
+
         Returns:
             RiskForecast object.
         """
@@ -30,7 +33,7 @@ class RiskForecastService:
                 forecast_30_days=current_score,
                 trend="stable",
                 confidence=0.0,
-                projected_date=datetime.utcnow() + timedelta(days=30)
+                projected_date=datetime.utcnow() + timedelta(days=30),
             )
 
         # Convert dates to ordinal (day counts) for regression
@@ -42,16 +45,16 @@ class RiskForecastService:
         try:
             slope, intercept = statistics.linear_regression(x_values, y_values)
         except statistics.StatisticsError:
-             # Fallback if variance is zero (all scores same)
-             slope = 0
-             intercept = y_values[0]
+            # Fallback if variance is zero (all scores same)
+            slope = 0
+            intercept = y_values[0]
 
         # Forecast 30 days into the future
         last_day = x_values[-1]
         future_day = last_day + 30
-        
+
         forecast_score = slope * future_day + intercept
-        
+
         # Clamp score 0-100
         forecast_score = max(0.0, min(100.0, forecast_score))
         current_score = y_values[-1]
@@ -63,7 +66,7 @@ class RiskForecastService:
             trend = "decreasing"
         else:
             trend = "stable"
-            
+
         # basic confidence metric based on variance (pseudo)
         # In a real ML model this would be r-squared or similar
         confidence = 0.8 if len(history) > 10 else 0.5
@@ -74,7 +77,7 @@ class RiskForecastService:
             forecast_30_days=round(forecast_score, 2),
             trend=trend,
             confidence=confidence,
-            projected_date=datetime.utcnow() + timedelta(days=30)
+            projected_date=datetime.utcnow() + timedelta(days=30),
         )
 
     async def ai_risk_prediction(
@@ -83,7 +86,7 @@ class RiskForecastService:
         current_risk_score: float,
         transaction_history: List[Dict[str, Any]],
         analysis_results: List[Dict[str, Any]],
-        recent_activity: Dict[str, Any]
+        recent_activity: Dict[str, Any],
     ) -> Dict[str, Any]:
         """
         Use AI to predict future risk scores and provide insights.
@@ -96,7 +99,9 @@ class RiskForecastService:
             "transaction_count": len(transaction_history),
             "analysis_results": analysis_results,
             "recent_activity": recent_activity,
-            "transaction_patterns": self._analyze_transaction_patterns(transaction_history)
+            "transaction_patterns": self._analyze_transaction_patterns(
+                transaction_history
+            ),
         }
 
         prompt = f"""You are an expert fraud risk analyst. Based on the following case data, predict the risk score 30 days from now and provide detailed insights.
@@ -131,12 +136,22 @@ Be specific and data-driven in your analysis."""
 
             # Validate and structure the response
             validated_prediction = {
-                "predicted_score": min(100.0, max(0.0, float(prediction.get("predicted_score", current_risk_score)))),
+                "predicted_score": min(
+                    100.0,
+                    max(
+                        0.0,
+                        float(prediction.get("predicted_score", current_risk_score)),
+                    ),
+                ),
                 "trend": prediction.get("trend", "stable"),
-                "confidence": min(1.0, max(0.0, float(prediction.get("confidence", 0.5)))),
+                "confidence": min(
+                    1.0, max(0.0, float(prediction.get("confidence", 0.5)))
+                ),
                 "risk_factors": prediction.get("risk_factors", []),
                 "recommendations": prediction.get("recommendations", []),
-                "timeline_prediction": prediction.get("timeline_prediction", "Unable to determine timeline")
+                "timeline_prediction": prediction.get(
+                    "timeline_prediction", "Unable to determine timeline"
+                ),
             }
 
             return validated_prediction
@@ -146,7 +161,7 @@ Be specific and data-driven in your analysis."""
             # Fallback to statistical forecast
             forecast = self.forecast_risk(
                 RiskForecastRequest(subject_id=subject_id),
-                [(datetime.utcnow(), current_risk_score)]
+                [(datetime.utcnow(), current_risk_score)],
             )
 
             return {
@@ -155,10 +170,12 @@ Be specific and data-driven in your analysis."""
                 "confidence": forecast.confidence,
                 "risk_factors": ["AI analysis unavailable"],
                 "recommendations": ["Continue monitoring"],
-                "timeline_prediction": "Analysis pending"
+                "timeline_prediction": "Analysis pending",
             }
 
-    def _analyze_transaction_patterns(self, transactions: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _analyze_transaction_patterns(
+        self, transactions: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """
         Analyze transaction patterns for risk assessment.
         """
@@ -174,7 +191,9 @@ Be specific and data-driven in your analysis."""
             "max_amount": max(amounts) if amounts else 0,
             "min_amount": min(amounts) if amounts else 0,
             "high_value_count": len([a for a in amounts if abs(a) > 10000]),
-            "recent_activity": len([tx for tx in transactions if self._is_recent(tx.get("date"))])
+            "recent_activity": len(
+                [tx for tx in transactions if self._is_recent(tx.get("date"))]
+            ),
         }
 
         return patterns
@@ -186,7 +205,7 @@ Be specific and data-driven in your analysis."""
         if not date_str:
             return False
         try:
-            date = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+            date = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
             return (datetime.utcnow() - date).days <= 30
         except:
             return False

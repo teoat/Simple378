@@ -1,6 +1,7 @@
 """
 Milestone management endpoints for tracking project phases and fund releases.
 """
+
 from typing import List, Optional
 from datetime import datetime
 import uuid
@@ -12,7 +13,6 @@ from pydantic import BaseModel, Field
 
 from app.api import deps
 from app.db.models import Milestone as MilestoneModel, User
-from app.core.cache import apply_cache_preset
 
 router = APIRouter()
 
@@ -20,7 +20,9 @@ router = APIRouter()
 # Pydantic Models
 class MilestoneBase(BaseModel):
     name: str = Field(..., description="Milestone name")
-    type: str = Field(..., description="Milestone type: DOWN_PAYMENT, PROGRESS, HANDOVER, RETENTION")
+    type: str = Field(
+        ..., description="Milestone type: DOWN_PAYMENT, PROGRESS, HANDOVER, RETENTION"
+    )
     amount_released: float = Field(..., description="Amount released at this milestone")
     due_date: Optional[str] = None
     phase: Optional[str] = None
@@ -59,7 +61,7 @@ class MilestoneResponse(MilestoneBase):
 async def get_project_milestones(
     project_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.verify_active_analyst)
+    current_user: User = Depends(deps.verify_active_analyst),
 ):
     """
     Get all milestones for a project.
@@ -85,7 +87,9 @@ async def get_project_milestones(
             status=m.status,
             amount_released=float(m.amount_released or 0),
             actual_spend=float(m.actual_spend or 0),
-            utilization_rate=float(m.actual_spend or 0) / float(m.amount_released or 1) * 100,
+            utilization_rate=float(m.actual_spend or 0)
+            / float(m.amount_released or 1)
+            * 100,
             due_date=m.due_date.isoformat() if m.due_date else None,
             phase=m.phase,
             description=m.description,
@@ -93,18 +97,24 @@ async def get_project_milestones(
             evidence_url=m.evidence_url,
             created_at=m.created_at.isoformat() if m.created_at else "",
             updated_at=m.updated_at.isoformat() if m.updated_at else None,
-            completed_at=m.completed_at.isoformat() if m.completed_at else None
+            completed_at=m.completed_at.isoformat() if m.completed_at else None,
         )
         for m in milestones
     ]
 
 
-@router.post("/projects/{project_id}/milestones", response_model=MilestoneResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/projects/{project_id}/milestones",
+    response_model=MilestoneResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_milestone(
     project_id: str,
     milestone_data: MilestoneBase,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.verify_admin)  # Only admins can create milestones
+    current_user: User = Depends(
+        deps.verify_admin
+    ),  # Only admins can create milestones
 ):
     """
     Create a new milestone for a project.
@@ -120,13 +130,17 @@ async def create_milestone(
         project_id=project_uuid,
         name=milestone_data.name,
         type=milestone_data.type,
-        status='LOCKED',  # Start as locked until previous milestone is complete
+        status="LOCKED",  # Start as locked until previous milestone is complete
         amount_released=milestone_data.amount_released,
         actual_spend=0,
-        due_date=datetime.fromisoformat(milestone_data.due_date) if milestone_data.due_date else None,
+        due_date=(
+            datetime.fromisoformat(milestone_data.due_date)
+            if milestone_data.due_date
+            else None
+        ),
         phase=milestone_data.phase,
         description=milestone_data.description,
-        created_at=datetime.utcnow()
+        created_at=datetime.utcnow(),
     )
 
     db.add(new_milestone)
@@ -147,7 +161,7 @@ async def create_milestone(
         description=new_milestone.description,
         created_at=new_milestone.created_at.isoformat(),
         updated_at=None,
-        completed_at=None
+        completed_at=None,
     )
 
 
@@ -156,11 +170,11 @@ async def update_milestone_status(
     milestone_id: str,
     update_data: MilestoneUpdate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.verify_active_analyst)
+    current_user: User = Depends(deps.verify_active_analyst),
 ):
     """
     Update milestone status (mark as complete, add notes, attach evidence).
-    
+
     This endpoint is used by the Phase Control Panel to mark phases as complete.
     """
     try:
@@ -195,7 +209,7 @@ async def update_milestone_status(
     await db.refresh(milestone)
 
     # If marked as complete, unlock next milestone
-    if update_data.status == 'COMPLETE':
+    if update_data.status == "COMPLETE":
         await _unlock_next_milestone(db, milestone.project_id, milestone.id)
 
     return MilestoneResponse(
@@ -206,7 +220,9 @@ async def update_milestone_status(
         status=milestone.status,
         amount_released=float(milestone.amount_released),
         actual_spend=float(milestone.actual_spend or 0),
-        utilization_rate=float(milestone.actual_spend or 0) / float(milestone.amount_released or 1) * 100,
+        utilization_rate=float(milestone.actual_spend or 0)
+        / float(milestone.amount_released or 1)
+        * 100,
         due_date=milestone.due_date.isoformat() if milestone.due_date else None,
         phase=milestone.phase,
         description=milestone.description,
@@ -214,11 +230,15 @@ async def update_milestone_status(
         evidence_url=milestone.evidence_url,
         created_at=milestone.created_at.isoformat(),
         updated_at=milestone.updated_at.isoformat() if milestone.updated_at else None,
-        completed_at=milestone.completed_at.isoformat() if milestone.completed_at else None
+        completed_at=(
+            milestone.completed_at.isoformat() if milestone.completed_at else None
+        ),
     )
 
 
-async def _unlock_next_milestone(db: AsyncSession, project_id: uuid.UUID, current_milestone_id: uuid.UUID):
+async def _unlock_next_milestone(
+    db: AsyncSession, project_id: uuid.UUID, current_milestone_id: uuid.UUID
+):
     """
     Helper function to unlock the next milestone in sequence after current is completed.
     """
@@ -228,7 +248,7 @@ async def _unlock_next_milestone(db: AsyncSession, project_id: uuid.UUID, curren
         .where(
             and_(
                 MilestoneModel.project_id == project_id,
-                MilestoneModel.status == 'LOCKED'
+                MilestoneModel.status == "LOCKED",
             )
         )
         .order_by(MilestoneModel.due_date)
@@ -237,7 +257,7 @@ async def _unlock_next_milestone(db: AsyncSession, project_id: uuid.UUID, curren
     next_milestone = result.scalar_one_or_none()
 
     if next_milestone:
-        next_milestone.status = 'ACTIVE'
+        next_milestone.status = "ACTIVE"
         next_milestone.updated_at = datetime.utcnow()
         await db.commit()
 
@@ -246,11 +266,11 @@ async def _unlock_next_milestone(db: AsyncSession, project_id: uuid.UUID, curren
 async def release_funds(
     milestone_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.verify_admin)  # Only admins can release funds
+    current_user: User = Depends(deps.verify_admin),  # Only admins can release funds
 ):
     """
     Trigger fund release for a completed milestone.
-    
+
     This would integrate with payment/financial systems.
     For now, it just marks the milestone as PAID.
     """
@@ -267,14 +287,14 @@ async def release_funds(
     if not milestone:
         raise HTTPException(status_code=404, detail="Milestone not found")
 
-    if milestone.status != 'COMPLETE':
+    if milestone.status != "COMPLETE":
         raise HTTPException(
             status_code=400,
-            detail="Milestone must be marked as complete before releasing funds"
+            detail="Milestone must be marked as complete before releasing funds",
         )
 
     # Mark as paid
-    milestone.status = 'PAID'
+    milestone.status = "PAID"
     milestone.updated_at = datetime.utcnow()
 
     await db.commit()
@@ -283,5 +303,5 @@ async def release_funds(
         "success": True,
         "message": f"Funds released for milestone: {milestone.name}",
         "amount": float(milestone.amount_released),
-        "milestone_id": str(milestone.id)
+        "milestone_id": str(milestone.id),
     }

@@ -1,12 +1,9 @@
-from typing import Dict, Any, List, Optional, Union
-from datetime import datetime, timedelta
+from typing import Dict, Any, List, Optional
+from datetime import datetime
 import uuid
-import json
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from sqlalchemy import and_, or_, func
-from app.db.models import Subject, Transaction, AuditLog, User
-from app.db.models import AnalysisResult
+from app.db.models import AuditLog
+
 
 class MultiTenantManager:
     """
@@ -18,10 +15,12 @@ class MultiTenantManager:
         self.isolation_levels = {
             "shared_database": "schema_per_tenant",
             "separate_databases": "database_per_tenant",
-            "hybrid": "mixed_isolation"
+            "hybrid": "mixed_isolation",
         }
 
-    async def create_tenant(self, tenant_data: Dict[str, Any], db: AsyncSession) -> Dict[str, Any]:
+    async def create_tenant(
+        self, tenant_data: Dict[str, Any], db: AsyncSession
+    ) -> Dict[str, Any]:
         """
         Create a new tenant with isolated data environment.
         """
@@ -36,24 +35,27 @@ class MultiTenantManager:
             "status": "active",
             "isolation_level": tenant_data.get("isolation_level", "shared_database"),
             "features": tenant_data.get("features", []),
-            "limits": tenant_data.get("limits", {
-                "max_users": 100,
-                "max_cases": 1000,
-                "storage_gb": 10,
-                "api_calls_per_month": 100000
-            }),
+            "limits": tenant_data.get(
+                "limits",
+                {
+                    "max_users": 100,
+                    "max_cases": 1000,
+                    "storage_gb": 10,
+                    "api_calls_per_month": 100000,
+                },
+            ),
             "settings": {
                 "timezone": tenant_data.get("timezone", "UTC"),
                 "currency": tenant_data.get("currency", "USD"),
                 "compliance_requirements": tenant_data.get("compliance", []),
-                "custom_fields": tenant_data.get("custom_fields", {})
+                "custom_fields": tenant_data.get("custom_fields", {}),
             },
             "security": {
                 "encryption_key": self._generate_encryption_key(),
                 "mfa_required": tenant_data.get("mfa_required", False),
                 "password_policy": tenant_data.get("password_policy", "standard"),
-                "session_timeout": tenant_data.get("session_timeout", 480)  # 8 hours
-            }
+                "session_timeout": tenant_data.get("session_timeout", 480),  # 8 hours
+            },
         }
 
         # Store tenant configuration (in production, this would be in a separate tenant registry)
@@ -71,8 +73,8 @@ class MultiTenantManager:
             details={
                 "tenant_name": tenant_name,
                 "isolation_level": tenant_config["isolation_level"],
-                "features": tenant_config["features"]
-            }
+                "features": tenant_config["features"],
+            },
         )
         db.add(audit_log)
         await db.commit()
@@ -81,7 +83,7 @@ class MultiTenantManager:
             "tenant_id": tenant_id,
             "status": "created",
             "config": tenant_config,
-            "setup_instructions": self._generate_setup_instructions(tenant_config)
+            "setup_instructions": self._generate_setup_instructions(tenant_config),
         }
 
     async def _create_tenant_schema(self, tenant_id: str, db: AsyncSession):
@@ -92,16 +94,19 @@ class MultiTenantManager:
         await db.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
 
         # Create tenant-specific tables (simplified - in production would use migrations)
-        await db.execute(f"""
+        await db.execute(
+            f"""
             CREATE TABLE IF NOT EXISTS {schema_name}.tenant_config (
                 key VARCHAR(255) PRIMARY KEY,
                 value JSONB,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        """)
+        """
+        )
 
-        await db.execute(f"""
+        await db.execute(
+            f"""
             CREATE TABLE IF NOT EXISTS {schema_name}.tenant_audit (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 action VARCHAR(100),
@@ -110,14 +115,15 @@ class MultiTenantManager:
                 details JSONB,
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        """)
+        """
+        )
 
         await db.commit()
 
     def _generate_encryption_key(self) -> str:
         """Generate tenant-specific encryption key."""
         # In production, use proper key management service
-        return str(uuid.uuid4()).replace('-', '') + str(uuid.uuid4()).replace('-', '')
+        return str(uuid.uuid4()).replace("-", "") + str(uuid.uuid4()).replace("-", "")
 
     def _generate_setup_instructions(self, tenant_config: Dict[str, Any]) -> List[str]:
         """Generate setup instructions for new tenant."""
@@ -129,7 +135,7 @@ class MultiTenantManager:
             "5. Set up user authentication and roles",
             "6. Configure compliance settings",
             "7. Set up monitoring and alerting",
-            "8. Test tenant isolation and data access"
+            "8. Test tenant isolation and data access",
         ]
 
         if tenant_config["security"]["mfa_required"]:
@@ -137,7 +143,9 @@ class MultiTenantManager:
 
         return instructions
 
-    async def get_tenant_context(self, tenant_id: str, db: AsyncSession) -> Optional[Dict[str, Any]]:
+    async def get_tenant_context(
+        self, tenant_id: str, db: AsyncSession
+    ) -> Optional[Dict[str, Any]]:
         """
         Get tenant context for request processing.
         """
@@ -147,7 +155,9 @@ class MultiTenantManager:
         # In production, load from tenant registry database
         return None
 
-    async def validate_tenant_access(self, tenant_id: str, user_id: str, resource: str, action: str, db: AsyncSession) -> bool:
+    async def validate_tenant_access(
+        self, tenant_id: str, user_id: str, resource: str, action: str, db: AsyncSession
+    ) -> bool:
         """
         Validate if user has access to resource within tenant.
         """
@@ -169,7 +179,9 @@ class MultiTenantManager:
         # Check if action is allowed on resource
         return self._check_permission(user_permissions, resource, action)
 
-    async def _check_resource_limits(self, tenant_id: str, resource: str, db: AsyncSession) -> bool:
+    async def _check_resource_limits(
+        self, tenant_id: str, resource: str, db: AsyncSession
+    ) -> bool:
         """Check if tenant is within resource limits."""
         tenant_context = self.tenant_cache.get(tenant_id)
         if not tenant_context:
@@ -203,22 +215,28 @@ class MultiTenantManager:
         # For now, return mock count
         return 450
 
-    async def _get_user_permissions(self, tenant_id: str, user_id: str, db: AsyncSession) -> Dict[str, List[str]]:
+    async def _get_user_permissions(
+        self, tenant_id: str, user_id: str, db: AsyncSession
+    ) -> Dict[str, List[str]]:
         """Get user permissions within tenant."""
         # Mock permissions - in production, this would query role-based permissions
         return {
             "cases": ["read", "write", "delete"],
             "reports": ["read", "write"],
             "users": ["read"],
-            "settings": ["read"]
+            "settings": ["read"],
         }
 
-    def _check_permission(self, permissions: Dict[str, List[str]], resource: str, action: str) -> bool:
+    def _check_permission(
+        self, permissions: Dict[str, List[str]], resource: str, action: str
+    ) -> bool:
         """Check if action is allowed on resource."""
         resource_permissions = permissions.get(resource, [])
         return action in resource_permissions
 
-    async def isolate_tenant_data(self, tenant_id: str, query: str, db: AsyncSession) -> str:
+    async def isolate_tenant_data(
+        self, tenant_id: str, query: str, db: AsyncSession
+    ) -> str:
         """
         Modify query to ensure tenant data isolation.
         """
@@ -234,7 +252,7 @@ class MultiTenantManager:
                 # Insert tenant filter before ORDER BY/GROUP BY/LIMIT
                 where_pos = query.upper().find("WHERE")
                 filter_clause = f" tenant_id = '{tenant_id}' AND"
-                query = query[:where_pos + 6] + filter_clause + query[where_pos + 6:]
+                query = query[: where_pos + 6] + filter_clause + query[where_pos + 6 :]
             else:
                 # Add WHERE clause
                 query += f" WHERE tenant_id = '{tenant_id}'"
@@ -268,23 +286,28 @@ class MultiTenantManager:
         # XOR is symmetric, so same function works for both
         return await self.encrypt_tenant_data(tenant_id, encrypted_data)
 
-    async def audit_tenant_action(self, tenant_id: str, action: str, actor_id: str,
-                                resource_id: str, details: Dict[str, Any], db: AsyncSession):
+    async def audit_tenant_action(
+        self,
+        tenant_id: str,
+        action: str,
+        actor_id: str,
+        resource_id: str,
+        details: Dict[str, Any],
+        db: AsyncSession,
+    ):
         """Audit action within tenant context."""
         audit_log = AuditLog(
             actor_id=actor_id if actor_id != "system" else None,
             action=action,
             resource_id=resource_id,
-            details={
-                **details,
-                "tenant_id": tenant_id,
-                "tenant_context": True
-            }
+            details={**details, "tenant_id": tenant_id, "tenant_context": True},
         )
         db.add(audit_log)
         await db.commit()
 
-    async def get_tenant_metrics(self, tenant_id: str, db: AsyncSession) -> Dict[str, Any]:
+    async def get_tenant_metrics(
+        self, tenant_id: str, db: AsyncSession
+    ) -> Dict[str, Any]:
         """Get tenant usage metrics."""
         tenant_context = self.tenant_cache.get(tenant_id)
         if not tenant_context:
@@ -303,29 +326,31 @@ class MultiTenantManager:
                 "users": {
                     "current": current_users,
                     "limit": limits.get("max_users", 100),
-                    "utilization": current_users / limits.get("max_users", 100)
+                    "utilization": current_users / limits.get("max_users", 100),
                 },
                 "cases": {
                     "current": current_cases,
                     "limit": limits.get("max_cases", 1000),
-                    "utilization": current_cases / limits.get("max_cases", 1000)
+                    "utilization": current_cases / limits.get("max_cases", 1000),
                 },
                 "storage": {
                     "current_gb": 2.4,  # Mock data
                     "limit_gb": limits.get("storage_gb", 10),
-                    "utilization": 0.24
+                    "utilization": 0.24,
                 },
                 "api_calls": {
                     "current_month": 45230,  # Mock data
                     "limit_month": limits.get("api_calls_per_month", 100000),
-                    "utilization": 0.45
-                }
+                    "utilization": 0.45,
+                },
             },
             "status": "active",
-            "last_updated": datetime.utcnow().isoformat()
+            "last_updated": datetime.utcnow().isoformat(),
         }
 
-    async def update_tenant_config(self, tenant_id: str, updates: Dict[str, Any], db: AsyncSession) -> Dict[str, Any]:
+    async def update_tenant_config(
+        self, tenant_id: str, updates: Dict[str, Any], db: AsyncSession
+    ) -> Dict[str, Any]:
         """Update tenant configuration."""
         if tenant_id not in self.tenant_cache:
             return {"error": "Tenant not found"}
@@ -341,17 +366,23 @@ class MultiTenantManager:
 
         # Audit the change
         await self.audit_tenant_action(
-            tenant_id, "tenant_config_updated", "system", tenant_id,
-            {"updates": updates}, db
+            tenant_id,
+            "tenant_config_updated",
+            "system",
+            tenant_id,
+            {"updates": updates},
+            db,
         )
 
         return {
             "status": "updated",
             "tenant_id": tenant_id,
-            "updated_fields": list(updates.keys())
+            "updated_fields": list(updates.keys()),
         }
 
-    async def suspend_tenant(self, tenant_id: str, reason: str, db: AsyncSession) -> Dict[str, Any]:
+    async def suspend_tenant(
+        self, tenant_id: str, reason: str, db: AsyncSession
+    ) -> Dict[str, Any]:
         """Suspend tenant access."""
         if tenant_id not in self.tenant_cache:
             return {"error": "Tenant not found"}
@@ -362,18 +393,19 @@ class MultiTenantManager:
 
         # Audit suspension
         await self.audit_tenant_action(
-            tenant_id, "tenant_suspended", "system", tenant_id,
-            {"reason": reason}, db
+            tenant_id, "tenant_suspended", "system", tenant_id, {"reason": reason}, db
         )
 
         return {
             "status": "suspended",
             "tenant_id": tenant_id,
             "reason": reason,
-            "suspended_at": self.tenant_cache[tenant_id]["suspended_at"]
+            "suspended_at": self.tenant_cache[tenant_id]["suspended_at"],
         }
 
-    async def reactivate_tenant(self, tenant_id: str, db: AsyncSession) -> Dict[str, Any]:
+    async def reactivate_tenant(
+        self, tenant_id: str, db: AsyncSession
+    ) -> Dict[str, Any]:
         """Reactivate suspended tenant."""
         if tenant_id not in self.tenant_cache:
             return {"error": "Tenant not found"}
@@ -386,12 +418,16 @@ class MultiTenantManager:
 
         # Audit reactivation
         await self.audit_tenant_action(
-            tenant_id, "tenant_reactivated", "system", tenant_id,
-            {"previously_suspended": self.tenant_cache[tenant_id].get("suspended_at")}, db
+            tenant_id,
+            "tenant_reactivated",
+            "system",
+            tenant_id,
+            {"previously_suspended": self.tenant_cache[tenant_id].get("suspended_at")},
+            db,
         )
 
         return {
             "status": "reactivated",
             "tenant_id": tenant_id,
-            "reactivated_at": self.tenant_cache[tenant_id]["reactivated_at"]
+            "reactivated_at": self.tenant_cache[tenant_id]["reactivated_at"],
         }

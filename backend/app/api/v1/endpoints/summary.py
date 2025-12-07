@@ -25,6 +25,7 @@ router = APIRouter(prefix="/summary", tags=["summary"])
 # Request/Response Models
 # ============================================
 
+
 class ReportRequest(BaseModel):
     template: str = "standard"  # executive, standard, detailed, compliance
     include_appendix: bool = True
@@ -65,12 +66,13 @@ class CaseSummaryResponse(BaseModel):
 # Endpoints
 # ============================================
 
+
 @router.get("/{case_id}")
 async def get_case_summary(
     case_id: str,
     response: Response,
     db: AsyncSession = Depends(get_db),
-    current_user: models.User = Depends(deps.get_current_user)
+    current_user: models.User = Depends(deps.get_current_user),
 ) -> CaseSummaryResponse:
     """
     Get comprehensive case summary with all pipeline metrics.
@@ -79,55 +81,53 @@ async def get_case_summary(
         case_uuid = uuid.UUID(case_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid case ID format")
-    
+
     # Get subject (case)
     subject_result = await db.execute(
         select(models.Subject).where(models.Subject.id == case_uuid)
     )
     subject = subject_result.scalars().first()
-    
+
     if not subject:
         raise HTTPException(status_code=404, detail="Case not found")
-    
+
     # Calculate days to resolution
     if subject.created_at:
         days_to_resolution = (datetime.utcnow() - subject.created_at).days
     else:
         days_to_resolution = 0
-    
+
     # Get transaction count (ingestion)
     transaction_count_result = await db.execute(
-        select(func.count(models.Transaction.id))
-        .where(models.Transaction.subject_id == case_uuid)
+        select(func.count(models.Transaction.id)).where(
+            models.Transaction.subject_id == case_uuid
+        )
     )
     transaction_count = transaction_count_result.scalar() or 0
-    
+
     # Get analysis results count (adjudication)
     analysis_result = await db.execute(
-        select(func.count(models.AnalysisResult.id))
-        .where(models.AnalysisResult.subject_id == case_uuid)
+        select(func.count(models.AnalysisResult.id)).where(
+            models.AnalysisResult.subject_id == case_uuid
+        )
     )
     total_alerts = analysis_result.scalar() or 0
-    
+
     # Get resolved count
     resolved_result = await db.execute(
-        select(func.count(models.AnalysisResult.id))
-        .where(
+        select(func.count(models.AnalysisResult.id)).where(
             models.AnalysisResult.subject_id == case_uuid,
-            models.AnalysisResult.decision.isnot(None)
+            models.AnalysisResult.decision.isnot(None),
         )
     )
     resolved_count = resolved_result.scalar() or 0
-    
+
     # Calculate average decision time (mock for now)
     avg_time_minutes = 8.3
-    
+
     # Calculate data quality (based on completeness)
-    data_quality = min(
-        100.0,
-        (transaction_count / max(transaction_count, 1)) * 100
-    )
-    
+    data_quality = min(100.0, (transaction_count / max(transaction_count, 1)) * 100)
+
     # Determine overall status
     if resolved_count == total_alerts and total_alerts > 0:
         status = "success"
@@ -135,10 +135,10 @@ async def get_case_summary(
         status = "partial"
     else:
         status = "failed" if total_alerts > 0 else "success"
-    
+
     # Cache for 5 minutes
     apply_cache_preset(response, "short")
-    
+
     return CaseSummaryResponse(
         case_id=case_id,
         status=status,
@@ -148,20 +148,20 @@ async def get_case_summary(
             "records": transaction_count,
             "files": 8,  # Mock - could track in future
             "completion": 100,
-            "status": "complete"
+            "status": "complete",
         },
         reconciliation={
             "matchRate": 94.2,  # Mock - calculate from actual matches
             "newRecords": 890,
             "rejected": 45,
-            "status": "complete"
+            "status": "complete",
         },
         adjudication={
             "resolved": resolved_count,
             "avgTime": f"{avg_time_minutes} min",
             "totalAlerts": total_alerts,
-            "status": "complete" if resolved_count == total_alerts else "partial"
-        }
+            "status": "complete" if resolved_count == total_alerts else "partial",
+        },
     )
 
 
@@ -170,7 +170,7 @@ async def get_findings(
     case_id: str,
     response: Response,
     db: AsyncSession = Depends(get_db),
-    current_user: models.User = Depends(deps.get_current_user)
+    current_user: models.User = Depends(deps.get_current_user),
 ) -> Dict[str, List[Finding]]:
     """
     Get AI-generated key findings for the case.
@@ -179,80 +179,89 @@ async def get_findings(
         case_uuid = uuid.UUID(case_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid case ID format")
-    
+
     # Get analysis results with high risk scores
     analysis_results = await db.execute(
         select(models.AnalysisResult)
         .where(
             models.AnalysisResult.subject_id == case_uuid,
-            models.AnalysisResult.risk_score > 60
+            models.AnalysisResult.risk_score > 60,
         )
         .order_by(models.AnalysisResult.risk_score.desc())
         .limit(10)
     )
     results = list(analysis_results.scalars().all())
-    
+
     # Generate findings
     findings = []
-    
+
     if results:
         # Pattern finding
-        findings.append(Finding(
-            id=f"finding_{uuid.uuid4().hex[:8]}",
-            type="pattern",
-            severity="high",
-            description=f"Identified {len(results)} high-risk patterns involving multiple entities",
-            evidence=[str(r.id) for r in results[:3]]
-        ))
-        
+        findings.append(
+            Finding(
+                id=f"finding_{uuid.uuid4().hex[:8]}",
+                type="pattern",
+                severity="high",
+                description=f"Identified {len(results)} high-risk patterns involving multiple entities",
+                evidence=[str(r.id) for r in results[:3]],
+            )
+        )
+
         # Amount summary
         total_amount = sum(
-            float(r.metadata_.get("total_amount", 0)) 
-            if r.metadata_ else 0 
+            float(r.metadata_.get("total_amount", 0)) if r.metadata_ else 0
             for r in results
         )
         if total_amount > 0:
-            findings.append(Finding(
-                id=f"finding_{uuid.uuid4().hex[:8]}",
-                type="amount",
-                severity="high",
-                description=f"Total flagged amount: ${total_amount:,.2f}",
-                evidence=[]
-            ))
-        
+            findings.append(
+                Finding(
+                    id=f"finding_{uuid.uuid4().hex[:8]}",
+                    type="amount",
+                    severity="high",
+                    description=f"Total flagged amount: ${total_amount:,.2f}",
+                    evidence=[],
+                )
+            )
+
         # Confirmation
         confirmed = [r for r in results if r.decision == "confirmed_fraud"]
         if confirmed:
-            findings.append(Finding(
-                id=f"finding_{uuid.uuid4().hex[:8]}",
-                type="confirmation",
-                severity="high",
-                description=f"{len(confirmed)} confirmed fraudulent transactions referred to authorities",
-                evidence=[str(r.id) for r in confirmed]
-            ))
-        
+            findings.append(
+                Finding(
+                    id=f"finding_{uuid.uuid4().hex[:8]}",
+                    type="confirmation",
+                    severity="high",
+                    description=f"{len(confirmed)} confirmed fraudulent transactions referred to authorities",
+                    evidence=[str(r.id) for r in confirmed],
+                )
+            )
+
         # False positives
         false_positives = [r for r in results if r.decision == "false_positive"]
         if false_positives:
-            findings.append(Finding(
-                id=f"finding_{uuid.uuid4().hex[:8]}",
-                type="false_positive",
-                severity="low",
-                description=f"{len(false_positives)} false positives correctly ruled out",
-                evidence=[]
-            ))
+            findings.append(
+                Finding(
+                    id=f"finding_{uuid.uuid4().hex[:8]}",
+                    type="false_positive",
+                    severity="low",
+                    description=f"{len(false_positives)} false positives correctly ruled out",
+                    evidence=[],
+                )
+            )
     else:
-        findings.append(Finding(
-            id=f"finding_{uuid.uuid4().hex[:8]}",
-            type="recommendation",
-            severity="low",
-            description="No high-risk patterns detected. Case appears clean.",
-            evidence=[]
-        ))
-    
+        findings.append(
+            Finding(
+                id=f"finding_{uuid.uuid4().hex[:8]}",
+                type="recommendation",
+                severity="low",
+                description="No high-risk patterns detected. Case appears clean.",
+                evidence=[],
+            )
+        )
+
     # Cache for 5 minutes
     apply_cache_preset(response, "short")
-    
+
     return {"findings": findings}
 
 
@@ -261,11 +270,11 @@ async def generate_report(
     case_id: str,
     request: ReportRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: models.User = Depends(deps.get_current_user)
+    current_user: models.User = Depends(deps.get_current_user),
 ) -> Dict[str, str]:
     """
     Generate PDF report for the case.
-    
+
     Template options:
     - executive: 2-3 pages, high-level summary
     - standard: 8-12 pages, full investigation
@@ -276,24 +285,23 @@ async def generate_report(
         case_uuid = uuid.UUID(case_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid case ID format")
-    
+
     # Verify case exists
     subject_result = await db.execute(
         select(models.Subject).where(models.Subject.id == case_uuid)
     )
     subject = subject_result.scalars().first()
-    
+
     if not subject:
         raise HTTPException(status_code=404, detail="Case not found")
-    
+
     # TODO: Implement actual PDF generation
     # For now, return a mock URL
-    report_url = f"https://storage.example.com/reports/{case_id}_{request.template}_report.pdf"
-    
-    return {
-        "reportUrl": report_url,
-        "expiresAt": (datetime.utcnow().isoformat() + "Z")
-    }
+    report_url = (
+        f"https://storage.example.com/reports/{case_id}_{request.template}_report.pdf"
+    )
+
+    return {"reportUrl": report_url, "expiresAt": (datetime.utcnow().isoformat() + "Z")}
 
 
 @router.post("/{case_id}/archive")
@@ -301,7 +309,7 @@ async def archive_case(
     case_id: str,
     request: ArchiveRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: models.User = Depends(deps.get_current_user)
+    current_user: models.User = Depends(deps.get_current_user),
 ) -> Dict[str, Any]:
     """
     Archive a completed case.
@@ -310,32 +318,32 @@ async def archive_case(
         case_uuid = uuid.UUID(case_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid case ID format")
-    
+
     # Get subject
     subject_result = await db.execute(
         select(models.Subject).where(models.Subject.id == case_uuid)
     )
     subject = subject_result.scalars().first()
-    
+
     if not subject:
         raise HTTPException(status_code=404, detail="Case not found")
-    
+
     # Update status to archived (add archived_at field if it exists)
     # For now, just update metadata
     if not subject.metadata_:
         subject.metadata_ = {}
-    
+
     subject.metadata_["archived"] = True
     subject.metadata_["archived_at"] = datetime.utcnow().isoformat()
     subject.metadata_["archive_reason"] = request.reason
     subject.metadata_["archive_location"] = request.archive_location or "default"
-    
+
     await db.commit()
-    
+
     return {
         "status": "archived",
         "archivedAt": subject.metadata_["archived_at"],
-        "archiveId": f"archive_{case_uuid.hex[:8]}"
+        "archiveId": f"archive_{case_uuid.hex[:8]}",
     }
 
 
@@ -344,34 +352,34 @@ async def email_report(
     case_id: str,
     request: EmailRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: models.User = Depends(deps.get_current_user)
+    current_user: models.User = Depends(deps.get_current_user),
 ) -> Dict[str, Any]:
     """
     Email case report to recipients.
-    
+
     TODO: Integrate with email service (SendGrid, AWS SES, etc.)
     """
     try:
         case_uuid = uuid.UUID(case_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid case ID format")
-    
+
     # Verify case exists
     subject_result = await db.execute(
         select(models.Subject).where(models.Subject.id == case_uuid)
     )
     subject = subject_result.scalars().first()
-    
+
     if not subject:
         raise HTTPException(status_code=404, detail="Case not found")
-    
+
     # TODO: Implement actual email sending
     # For now, return mock response
-    
+
     return {
         "status": "sent",
         "messageId": f"msg_{uuid.uuid4().hex[:12]}",
-        "sentAt": datetime.utcnow().isoformat() + "Z"
+        "sentAt": datetime.utcnow().isoformat() + "Z",
     }
 
 
@@ -380,35 +388,35 @@ async def update_findings(
     case_id: str,
     findings: List[Finding],
     db: AsyncSession = Depends(get_db),
-    current_user: models.User = Depends(deps.get_current_user)
+    current_user: models.User = Depends(deps.get_current_user),
 ) -> Dict[str, str]:
     """
     Update case findings (for edit mode).
-    
+
     Stores edited findings in subject metadata.
     """
     try:
         case_uuid = uuid.UUID(case_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid case ID format")
-    
+
     # Get subject
     subject_result = await db.execute(
         select(models.Subject).where(models.Subject.id == case_uuid)
     )
     subject = subject_result.scalars().first()
-    
+
     if not subject:
         raise HTTPException(status_code=404, detail="Case not found")
-    
+
     # Update metadata with edited findings
     if not subject.metadata_:
         subject.metadata_ = {}
-    
+
     subject.metadata_["edited_findings"] = [f.dict() for f in findings]
     subject.metadata_["findings_last_edited"] = datetime.utcnow().isoformat()
     subject.metadata_["findings_edited_by"] = str(current_user.id)
-    
+
     await db.commit()
-    
+
     return {"status": "updated"}

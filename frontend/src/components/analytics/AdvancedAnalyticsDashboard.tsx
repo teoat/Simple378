@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   BarChart3,
@@ -72,134 +72,137 @@ export function AdvancedAnalyticsDashboard() {
   });
 
   // Mock data for development - replace with real API call
-  const mockData: DashboardData = {
-    metrics: [
-      {
-        title: 'Total Cases',
-        value: 1247,
-        change: 12.5,
-        changeType: 'increase',
-        icon: FileText,
-        color: 'blue'
-      },
-      {
-        title: 'Active Alerts',
-        value: 89,
-        change: -5.2,
-        changeType: 'decrease',
-        icon: AlertTriangle,
-        color: 'red'
-      },
-      {
-        title: 'Risk Score Avg',
-        value: '72.4',
-        change: 2.1,
-        changeType: 'increase',
-        icon: TrendingUp,
-        color: 'orange'
-      },
-      {
-        title: 'Transactions Processed',
-        value: '45.2K',
-        change: 8.7,
-        changeType: 'increase',
-        icon: Activity,
-        color: 'green'
-      },
-      {
-        title: 'False Positives',
-        value: '3.2%',
-        change: -0.8,
-        changeType: 'decrease',
-        icon: CheckCircle,
-        color: 'emerald'
-      },
-      {
-        title: 'Investigation Time',
-        value: '2.4h',
-        change: -15.3,
-        changeType: 'decrease',
-        icon: Clock,
-        color: 'purple'
-      }
-    ],
-    charts: {
-      riskTrends: {
-        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        datasets: [{
-          label: 'Average Risk Score',
-          data: [65, 68, 72, 69, 74, 71, 73],
-          borderColor: 'rgb(239, 68, 68)',
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          tension: 0.4
-        }]
-      },
-      caseStatus: {
-        labels: ['Open', 'Under Review', 'Escalated', 'Closed'],
-        datasets: [{
-          label: 'Case Status',
-          data: [342, 156, 89, 660],
-          backgroundColor: ['#3B82F6', '#F59E0B', '#EF4444', '#10B981']
-        }]
-      },
+  const mockData: DashboardData = useMemo(() => {
+    const now = Date.now();
+    return {
+      metrics: [
+        {
+          title: 'Total Cases',
+          value: 1247,
+          change: 12.5,
+          changeType: 'increase',
+          icon: FileText,
+          color: 'blue'
+        },
+        {
+          title: 'Active Alerts',
+          value: 89,
+          change: -5.2,
+          changeType: 'decrease',
+          icon: AlertTriangle,
+          color: 'red'
+        },
+        {
+          title: 'Risk Score Avg',
+          value: '72.4',
+          change: 2.1,
+          changeType: 'increase',
+          icon: TrendingUp,
+          color: 'orange'
+        },
+        {
+          title: 'Transactions Processed',
+          value: '45.2K',
+          change: 8.7,
+          changeType: 'increase',
+          icon: Activity,
+          color: 'green'
+        },
+        {
+          title: 'False Positives',
+          value: '3.2%',
+          change: -0.8,
+          changeType: 'decrease',
+          icon: CheckCircle,
+          color: 'emerald'
+        },
+        {
+          title: 'Investigation Time',
+          value: '2.4h',
+          change: -15.3,
+          changeType: 'decrease',
+          icon: Clock,
+          color: 'purple'
+        }
+      ],
+      charts: {
+        riskTrends: {
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          datasets: [{
+            label: 'Average Risk Score',
+            data: [65, 68, 72, 69, 74, 71, 73],
+            borderColor: 'rgb(239, 68, 68)',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            tension: 0.4
+          }]
+        },
+        caseStatus: {
+          labels: ['Open', 'Under Review', 'Escalated', 'Closed'],
+          datasets: [{
+            label: 'Case Status',
+            data: [342, 156, 89, 660],
+            backgroundColor: ['#3B82F6', '#F59E0B', '#EF4444', '#10B981']
+          }]
+        },
 
-      transactionVolume: {
-        labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
-        datasets: [{
-          label: 'Transactions',
-          data: [120, 80, 450, 680, 520, 280],
-          backgroundColor: 'rgba(59, 130, 246, 0.5)',
-          borderColor: 'rgb(59, 130, 246)',
-          borderWidth: 1
-        }]
-      },
-      alertDistribution: {
-        labels: ['Low', 'Medium', 'High', 'Critical'],
-        datasets: [{
-          label: 'Alerts',
-          data: [45, 23, 12, 9],
-          backgroundColor: ['#10B981', '#F59E0B', '#EF4444', '#7C2D12']
-        }]
-      }
+        transactionVolume: {
+          labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+          datasets: [{
+            label: 'Transactions',
+            data: [120, 80, 450, 680, 520, 280],
+            backgroundColor: 'rgba(59, 130, 246, 0.5)',
+            borderColor: 'rgb(59, 130, 246)',
+            borderWidth: 1
+          }]
+        },
+        alertDistribution: {
+          labels: ['Low', 'Medium', 'High', 'Critical'],
+          datasets: [{
+            label: 'Alerts',
+            data: [45, 23, 12, 9],
+            backgroundColor: ['#10B981', '#F59E0B', '#EF4444', '#7C2D12']
+          }]
+        }
 
-    },
-    alerts: {
-      critical: 9,
-      high: 12,
-      medium: 23,
-      low: 45
-    },
-    recentActivity: [
-      {
-        id: '1',
-        type: 'case_created',
-        description: 'New high-risk case created for Subject ABC-123',
-        timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-        severity: 'high'
       },
-      {
-        id: '2',
-        type: 'alert_triggered',
-        description: 'Suspicious transaction pattern detected',
-        timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-        severity: 'medium'
+      alerts: {
+        critical: 9,
+        high: 12,
+        medium: 23,
+        low: 45
       },
-      {
-        id: '3',
-        type: 'case_resolved',
-        description: 'Case XYZ-789 marked as resolved',
-        timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-        severity: 'low'
-      },
-      {
-        id: '4',
-        type: 'anomaly_detected',
-        description: 'Unusual transaction volume spike detected',
-        timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-        severity: 'critical'
-      }
-    ]
-  };
+      recentActivity: [
+        {
+          id: '1',
+          type: 'case_created',
+          description: 'New high-risk case created for Subject ABC-123',
+          timestamp: new Date(now - 1000 * 60 * 5).toISOString(),
+          severity: 'high'
+        },
+        {
+          id: '2',
+          type: 'alert_triggered',
+          description: 'Suspicious transaction pattern detected',
+          timestamp: new Date(now - 1000 * 60 * 15).toISOString(),
+          severity: 'medium'
+        },
+        {
+          id: '3',
+          type: 'case_resolved',
+          description: 'Case XYZ-789 marked as resolved',
+          timestamp: new Date(now - 1000 * 60 * 30).toISOString(),
+          severity: 'low'
+        },
+        {
+          id: '4',
+          type: 'anomaly_detected',
+          description: 'Unusual transaction volume spike detected',
+          timestamp: new Date(now - 1000 * 60 * 45).toISOString(),
+          severity: 'critical'
+        }
+      ]
+    };
+  }, []);
 
   const data = dashboardData || mockData;
 

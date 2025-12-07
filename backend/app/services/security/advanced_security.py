@@ -1,18 +1,16 @@
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import secrets
-import hashlib
-import hmac
 import base64
-import json
 import pyotp
 import qrcode
 from io import BytesIO
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import and_, or_, desc
-from app.db.models import User, AuditLog, ActionType
-from app.core.security import create_access_token, verify_password, get_password_hash
+from sqlalchemy import and_
+from app.db.models import User, AuditLog
+from app.core.security import create_access_token, verify_password
+
 
 class AdvancedSecurityManager:
     """
@@ -35,27 +33,19 @@ class AdvancedSecurityManager:
             "brute_force": {
                 "max_attempts": 5,
                 "window_minutes": 15,
-                "block_duration_minutes": 30
+                "block_duration_minutes": 30,
             },
             "suspicious_ips": [
                 "192.168.1.100",  # Example - would be loaded from threat intelligence
             ],
-            "suspicious_user_agents": [
-                "MaliciousBot/1.0",
-                "VulnerabilityScanner"
-            ],
+            "suspicious_user_agents": ["MaliciousBot/1.0", "VulnerabilityScanner"],
             "sql_injection_patterns": [
                 "UNION SELECT",
                 "DROP TABLE",
                 "SCRIPT>",
-                "<SCRIPT"
-            ],
-            "xss_patterns": [
                 "<SCRIPT",
-                "JAVASCRIPT:",
-                "ONLOAD=",
-                "ONERROR="
-            ]
+            ],
+            "xss_patterns": ["<SCRIPT", "JAVASCRIPT:", "ONLOAD=", "ONERROR="],
         }
 
     async def setup_mfa(self, user_id: str, db: AsyncSession) -> Dict[str, Any]:
@@ -70,8 +60,7 @@ class AdvancedSecurityManager:
 
         # Generate QR code for authenticator apps
         provisioning_uri = totp.provisioning_uri(
-            name=f"FraudDetection:{user_id}",
-            issuer_name="AntiGravity Fraud Detection"
+            name=f"FraudDetection:{user_id}", issuer_name="AntiGravity Fraud Detection"
         )
 
         # Generate QR code image
@@ -90,7 +79,7 @@ class AdvancedSecurityManager:
             "user_id": user_id,
             "secret": secret,
             "created_at": datetime.utcnow(),
-            "expires_at": datetime.utcnow() + timedelta(minutes=10)
+            "expires_at": datetime.utcnow() + timedelta(minutes=10),
         }
 
         return {
@@ -100,11 +89,13 @@ class AdvancedSecurityManager:
             "instructions": [
                 "1. Install an authenticator app (Google Authenticator, Authy, etc.)",
                 "2. Scan the QR code or manually enter the secret key",
-                "3. Enter the 6-digit code to complete setup"
-            ]
+                "3. Enter the 6-digit code to complete setup",
+            ],
         }
 
-    async def verify_mfa_setup(self, setup_token: str, verification_code: str, db: AsyncSession) -> Dict[str, Any]:
+    async def verify_mfa_setup(
+        self, setup_token: str, verification_code: str, db: AsyncSession
+    ) -> Dict[str, Any]:
         """
         Verify MFA setup with verification code.
         """
@@ -139,7 +130,7 @@ class AdvancedSecurityManager:
                 actor_id=user_id,
                 action="mfa_enabled",
                 resource_id=user_id,
-                details={"method": "totp", "timestamp": datetime.utcnow().isoformat()}
+                details={"method": "totp", "timestamp": datetime.utcnow().isoformat()},
             )
             db.add(audit_log)
 
@@ -151,10 +142,12 @@ class AdvancedSecurityManager:
         return {
             "status": "success",
             "message": "MFA has been successfully enabled",
-            "user_id": user_id
+            "user_id": user_id,
         }
 
-    async def authenticate_with_mfa(self, user_id: str, password: str, mfa_code: str, db: AsyncSession) -> Dict[str, Any]:
+    async def authenticate_with_mfa(
+        self, user_id: str, password: str, mfa_code: str, db: AsyncSession
+    ) -> Dict[str, Any]:
         """
         Authenticate user with password and MFA.
         """
@@ -174,7 +167,10 @@ class AdvancedSecurityManager:
                     actor_id=user_id,
                     action="mfa_failed",
                     resource_id=user_id,
-                    details={"reason": "invalid_code", "timestamp": datetime.utcnow().isoformat()}
+                    details={
+                        "reason": "invalid_code",
+                        "timestamp": datetime.utcnow().isoformat(),
+                    },
                 )
                 db.add(audit_log)
                 await db.commit()
@@ -189,7 +185,7 @@ class AdvancedSecurityManager:
             actor_id=user_id,
             action="login_success",
             resource_id=user_id,
-            details={"method": "mfa", "timestamp": datetime.utcnow().isoformat()}
+            details={"method": "mfa", "timestamp": datetime.utcnow().isoformat()},
         )
         db.add(audit_log)
         await db.commit()
@@ -200,8 +196,8 @@ class AdvancedSecurityManager:
             "user": {
                 "id": str(user.id),
                 "email": user.email,
-                "mfa_enabled": user.mfa_enabled
-            }
+                "mfa_enabled": user.mfa_enabled,
+            },
         }
 
     async def setup_rbac(self, db: AsyncSession) -> Dict[str, Any]:
@@ -213,58 +209,70 @@ class AdvancedSecurityManager:
             "super_admin": {
                 "name": "Super Administrator",
                 "permissions": ["*"],  # All permissions
-                "description": "Full system access"
+                "description": "Full system access",
             },
             "tenant_admin": {
                 "name": "Tenant Administrator",
                 "permissions": [
-                    "tenant.read", "tenant.write", "tenant.delete",
-                    "user.read", "user.write", "user.delete",
-                    "case.read", "case.write", "case.delete",
-                    "report.read", "report.write", "report.delete",
-                    "audit.read"
+                    "tenant.read",
+                    "tenant.write",
+                    "tenant.delete",
+                    "user.read",
+                    "user.write",
+                    "user.delete",
+                    "case.read",
+                    "case.write",
+                    "case.delete",
+                    "report.read",
+                    "report.write",
+                    "report.delete",
+                    "audit.read",
                 ],
-                "description": "Full tenant administration"
+                "description": "Full tenant administration",
             },
             "compliance_officer": {
                 "name": "Compliance Officer",
                 "permissions": [
-                    "case.read", "case.write",
-                    "report.read", "report.write",
-                    "audit.read", "audit.write",
-                    "compliance.read", "compliance.write"
+                    "case.read",
+                    "case.write",
+                    "report.read",
+                    "report.write",
+                    "audit.read",
+                    "audit.write",
+                    "compliance.read",
+                    "compliance.write",
                 ],
-                "description": "Compliance monitoring and reporting"
+                "description": "Compliance monitoring and reporting",
             },
             "investigator": {
                 "name": "Fraud Investigator",
                 "permissions": [
-                    "case.read", "case.write",
-                    "evidence.read", "evidence.write",
+                    "case.read",
+                    "case.write",
+                    "evidence.read",
+                    "evidence.write",
                     "report.read",
-                    "ai.read", "ai.predict"
+                    "ai.read",
+                    "ai.predict",
                 ],
-                "description": "Case investigation and analysis"
+                "description": "Case investigation and analysis",
             },
             "analyst": {
                 "name": "Data Analyst",
                 "permissions": [
                     "case.read",
-                    "report.read", "report.write",
+                    "report.read",
+                    "report.write",
                     "analytics.read",
-                    "dashboard.read"
+                    "dashboard.read",
                 ],
-                "description": "Data analysis and reporting"
+                "description": "Data analysis and reporting",
             },
             "viewer": {
                 "name": "Viewer",
-                "permissions": [
-                    "case.read",
-                    "report.read",
-                    "dashboard.read"
-                ],
-                "description": "Read-only access"
-            }
+                "permissions": ["case.read", "report.read", "dashboard.read"],
+                "description": "Read-only access",
+            },
         }
 
         # In production, these would be stored in a roles/permissions table
@@ -275,12 +283,14 @@ class AdvancedSecurityManager:
             "permissions_hierarchy": {
                 "admin": ["write", "delete"],
                 "editor": ["write"],
-                "viewer": ["read"]
+                "viewer": ["read"],
             },
-            "setup_complete": True
+            "setup_complete": True,
         }
 
-    async def check_permission(self, user_id: str, resource: str, action: str, db: AsyncSession) -> bool:
+    async def check_permission(
+        self, user_id: str, resource: str, action: str, db: AsyncSession
+    ) -> bool:
         """
         Check if user has permission for action on resource.
         """
@@ -292,7 +302,7 @@ class AdvancedSecurityManager:
             return False
 
         # Get user roles (simplified - in production would be a many-to-many relationship)
-        user_roles = getattr(user, 'roles', ['viewer'])  # Default to viewer
+        user_roles = getattr(user, "roles", ["viewer"])  # Default to viewer
 
         # Check permissions for each role
         for role in user_roles:
@@ -310,19 +320,26 @@ class AdvancedSecurityManager:
             "compliance_officer": ["case.*", "report.*", "audit.*", "compliance.*"],
             "investigator": ["case.*", "evidence.*", "report.read", "ai.*"],
             "analyst": ["case.read", "report.*", "analytics.*", "dashboard.*"],
-            "viewer": ["*.read", "dashboard.read"]
+            "viewer": ["*.read", "dashboard.read"],
         }
 
         permissions = role_permissions.get(role, [])
 
         # Check for wildcard permissions
         for permission in permissions:
-            if permission == "*" or permission == f"{resource}.*" or permission == f"*.{action}" or permission == f"{resource}.{action}":
+            if (
+                permission == "*"
+                or permission == f"{resource}.*"
+                or permission == f"*.{action}"
+                or permission == f"{resource}.{action}"
+            ):
                 return True
 
         return False
 
-    async def encrypt_sensitive_data(self, data: str, tenant_id: Optional[str] = None) -> str:
+    async def encrypt_sensitive_data(
+        self, data: str, tenant_id: Optional[str] = None
+    ) -> str:
         """
         Encrypt sensitive data using AES-256.
         """
@@ -340,7 +357,9 @@ class AdvancedSecurityManager:
         encrypted = fernet.encrypt(data.encode())
         return base64.urlsafe_b64encode(encrypted).decode()
 
-    async def decrypt_sensitive_data(self, encrypted_data: str, tenant_id: Optional[str] = None) -> str:
+    async def decrypt_sensitive_data(
+        self, encrypted_data: str, tenant_id: Optional[str] = None
+    ) -> str:
         """
         Decrypt sensitive data.
         """
@@ -358,7 +377,9 @@ class AdvancedSecurityManager:
         decrypted = fernet.decrypt(encrypted_bytes)
         return decrypted.decode()
 
-    async def detect_security_threats(self, request_data: Dict[str, Any], db: AsyncSession) -> Dict[str, Any]:
+    async def detect_security_threats(
+        self, request_data: Dict[str, Any], db: AsyncSession
+    ) -> Dict[str, Any]:
         """
         Detect security threats in requests.
         """
@@ -370,52 +391,62 @@ class AdvancedSecurityManager:
         if ip_address:
             failed_attempts = await self._count_recent_failures(ip_address, db)
             if failed_attempts >= self.threat_patterns["brute_force"]["max_attempts"]:
-                threats_detected.append({
-                    "type": "brute_force",
-                    "severity": "high",
-                    "description": f"Multiple failed login attempts from {ip_address}"
-                })
+                threats_detected.append(
+                    {
+                        "type": "brute_force",
+                        "severity": "high",
+                        "description": f"Multiple failed login attempts from {ip_address}",
+                    }
+                )
                 risk_score += 80
 
         # Check for suspicious IP addresses
         if ip_address in self.threat_patterns["suspicious_ips"]:
-            threats_detected.append({
-                "type": "suspicious_ip",
-                "severity": "high",
-                "description": f"Request from known suspicious IP: {ip_address}"
-            })
+            threats_detected.append(
+                {
+                    "type": "suspicious_ip",
+                    "severity": "high",
+                    "description": f"Request from known suspicious IP: {ip_address}",
+                }
+            )
             risk_score += 90
 
         # Check for malicious user agents
         user_agent = request_data.get("user_agent", "")
         for suspicious_ua in self.threat_patterns["suspicious_user_agents"]:
             if suspicious_ua.lower() in user_agent.lower():
-                threats_detected.append({
-                    "type": "suspicious_user_agent",
-                    "severity": "medium",
-                    "description": f"Suspicious user agent detected: {user_agent}"
-                })
+                threats_detected.append(
+                    {
+                        "type": "suspicious_user_agent",
+                        "severity": "medium",
+                        "description": f"Suspicious user agent detected: {user_agent}",
+                    }
+                )
                 risk_score += 60
 
         # Check for SQL injection patterns
         query_params = request_data.get("query_params", "")
         for pattern in self.threat_patterns["sql_injection_patterns"]:
             if pattern in query_params.upper():
-                threats_detected.append({
-                    "type": "sql_injection_attempt",
-                    "severity": "critical",
-                    "description": f"Potential SQL injection detected: {pattern}"
-                })
+                threats_detected.append(
+                    {
+                        "type": "sql_injection_attempt",
+                        "severity": "critical",
+                        "description": f"Potential SQL injection detected: {pattern}",
+                    }
+                )
                 risk_score += 100
 
         # Check for XSS patterns
         for pattern in self.threat_patterns["xss_patterns"]:
             if pattern in str(request_data):
-                threats_detected.append({
-                    "type": "xss_attempt",
-                    "severity": "high",
-                    "description": f"Potential XSS attack detected: {pattern}"
-                })
+                threats_detected.append(
+                    {
+                        "type": "xss_attempt",
+                        "severity": "high",
+                        "description": f"Potential XSS attack detected: {pattern}",
+                    }
+                )
                 risk_score += 85
 
         # Log threats if detected
@@ -428,8 +459,8 @@ class AdvancedSecurityManager:
                     "threats": threats_detected,
                     "risk_score": risk_score,
                     "request_data": request_data,
-                    "timestamp": datetime.utcnow().isoformat()
-                }
+                    "timestamp": datetime.utcnow().isoformat(),
+                },
             )
             db.add(audit_log)
             await db.commit()
@@ -437,7 +468,9 @@ class AdvancedSecurityManager:
         return {
             "threats_detected": threats_detected,
             "risk_score": min(risk_score, 100),
-            "recommendations": self._generate_security_recommendations(threats_detected, risk_score)
+            "recommendations": self._generate_security_recommendations(
+                threats_detected, risk_score
+            ),
         }
 
     async def _count_recent_failures(self, ip_address: str, db: AsyncSession) -> int:
@@ -449,38 +482,46 @@ class AdvancedSecurityManager:
                 and_(
                     AuditLog.action.in_(["login_failed", "mfa_failed"]),
                     AuditLog.details.contains({"ip_address": ip_address}),
-                    AuditLog.timestamp >= fifteen_minutes_ago
+                    AuditLog.timestamp >= fifteen_minutes_ago,
                 )
             )
         )
 
         return result.scalar() or 0
 
-    def _generate_security_recommendations(self, threats: List[Dict[str, Any]], risk_score: int) -> List[str]:
+    def _generate_security_recommendations(
+        self, threats: List[Dict[str, Any]], risk_score: int
+    ) -> List[str]:
         """Generate security recommendations based on threats."""
         recommendations = []
 
         if risk_score >= 90:
-            recommendations.extend([
-                "🚨 CRITICAL: Block IP address immediately",
-                "🔍 Initiate security incident response",
-                "📞 Notify security team",
-                "🛡️ Enable emergency security protocols"
-            ])
+            recommendations.extend(
+                [
+                    "🚨 CRITICAL: Block IP address immediately",
+                    "🔍 Initiate security incident response",
+                    "📞 Notify security team",
+                    "🛡️ Enable emergency security protocols",
+                ]
+            )
         elif risk_score >= 70:
-            recommendations.extend([
-                "⚠️ HIGH RISK: Monitor IP address closely",
-                "🔒 Temporarily restrict access",
-                "📊 Review security logs",
-                "👥 Alert security personnel"
-            ])
+            recommendations.extend(
+                [
+                    "⚠️ HIGH RISK: Monitor IP address closely",
+                    "🔒 Temporarily restrict access",
+                    "📊 Review security logs",
+                    "👥 Alert security personnel",
+                ]
+            )
         elif risk_score >= 50:
-            recommendations.extend([
-                "⚡ MEDIUM RISK: Log and monitor activity",
-                "👁️ Increase monitoring frequency",
-                "📝 Document incident",
-                "🔍 Review access patterns"
-            ])
+            recommendations.extend(
+                [
+                    "⚡ MEDIUM RISK: Log and monitor activity",
+                    "👁️ Increase monitoring frequency",
+                    "📝 Document incident",
+                    "🔍 Review access patterns",
+                ]
+            )
 
         # Specific recommendations based on threat types
         threat_types = [t["type"] for t in threats]
@@ -496,7 +537,9 @@ class AdvancedSecurityManager:
 
         return recommendations
 
-    async def generate_security_report(self, tenant_id: Optional[str], db: AsyncSession) -> Dict[str, Any]:
+    async def generate_security_report(
+        self, tenant_id: Optional[str], db: AsyncSession
+    ) -> Dict[str, Any]:
         """
         Generate comprehensive security report.
         """
@@ -507,12 +550,18 @@ class AdvancedSecurityManager:
         auth_metrics = await db.execute(
             select(
                 func.count(AuditLog.id).label("total_events"),
-                func.sum(func.case((AuditLog.action == "login_success", 1), else_=0)).label("successful_logins"),
-                func.sum(func.case((AuditLog.action == "login_failed", 1), else_=0)).label("failed_logins")
+                func.sum(
+                    func.case((AuditLog.action == "login_success", 1), else_=0)
+                ).label("successful_logins"),
+                func.sum(
+                    func.case((AuditLog.action == "login_failed", 1), else_=0)
+                ).label("failed_logins"),
             ).where(
                 and_(
-                    AuditLog.action.in_(["login_success", "login_failed", "mfa_failed"]),
-                    AuditLog.timestamp >= thirty_days_ago
+                    AuditLog.action.in_(
+                        ["login_success", "login_failed", "mfa_failed"]
+                    ),
+                    AuditLog.timestamp >= thirty_days_ago,
                 )
             )
         )
@@ -524,7 +573,7 @@ class AdvancedSecurityManager:
             select(func.count(AuditLog.id)).where(
                 and_(
                     AuditLog.action == "security_threat_detected",
-                    AuditLog.timestamp >= thirty_days_ago
+                    AuditLog.timestamp >= thirty_days_ago,
                 )
             )
         )
@@ -544,27 +593,32 @@ class AdvancedSecurityManager:
             "authentication": {
                 "successful_logins": metrics.successful_logins or 0,
                 "failed_logins": metrics.failed_logins or 0,
-                "success_rate": (metrics.successful_logins or 0) / max((metrics.successful_logins or 0) + (metrics.failed_logins or 0), 1)
+                "success_rate": (metrics.successful_logins or 0)
+                / max(
+                    (metrics.successful_logins or 0) + (metrics.failed_logins or 0), 1
+                ),
             },
             "security_threats": {
                 "total_threats": threat_count,
-                "threats_per_day": threat_count / 30
+                "threats_per_day": threat_count / 30,
             },
             "mfa_adoption": {
                 "enabled_users": mfa_users.scalar() or 0,
                 "total_users": total_users.scalar() or 0,
-                "adoption_rate": mfa_adoption
+                "adoption_rate": mfa_adoption,
             },
             "recommendations": self._generate_security_report_recommendations(
                 metrics.successful_logins or 0,
                 metrics.failed_logins or 0,
                 threat_count,
-                mfa_adoption
+                mfa_adoption,
             ),
-            "generated_at": datetime.utcnow().isoformat()
+            "generated_at": datetime.utcnow().isoformat(),
         }
 
-    def _generate_security_report_recommendations(self, successful: int, failed: int, threats: int, mfa_rate: float) -> List[str]:
+    def _generate_security_report_recommendations(
+        self, successful: int, failed: int, threats: int, mfa_rate: float
+    ) -> List[str]:
         """Generate recommendations for security report."""
         recommendations = []
 
@@ -572,13 +626,19 @@ class AdvancedSecurityManager:
         if total_attempts > 0:
             failure_rate = failed / total_attempts
             if failure_rate > 0.1:
-                recommendations.append("⚠️ High authentication failure rate - review login security")
+                recommendations.append(
+                    "⚠️ High authentication failure rate - review login security"
+                )
 
         if threats > 10:
-            recommendations.append("🚨 High number of security threats detected - review threat patterns")
+            recommendations.append(
+                "🚨 High number of security threats detected - review threat patterns"
+            )
 
         if mfa_rate < 0.5:
-            recommendations.append("🔐 Low MFA adoption - encourage users to enable multi-factor authentication")
+            recommendations.append(
+                "🔐 Low MFA adoption - encourage users to enable multi-factor authentication"
+            )
 
         if failure_rate > 0.05 and mfa_rate < 0.8:
             recommendations.append("🛡️ Implement mandatory MFA for high-risk accounts")

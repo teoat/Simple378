@@ -25,6 +25,7 @@ except ImportError:
     logger.warning("python-magic not found. File type detection will be limited.")
     magic = None
 
+
 class ForensicsService:
     def __init__(self):
         self.exiftool_path = "exiftool"  # Assumes exiftool is in PATH
@@ -44,12 +45,14 @@ class ForensicsService:
                     logger.warning(f"Virus detected in {file_path}")
                     return False
         except Exception as e:
-             logger.error(f"Scan error: {e}")
-             # Fail open or closed based on policy? We'll fail open for MVP but log error
-        
+            logger.error(f"Scan error: {e}")
+            # Fail open or closed based on policy? We'll fail open for MVP but log error
+
         return True
 
-    async def analyze_document(self, file_path: str, db: Optional[AsyncSession] = None) -> Dict[str, Any]:
+    async def analyze_document(
+        self, file_path: str, db: Optional[AsyncSession] = None
+    ) -> Dict[str, Any]:
         """
         Orchestrates the forensic analysis of a document.
         """
@@ -64,9 +67,11 @@ class ForensicsService:
         # Run independent tasks concurrently
         metadata_task = self.extract_metadata(file_path)
         manipulation_task = self.detect_manipulation(file_path)
-        
-        metadata, manipulation_score = await asyncio.gather(metadata_task, manipulation_task)
-        
+
+        metadata, manipulation_score = await asyncio.gather(
+            metadata_task, manipulation_task
+        )
+
         file_type = "unknown"
         if magic:
             # Run magic.from_file in a thread as it is blocking
@@ -77,7 +82,7 @@ class ForensicsService:
             "file_type": file_type,
             "metadata": metadata,
             "manipulation_analysis": manipulation_score,
-            "summary": self._generate_summary(metadata, manipulation_score)
+            "summary": self._generate_summary(metadata, manipulation_score),
         }
 
         # 2. Event Sourcing
@@ -85,19 +90,21 @@ class ForensicsService:
             try:
                 event_id = uuid.uuid4()
                 event = Event(
-                     id=event_id,
-                     aggregate_id=event_id, 
-                     aggregate_type="document_analysis",
-                     event_type="DOCUMENT_ANALYZED",
-                     version=1,
-                     payload={
-                         "filename": os.path.basename(file_path),
-                         "file_type": file_type,
-                         "is_suspicious": result["manipulation_analysis"].get("is_suspicious", False),
-                         "summary": result["summary"]
-                     },
-                     metadata_={"source": "ForensicsService"},
-                     created_at=datetime.utcnow()
+                    id=event_id,
+                    aggregate_id=event_id,
+                    aggregate_type="document_analysis",
+                    event_type="DOCUMENT_ANALYZED",
+                    version=1,
+                    payload={
+                        "filename": os.path.basename(file_path),
+                        "file_type": file_type,
+                        "is_suspicious": result["manipulation_analysis"].get(
+                            "is_suspicious", False
+                        ),
+                        "summary": result["summary"],
+                    },
+                    metadata_={"source": "ForensicsService"},
+                    created_at=datetime.utcnow(),
                 )
                 db.add(event)
                 await db.commit()
@@ -113,14 +120,18 @@ class ForensicsService:
         try:
             # Run exiftool as a subprocess asynchronously
             process = await asyncio.create_subprocess_exec(
-                self.exiftool_path, "-j", file_path,
+                self.exiftool_path,
+                "-j",
+                file_path,
                 stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+                stderr=asyncio.subprocess.PIPE,
             )
             stdout, stderr = await process.communicate()
 
             if process.returncode != 0:
-                logger.debug(f"ExifTool warning (often benign): {stderr.decode()[:100]}")
+                logger.debug(
+                    f"ExifTool warning (often benign): {stderr.decode()[:100]}"
+                )
                 return {}
 
             # Parse JSON output
@@ -149,11 +160,11 @@ class ForensicsService:
             # 1. Error Level Analysis (ELA)
             # Run CPU-intensive ELA in a separate thread
             ela_score = await asyncio.to_thread(self._calculate_ela_score, file_path)
-            
+
             return {
                 "ela_score": ela_score,
                 "is_suspicious": ela_score > 0.5,  # Threshold
-                "details": "High ELA score indicates potential manipulation ."
+                "details": "High ELA score indicates potential manipulation .",
             }
 
         except Exception as e:
@@ -164,7 +175,7 @@ class ForensicsService:
         if magic:
             mime = await asyncio.to_thread(magic.from_file, file_path, mime=True)
             return mime.startswith("image/")
-        return file_path.lower().endswith(('.jpg', '.jpeg', '.png', '.tiff'))
+        return file_path.lower().endswith((".jpg", ".jpeg", ".png", ".tiff"))
 
     def _calculate_ela_score(self, file_path: str) -> float:
         """
@@ -176,12 +187,14 @@ class ForensicsService:
                 return 0.0
 
             # Use in-memory encoding/decoding to avoid disk I/O
-            _, encoded_img = cv2.imencode('.jpg', original, [cv2.IMWRITE_JPEG_QUALITY, 90])
+            _, encoded_img = cv2.imencode(
+                ".jpg", original, [cv2.IMWRITE_JPEG_QUALITY, 90]
+            )
             resaved = cv2.imdecode(encoded_img, cv2.IMREAD_COLOR)
             diff = cv2.absdiff(original, resaved)
             score = np.mean(diff) / 255.0
             normalized_score = min(score * 10, 1.0)
-            
+
             return float(normalized_score)
         except Exception:
             return 0.0
@@ -191,13 +204,13 @@ class ForensicsService:
         software = metadata.get("Software", "")
         if "Photoshop" in software or "GIMP" in software:
             summary.append(f"Warning: Image edited with {software}.")
-        
+
         if "GPSLatitude" in metadata:
             summary.append("GPS data found.")
         else:
             summary.append("No GPS data.")
-            
+
         if manipulation.get("is_suspicious"):
             summary.append("Potential manipulation detected (High ELA score).")
-            
+
         return " ".join(summary)

@@ -1,13 +1,8 @@
-from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime, timedelta
+from typing import Dict, Any, List
 import asyncio
 import time
-import statistics
-import aiohttp
 import psutil
-from concurrent.futures import ThreadPoolExecutor
-import json
-import os
+
 
 class LoadTester:
     """
@@ -30,7 +25,7 @@ class LoadTester:
             "file_processing": await self._test_file_processing(),
             "concurrent_users": await self._test_concurrent_users(),
             "stress_testing": await self._test_stress_limits(),
-            "memory_leak_detection": await self._test_memory_leak_detection()
+            "memory_leak_detection": await self._test_memory_leak_detection(),
         }
 
         # Analyze results
@@ -45,17 +40,33 @@ class LoadTester:
             "recommendations": recommendations,
             "performance_score": self._calculate_performance_score(analysis),
             "bottlenecks_identified": analysis.get("bottlenecks", []),
-            "scalability_assessment": analysis.get("scalability", {})
+            "scalability_assessment": analysis.get("scalability", {}),
         }
 
     async def _test_api_endpoints(self) -> Dict[str, Any]:
         """Test API endpoint performance under load."""
         endpoints = [
-            {"url": "/api/v1/subjects/", "method": "GET", "description": "List subjects"},
+            {
+                "url": "/api/v1/subjects/",
+                "method": "GET",
+                "description": "List subjects",
+            },
             {"url": "/api/v1/cases/", "method": "GET", "description": "List cases"},
-            {"url": "/api/v1/subjects/test-id", "method": "GET", "description": "Get subject details"},
-            {"url": "/api/v1/cases/test-id/ai-analysis", "method": "POST", "description": "AI analysis"},
-            {"url": "/api/v1/reports/generate", "method": "POST", "description": "Generate report"}
+            {
+                "url": "/api/v1/subjects/test-id",
+                "method": "GET",
+                "description": "Get subject details",
+            },
+            {
+                "url": "/api/v1/cases/test-id/ai-analysis",
+                "method": "POST",
+                "description": "AI analysis",
+            },
+            {
+                "url": "/api/v1/reports/generate",
+                "method": "POST",
+                "description": "Generate report",
+            },
         ]
 
         results = {}
@@ -71,7 +82,7 @@ class LoadTester:
                         endpoint["url"],
                         endpoint["method"],
                         concurrency,
-                        duration=30  # 30 seconds
+                        duration=30,  # 30 seconds
                     )
                     endpoint_results[f"concurrency_{concurrency}"] = result
                 except Exception as e:
@@ -87,23 +98,23 @@ class LoadTester:
             "case_categorization": {
                 "description": "AI-powered case categorization",
                 "test_function": self._test_ai_case_categorization,
-                "expected_duration": "< 5 seconds"
+                "expected_duration": "< 5 seconds",
             },
             "fraud_prediction": {
                 "description": "Real-time fraud prediction",
                 "test_function": self._test_ai_fraud_prediction,
-                "expected_duration": "< 2 seconds"
+                "expected_duration": "< 2 seconds",
             },
             "evidence_analysis": {
                 "description": "Document/image evidence analysis",
                 "test_function": self._test_ai_evidence_analysis,
-                "expected_duration": "< 10 seconds"
+                "expected_duration": "< 10 seconds",
             },
             "pattern_recognition": {
                 "description": "Transaction pattern recognition",
                 "test_function": self._test_ai_pattern_recognition,
-                "expected_duration": "< 3 seconds"
-            }
+                "expected_duration": "< 3 seconds",
+            },
         }
 
         results = {}
@@ -114,13 +125,14 @@ class LoadTester:
                     "description": test_config["description"],
                     "result": result,
                     "expected_duration": test_config["expected_duration"],
-                    "passed": result.get("duration", 0) < self._parse_duration(test_config["expected_duration"])
+                    "passed": result.get("duration", 0)
+                    < self._parse_duration(test_config["expected_duration"]),
                 }
             except Exception as e:
                 results[test_name] = {
                     "description": test_config["description"],
                     "error": str(e),
-                    "passed": False
+                    "passed": False,
                 }
 
         return results
@@ -131,23 +143,23 @@ class LoadTester:
             "case_queries": {
                 "description": "Case list and detail queries",
                 "operations": ["SELECT", "INSERT", "UPDATE"],
-                "concurrency": [1, 10, 50]
+                "concurrency": [1, 10, 50],
             },
             "transaction_queries": {
                 "description": "Transaction aggregation queries",
                 "operations": ["COUNT", "SUM", "GROUP BY"],
-                "concurrency": [1, 5, 20]
+                "concurrency": [1, 5, 20],
             },
             "bulk_operations": {
                 "description": "Bulk data operations",
                 "operations": ["BATCH INSERT", "BULK UPDATE"],
-                "data_sizes": [100, 1000, 10000]
+                "data_sizes": [100, 1000, 10000],
             },
             "search_operations": {
                 "description": "Full-text search operations",
                 "query_types": ["exact", "fuzzy", "regex"],
-                "data_sizes": ["small", "medium", "large"]
-            }
+                "data_sizes": ["small", "medium", "large"],
+            },
         }
 
         results = {}
@@ -161,16 +173,24 @@ class LoadTester:
         file_tests = {
             "pdf_processing": {
                 "file_types": ["small_pdf", "large_pdf", "complex_pdf"],
-                "operations": ["text_extraction", "metadata_analysis", "tampering_detection"]
+                "operations": [
+                    "text_extraction",
+                    "metadata_analysis",
+                    "tampering_detection",
+                ],
             },
             "image_processing": {
                 "file_types": ["small_image", "large_image", "scanned_document"],
-                "operations": ["ocr", "quality_analysis", "tampering_detection"]
+                "operations": ["ocr", "quality_analysis", "tampering_detection"],
             },
             "bulk_upload": {
-                "scenarios": ["single_large_file", "multiple_files", "mixed_file_types"],
-                "concurrency": [1, 5, 10]
-            }
+                "scenarios": [
+                    "single_large_file",
+                    "multiple_files",
+                    "mixed_file_types",
+                ],
+                "concurrency": [1, 5, 10],
+            },
         }
 
         results = {}
@@ -186,26 +206,21 @@ class LoadTester:
                 "name": "light_usage",
                 "users": 50,
                 "think_time": 2.0,  # seconds between actions
-                "duration": 300  # 5 minutes
+                "duration": 300,  # 5 minutes
             },
             {
                 "name": "moderate_usage",
                 "users": 200,
                 "think_time": 1.0,
-                "duration": 300
+                "duration": 300,
             },
-            {
-                "name": "heavy_usage",
-                "users": 500,
-                "think_time": 0.5,
-                "duration": 300
-            },
+            {"name": "heavy_usage", "users": 500, "think_time": 0.5, "duration": 300},
             {
                 "name": "peak_usage",
                 "users": 1000,
                 "think_time": 0.2,
-                "duration": 180  # 3 minutes
-            }
+                "duration": 180,  # 3 minutes
+            },
         ]
 
         results = {}
@@ -221,7 +236,7 @@ class LoadTester:
             "cpu_stress": await self._test_cpu_limits(),
             "network_stress": await self._test_network_limits(),
             "database_stress": await self._test_database_limits(),
-            "disk_io_stress": await self._test_disk_io_limits()
+            "disk_io_stress": await self._test_disk_io_limits(),
         }
 
         return stress_tests
@@ -238,12 +253,14 @@ class LoadTester:
         while time.time() - start_time < test_duration:
             # Record memory usage
             memory_info = psutil.virtual_memory()
-            memory_readings.append({
-                "timestamp": time.time(),
-                "used_percent": memory_info.percent,
-                "used_gb": memory_info.used / (1024**3),
-                "available_gb": memory_info.available / (1024**3)
-            })
+            memory_readings.append(
+                {
+                    "timestamp": time.time(),
+                    "used_percent": memory_info.percent,
+                    "used_gb": memory_info.used / (1024**3),
+                    "available_gb": memory_info.available / (1024**3),
+                }
+            )
 
             # Run some operations to stress memory
             await self._generate_memory_load()
@@ -258,10 +275,12 @@ class LoadTester:
             "memory_readings": memory_readings,
             "analysis": memory_analysis,
             "leak_detected": memory_analysis.get("leak_probability", 0) > 0.7,
-            "recommendations": self._generate_memory_recommendations(memory_analysis)
+            "recommendations": self._generate_memory_recommendations(memory_analysis),
         }
 
-    async def _load_test_endpoint(self, url: str, method: str, concurrency: int, duration: int) -> Dict[str, Any]:
+    async def _load_test_endpoint(
+        self, url: str, method: str, concurrency: int, duration: int
+    ) -> Dict[str, Any]:
         """Load test a specific endpoint."""
         results = {
             "concurrency": concurrency,
@@ -273,21 +292,23 @@ class LoadTester:
             "error_rate": 0.0,
             "avg_response_time": 0.0,
             "p95_response_time": 0.0,
-            "requests_per_second": 0.0
+            "requests_per_second": 0.0,
         }
 
         # In a real implementation, this would use locust or similar load testing tool
         # For now, simulate results
-        results.update({
-            "total_requests": concurrency * duration * 2,  # Rough estimate
-            "successful_requests": int(concurrency * duration * 1.8),
-            "failed_requests": int(concurrency * duration * 0.2),
-            "response_times": [0.1, 0.2, 0.15, 0.3, 0.1, 0.25, 0.18, 0.12],
-            "error_rate": 0.1,
-            "avg_response_time": 0.18,
-            "p95_response_time": 0.3,
-            "requests_per_second": concurrency * 2
-        })
+        results.update(
+            {
+                "total_requests": concurrency * duration * 2,  # Rough estimate
+                "successful_requests": int(concurrency * duration * 1.8),
+                "failed_requests": int(concurrency * duration * 0.2),
+                "response_times": [0.1, 0.2, 0.15, 0.3, 0.1, 0.25, 0.18, 0.12],
+                "error_rate": 0.1,
+                "avg_response_time": 0.18,
+                "p95_response_time": 0.3,
+                "requests_per_second": concurrency * 2,
+            }
+        )
 
         return results
 
@@ -298,7 +319,7 @@ class LoadTester:
             "bottlenecks": [],
             "scalability": {},
             "recommendations": [],
-            "risk_assessment": {}
+            "risk_assessment": {},
         }
 
         # Analyze API performance
@@ -339,18 +360,22 @@ class LoadTester:
         scalability = {
             "max_concurrent_users": 0,
             "performance_degradation_point": 0,
-            "recommended_max_users": 0
+            "recommended_max_users": 0,
         }
 
         for scenario_name, result in concurrent_user_results.items():
             users = result.get("target_users", 0)
             if result.get("success_rate", 1.0) > 0.95:
-                scalability["max_concurrent_users"] = max(scalability["max_concurrent_users"], users)
+                scalability["max_concurrent_users"] = max(
+                    scalability["max_concurrent_users"], users
+                )
             else:
                 scalability["performance_degradation_point"] = users
                 break
 
-        scalability["recommended_max_users"] = int(scalability["max_concurrent_users"] * 0.8)
+        scalability["recommended_max_users"] = int(
+            scalability["max_concurrent_users"] * 0.8
+        )
         analysis["scalability"] = scalability
 
         # Overall assessment
@@ -366,32 +391,40 @@ class LoadTester:
 
         return analysis
 
-    def _generate_performance_recommendations(self, analysis: Dict[str, Any]) -> List[str]:
+    def _generate_performance_recommendations(
+        self, analysis: Dict[str, Any]
+    ) -> List[str]:
         """Generate performance improvement recommendations."""
         recommendations = []
 
         # Based on bottlenecks
         bottlenecks = analysis.get("bottlenecks", [])
         if any("api" in b.lower() for b in bottlenecks):
-            recommendations.extend([
-                "Implement API response caching",
-                "Add database query optimization",
-                "Consider API rate limiting adjustments"
-            ])
+            recommendations.extend(
+                [
+                    "Implement API response caching",
+                    "Add database query optimization",
+                    "Consider API rate limiting adjustments",
+                ]
+            )
 
         if any("ai" in b.lower() for b in bottlenecks):
-            recommendations.extend([
-                "Optimize AI model inference",
-                "Implement AI result caching",
-                "Consider GPU instance scaling"
-            ])
+            recommendations.extend(
+                [
+                    "Optimize AI model inference",
+                    "Implement AI result caching",
+                    "Consider GPU instance scaling",
+                ]
+            )
 
         if any("database" in b.lower() for b in bottlenecks):
-            recommendations.extend([
-                "Add database indexes",
-                "Implement read replicas",
-                "Optimize slow queries"
-            ])
+            recommendations.extend(
+                [
+                    "Add database indexes",
+                    "Implement read replicas",
+                    "Optimize slow queries",
+                ]
+            )
 
         # Based on scalability
         scalability = analysis.get("scalability", {})
@@ -404,12 +437,14 @@ class LoadTester:
             recommendations.append("System handles high concurrency well")
 
         # General recommendations
-        recommendations.extend([
-            "Implement comprehensive monitoring",
-            "Set up automated performance testing",
-            "Establish performance baselines",
-            "Create performance improvement roadmap"
-        ])
+        recommendations.extend(
+            [
+                "Implement comprehensive monitoring",
+                "Set up automated performance testing",
+                "Establish performance baselines",
+                "Create performance improvement roadmap",
+            ]
+        )
 
         return list(set(recommendations))  # Remove duplicates
 
@@ -459,7 +494,7 @@ class LoadTester:
         return {
             "target_users": scenario["users"],
             "success_rate": 0.92 if scenario["users"] < 500 else 0.85,
-            "avg_response_time": 0.3 + (scenario["users"] * 0.001)
+            "avg_response_time": 0.3 + (scenario["users"] * 0.001),
         }
 
     async def _test_memory_limits(self) -> Dict[str, Any]:
@@ -493,8 +528,8 @@ class LoadTester:
 
         # Simple trend analysis
         if len(used_percentages) >= 10:
-            first_half = used_percentages[:len(used_percentages)//2]
-            second_half = used_percentages[len(used_percentages)//2:]
+            first_half = used_percentages[: len(used_percentages) // 2]
+            second_half = used_percentages[len(used_percentages) // 2 :]
 
             first_avg = sum(first_half) / len(first_half)
             second_avg = sum(second_half) / len(second_half)
@@ -508,7 +543,7 @@ class LoadTester:
             "leak_probability": leak_probability,
             "average_usage": sum(used_percentages) / len(used_percentages),
             "peak_usage": max(used_percentages),
-            "trend": "increasing" if leak_probability > 0.3 else "stable"
+            "trend": "increasing" if leak_probability > 0.3 else "stable",
         }
 
     def _generate_memory_recommendations(self, analysis: Dict[str, Any]) -> List[str]:
@@ -516,18 +551,22 @@ class LoadTester:
         recommendations = []
 
         if analysis.get("leak_probability", 0) > 0.5:
-            recommendations.extend([
-                "Investigate memory leaks in application code",
-                "Implement memory profiling",
-                "Add memory monitoring alerts"
-            ])
+            recommendations.extend(
+                [
+                    "Investigate memory leaks in application code",
+                    "Implement memory profiling",
+                    "Add memory monitoring alerts",
+                ]
+            )
 
         if analysis.get("peak_usage", 0) > 85:
-            recommendations.extend([
-                "Increase instance memory allocation",
-                "Optimize memory-intensive operations",
-                "Implement memory-efficient data structures"
-            ])
+            recommendations.extend(
+                [
+                    "Increase instance memory allocation",
+                    "Optimize memory-intensive operations",
+                    "Implement memory-efficient data structures",
+                ]
+            )
 
         if analysis.get("trend") == "increasing":
             recommendations.append("Monitor memory usage trends closely")
@@ -536,12 +575,12 @@ class LoadTester:
 
     def _parse_duration(self, duration_str: str) -> float:
         """Parse duration string like '< 5 seconds' to seconds."""
-        if '<' in duration_str:
-            parts = duration_str.replace('<', '').strip().split()
+        if "<" in duration_str:
+            parts = duration_str.replace("<", "").strip().split()
             value = float(parts[0])
             unit = parts[1].lower()
-            if 'second' in unit:
+            if "second" in unit:
                 return value
-            elif 'minute' in unit:
+            elif "minute" in unit:
                 return value * 60
         return 10.0  # Default fallback

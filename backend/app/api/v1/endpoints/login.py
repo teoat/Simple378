@@ -15,17 +15,19 @@ from app.schemas.token import Token, TokenPayload
 
 router = APIRouter()
 
+
 @router.post("/access-token", response_model=Token)
 @limiter.limit("10/minute")  # Rate limit: 10 login attempts per minute
 async def login_access_token(
     request: Request,
-    db: AsyncSession = Depends(deps.get_db), 
-    form_data: OAuth2PasswordRequestForm = Depends()
+    db: AsyncSession = Depends(deps.get_db),
+    form_data: OAuth2PasswordRequestForm = Depends(),
 ) -> Any:
     """
     OAuth2 compatible token login, get an access token for future requests
     """
     import logging
+
     logger = logging.getLogger(__name__)
     logger.info(f"Login attempt for user: {form_data.username}")
 
@@ -36,13 +38,13 @@ async def login_access_token(
     if not user:
         logger.warning(f"Login failed: User {form_data.username} not found")
         raise HTTPException(status_code=400, detail="Incorrect email or password")
-    
+
     if not security.verify_password(form_data.password, user.hashed_password):
         logger.warning(f"Login failed: Invalid password for user {form_data.username}")
         raise HTTPException(status_code=400, detail="Incorrect email or password")
-    
+
     logger.info(f"Login successful for user: {form_data.username}")
-    
+
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {
         "access_token": security.create_access_token(
@@ -52,12 +54,11 @@ async def login_access_token(
         "refresh_token": security.create_refresh_token(user.id),
     }
 
+
 @router.post("/refresh", response_model=Token)
 @limiter.limit("20/minute")  # Rate limit: 20 refresh attempts per minute
 async def refresh_token(
-    request: Request,
-    refresh_token: str,
-    db: AsyncSession = Depends(deps.get_db)
+    request: Request, refresh_token: str, db: AsyncSession = Depends(deps.get_db)
 ) -> Any:
     """
     Refresh access token using a valid refresh token
@@ -68,40 +69,40 @@ async def refresh_token(
             refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         token_data = TokenPayload(**payload)
-        
+
         # Check if it's a refresh token
         if payload.get("type") != "refresh":
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token type"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type"
             )
-        
+
         # Check if token is blacklisted
         if await security.is_token_blacklisted(refresh_token):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has been revoked"
+                detail="Token has been revoked",
             )
-        
+
     except (JWTError, Exception):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials"
+            detail="Could not validate credentials",
         )
-    
+
     import uuid
+
     try:
         user_id = uuid.UUID(token_data.sub)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid user ID format")
-    
+
     # Verify user still exists
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
-    
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     # Create new tokens
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {
@@ -112,10 +113,11 @@ async def refresh_token(
         "refresh_token": security.create_refresh_token(user.id),
     }
 
+
 @router.post("/logout")
 async def logout(
     current_user: User = Depends(deps.get_current_user),
-    token: str = Depends(deps.reusable_oauth2)
+    token: str = Depends(deps.reusable_oauth2),
 ) -> Any:
     """
     Logout user by blacklisting their token
@@ -125,21 +127,21 @@ async def logout(
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
-        
+
         # Calculate remaining time until expiration
         from datetime import datetime
+
         exp = datetime.fromtimestamp(payload.get("exp", 0))
         now = datetime.utcnow()
         expires_in = int((exp - now).total_seconds())
-        
+
         if expires_in > 0:
             # Blacklist the token
             await security.blacklist_token(token, expires_in)
-        
+
         return {"message": "Successfully logged out"}
-    
+
     except Exception:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to logout"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to logout"
         )

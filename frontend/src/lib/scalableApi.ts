@@ -64,7 +64,7 @@ export class ScalableApiClient {
                 detail: { status: 401, message: 'Token expired' }
               }));
             }
-          } catch (e) {
+          } catch {
             // Invalid token, trigger logout
             window.dispatchEvent(new CustomEvent('auth-error', {
               detail: { status: 401, message: 'Invalid token format' }
@@ -218,10 +218,10 @@ export class ScalableApiClient {
     return this.unwrapResponse<T>(response.data);
   }
 
-  private unwrapResponse<T>(data: any): T {
+  private unwrapResponse<T>(data: unknown): T {
     // If the response is wrapped in APIResponse format, return the inner data
     if (data && typeof data === 'object' && 'data' in data && 'status' in data) {
-      return data.data as T;
+      return (data as { data: T }).data;
     }
     // Otherwise return as is
     return data as T;

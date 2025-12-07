@@ -5,7 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models import Transaction
 from app.services.graph_analyzer import GraphAnalyzer
 
-async def get_recent_transactions(db: AsyncSession, subject_id: UUID, limit: int = 10) -> List[Dict[str, Any]]:
+
+async def get_recent_transactions(
+    db: AsyncSession, subject_id: UUID, limit: int = 10
+) -> List[Dict[str, Any]]:
     """
     Fetches the most recent transactions for a subject.
     """
@@ -22,16 +25,18 @@ async def get_recent_transactions(db: AsyncSession, subject_id: UUID, limit: int
             "date": tx.date.isoformat(),
             "amount": tx.amount,
             "description": tx.description,
-            "source_bank": tx.source_bank
+            "source_bank": tx.source_bank,
         }
         for tx in transactions
     ]
+
 
 async def get_entity_graph(db: AsyncSession, subject_id: UUID) -> Dict[str, Any]:
     """
     Fetches the entity graph for a subject.
     """
     return await GraphAnalyzer.build_subgraph(db, subject_id, depth=2)
+
 
 async def flag_transaction(db: AsyncSession, transaction_id: UUID, reason: str) -> str:
     """

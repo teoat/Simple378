@@ -8,6 +8,7 @@ from app.db.models import Subject, Transaction
 from app.db.models import AnalysisResult
 from app.services.ai.llm_service import LLMService
 
+
 class PredictiveModeler:
     """
     AI-powered predictive modeling for case outcomes and risk forecasting.
@@ -16,7 +17,9 @@ class PredictiveModeler:
     def __init__(self):
         self.llm_service = LLMService()
 
-    async def predict_case_outcome(self, subject_id: str, db: AsyncSession) -> Dict[str, Any]:
+    async def predict_case_outcome(
+        self, subject_id: str, db: AsyncSession
+    ) -> Dict[str, Any]:
         """
         Predict the likely outcome and resolution path for a case.
         """
@@ -30,7 +33,7 @@ class PredictiveModeler:
             return {
                 "prediction": "unknown",
                 "confidence": 0.0,
-                "reasoning": "Insufficient case data"
+                "reasoning": "Insufficient case data",
             }
 
         # Analyze patterns and predict outcome
@@ -38,7 +41,9 @@ class PredictiveModeler:
 
         return prediction
 
-    async def forecast_risk_trends(self, time_period_days: int, db: AsyncSession) -> Dict[str, Any]:
+    async def forecast_risk_trends(
+        self, time_period_days: int, db: AsyncSession
+    ) -> Dict[str, Any]:
         """
         Forecast risk trends and potential case volumes.
         """
@@ -53,15 +58,19 @@ class PredictiveModeler:
 
         return forecast
 
-    async def _get_case_data(self, subject_id: str, db: AsyncSession) -> Optional[Dict[str, Any]]:
+    async def _get_case_data(
+        self, subject_id: str, db: AsyncSession
+    ) -> Optional[Dict[str, Any]]:
         """Get comprehensive case data for prediction."""
         try:
-            subject_uuid = __import__('uuid').UUID(subject_id)
+            subject_uuid = __import__("uuid").UUID(subject_id)
 
             # Get subject and analysis
-            subject_query = select(Subject, AnalysisResult).outerjoin(
-                AnalysisResult, Subject.id == AnalysisResult.subject_id
-            ).where(Subject.id == subject_uuid)
+            subject_query = (
+                select(Subject, AnalysisResult)
+                .outerjoin(AnalysisResult, Subject.id == AnalysisResult.subject_id)
+                .where(Subject.id == subject_uuid)
+            )
 
             result = await db.execute(subject_query)
             row = result.first()
@@ -72,9 +81,11 @@ class PredictiveModeler:
             subject, analysis = row
 
             # Get transactions
-            tx_query = select(Transaction).where(
-                Transaction.subject_id == subject_uuid
-            ).order_by(desc(Transaction.date))
+            tx_query = (
+                select(Transaction)
+                .where(Transaction.subject_id == subject_uuid)
+                .order_by(desc(Transaction.date))
+            )
 
             tx_result = await db.execute(tx_query)
             transactions = tx_result.scalars().all()
@@ -84,7 +95,11 @@ class PredictiveModeler:
             avg_transaction = total_amount / len(transactions) if transactions else 0
 
             # Transaction frequency (transactions per day)
-            if len(transactions) >= 2 and transactions[0].date and transactions[-1].date:
+            if (
+                len(transactions) >= 2
+                and transactions[0].date
+                and transactions[-1].date
+            ):
                 days_span = (transactions[0].date - transactions[-1].date).days
                 frequency = len(transactions) / max(days_span, 1)
             else:
@@ -103,19 +118,28 @@ class PredictiveModeler:
                 "avg_transaction": avg_transaction,
                 "transaction_frequency": frequency,
                 "amount_variability": variability,
-                "days_active": (datetime.utcnow().date() - subject.created_at.date()).days if subject.created_at else 0,
-                "has_pii": subject.encrypted_pii is not None
+                "days_active": (
+                    (datetime.utcnow().date() - subject.created_at.date()).days
+                    if subject.created_at
+                    else 0
+                ),
+                "has_pii": subject.encrypted_pii is not None,
             }
 
         except Exception as e:
             print(f"Error getting case data: {e}")
             return None
 
-    async def _get_historical_cases(self, db: AsyncSession, limit: int = 1000) -> List[Dict[str, Any]]:
+    async def _get_historical_cases(
+        self, db: AsyncSession, limit: int = 1000
+    ) -> List[Dict[str, Any]]:
         """Get historical case data for pattern analysis."""
-        query = select(Subject, AnalysisResult).outerjoin(
-            AnalysisResult, Subject.id == AnalysisResult.subject_id
-        ).where(AnalysisResult.adjudication_status.isnot(None)).limit(limit)
+        query = (
+            select(Subject, AnalysisResult)
+            .outerjoin(AnalysisResult, Subject.id == AnalysisResult.subject_id)
+            .where(AnalysisResult.adjudication_status.isnot(None))
+            .limit(limit)
+        )
 
         result = await db.execute(query)
         rows = result.all()
@@ -129,16 +153,24 @@ class PredictiveModeler:
             tx_result = await db.execute(tx_count_query)
             tx_count = tx_result.scalar() or 0
 
-            historical_cases.append({
-                "risk_score": analysis.risk_score,
-                "status": analysis.adjudication_status,
-                "transaction_count": tx_count,
-                "resolution_time": (analysis.updated_at - analysis.created_at).days if analysis.updated_at and analysis.created_at else 0
-            })
+            historical_cases.append(
+                {
+                    "risk_score": analysis.risk_score,
+                    "status": analysis.adjudication_status,
+                    "transaction_count": tx_count,
+                    "resolution_time": (
+                        (analysis.updated_at - analysis.created_at).days
+                        if analysis.updated_at and analysis.created_at
+                        else 0
+                    ),
+                }
+            )
 
         return historical_cases
 
-    async def _analyze_case_patterns(self, case_data: Dict[str, Any], historical_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def _analyze_case_patterns(
+        self, case_data: Dict[str, Any], historical_data: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Analyze case patterns and predict outcome using AI."""
 
         # Create analysis prompt
@@ -175,6 +207,7 @@ Format as JSON with keys: prediction, confidence, expected_time, factors, recomm
 
             # Parse JSON response
             import json
+
             result = json.loads(response.content)
 
             return {
@@ -182,13 +215,13 @@ Format as JSON with keys: prediction, confidence, expected_time, factors, recomm
                 "confidence": result.get("confidence", 0.7),
                 "expected_time": result.get("expected_time", 7),
                 "factors": result.get("factors", []),
-                "recommendations": result.get("recommendations", [])
+                "recommendations": result.get("recommendations", []),
             }
 
         except Exception as e:
             print(f"AI prediction error: {e}")
             # Fallback prediction based on risk score
-            risk_score = case_data['risk_score']
+            risk_score = case_data["risk_score"]
 
             if risk_score >= 80:
                 return {
@@ -196,15 +229,21 @@ Format as JSON with keys: prediction, confidence, expected_time, factors, recomm
                     "confidence": 0.85,
                     "expected_time": 3,
                     "factors": ["High risk score", "Requires senior review"],
-                    "recommendations": ["Assign to senior investigator", "Gather additional evidence"]
+                    "recommendations": [
+                        "Assign to senior investigator",
+                        "Gather additional evidence",
+                    ],
                 }
             elif risk_score >= 60:
                 return {
                     "prediction": "under_review",
                     "confidence": 0.75,
                     "expected_time": 7,
-                    "factors": ["Moderate risk indicators", "Standard investigation needed"],
-                    "recommendations": ["Complete standard investigation protocol"]
+                    "factors": [
+                        "Moderate risk indicators",
+                        "Standard investigation needed",
+                    ],
+                    "recommendations": ["Complete standard investigation protocol"],
                 }
             else:
                 return {
@@ -212,16 +251,23 @@ Format as JSON with keys: prediction, confidence, expected_time, factors, recomm
                     "confidence": 0.65,
                     "expected_time": 14,
                     "factors": ["Low risk indicators", "Likely normal activity"],
-                    "recommendations": ["Monitor for 30 days", "Close if no new activity"]
+                    "recommendations": [
+                        "Monitor for 30 days",
+                        "Close if no new activity",
+                    ],
                 }
 
-    async def _get_historical_risk_data(self, days: int, db: AsyncSession) -> List[Dict[str, Any]]:
+    async def _get_historical_risk_data(
+        self, days: int, db: AsyncSession
+    ) -> List[Dict[str, Any]]:
         """Get historical risk data for trend analysis."""
         start_date = datetime.utcnow() - timedelta(days=days)
 
-        query = select(AnalysisResult).where(
-            AnalysisResult.created_at >= start_date
-        ).order_by(AnalysisResult.created_at)
+        query = (
+            select(AnalysisResult)
+            .where(AnalysisResult.created_at >= start_date)
+            .order_by(AnalysisResult.created_at)
+        )
 
         result = await db.execute(query)
         analyses = result.scalars().all()
@@ -230,12 +276,14 @@ Format as JSON with keys: prediction, confidence, expected_time, factors, recomm
             {
                 "date": analysis.created_at.date() if analysis.created_at else None,
                 "risk_score": analysis.risk_score,
-                "status": analysis.adjudication_status
+                "status": analysis.adjudication_status,
             }
             for analysis in analyses
         ]
 
-    def _analyze_risk_trends(self, historical_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _analyze_risk_trends(
+        self, historical_data: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Analyze risk trends from historical data."""
         if not historical_data:
             return {"trend": "stable", "direction": 0, "volatility": 0}
@@ -255,23 +303,33 @@ Format as JSON with keys: prediction, confidence, expected_time, factors, recomm
 
         # Calculate trend
         if len(daily_averages) >= 2:
-            trend = statistics.linear_regression(range(len(daily_averages)), daily_averages)[0]
+            trend = statistics.linear_regression(
+                range(len(daily_averages)), daily_averages
+            )[0]
             direction = 1 if trend > 0.1 else -1 if trend < -0.1 else 0
-            volatility = statistics.stdev(daily_averages) if len(daily_averages) > 1 else 0
+            volatility = (
+                statistics.stdev(daily_averages) if len(daily_averages) > 1 else 0
+            )
         else:
             trend = 0
             direction = 0
             volatility = 0
 
         return {
-            "trend": "increasing" if direction > 0 else "decreasing" if direction < 0 else "stable",
+            "trend": (
+                "increasing"
+                if direction > 0
+                else "decreasing" if direction < 0 else "stable"
+            ),
             "direction": direction,
             "volatility": volatility,
             "average_risk": statistics.mean(daily_averages) if daily_averages else 0,
-            "data_points": len(daily_averages)
+            "data_points": len(daily_averages),
         }
 
-    async def _generate_risk_forecast(self, trend_analysis: Dict[str, Any], forecast_days: int) -> Dict[str, Any]:
+    async def _generate_risk_forecast(
+        self, trend_analysis: Dict[str, Any], forecast_days: int
+    ) -> Dict[str, Any]:
         """Generate risk forecast using AI analysis."""
 
         prompt = f"""
@@ -297,15 +355,18 @@ Format as JSON with keys: trend_forecast, projected_risk, alerts, recommendation
             response = await self.llm_service.generate_response(messages)
 
             import json
+
             result = json.loads(response.content)
 
             return {
                 "forecast_period_days": forecast_days,
                 "trend_forecast": result.get("trend_forecast", "stable"),
-                "projected_risk": result.get("projected_risk", trend_analysis["average_risk"]),
+                "projected_risk": result.get(
+                    "projected_risk", trend_analysis["average_risk"]
+                ),
                 "alerts": result.get("alerts", []),
                 "recommendations": result.get("recommendations", []),
-                "confidence": 0.75
+                "confidence": 0.75,
             }
 
         except Exception as e:
@@ -316,5 +377,5 @@ Format as JSON with keys: trend_forecast, projected_risk, alerts, recommendation
                 "projected_risk": trend_analysis["average_risk"],
                 "alerts": ["Monitor for unusual spikes"],
                 "recommendations": ["Maintain current monitoring levels"],
-                "confidence": 0.6
+                "confidence": 0.6,
             }

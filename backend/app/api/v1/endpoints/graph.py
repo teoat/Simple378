@@ -8,12 +8,13 @@ from app.services.graph_analyzer import GraphAnalyzer
 
 router = APIRouter()
 
+
 @router.get("/{subject_id}", response_model=Dict[str, Any])
 async def get_subject_graph(
     subject_id: UUID,
     depth: int = 2,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    current_user=Depends(deps.get_current_user),
 ):
     """
     Get graph data for a subject, including related entities and transactions.

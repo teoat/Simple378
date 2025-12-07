@@ -2,13 +2,9 @@ import strawberry
 from typing import List, Optional
 from app.graphql.types import EventType
 from app.db.session import get_db
-from app.db.models import Event
-from sqlalchemy import select, desc
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.event_service import EventService # Import the new service
-import uuid
-from datetime import datetime
+from app.services.event_service import EventService  # Import the new service
 from strawberry.scalars import JSON
+
 
 @strawberry.input
 class EventInput:
@@ -19,6 +15,7 @@ class EventInput:
     correlationId: Optional[str] = None
     causationId: Optional[str] = None
 
+
 @strawberry.type
 class Query:
     @strawberry.field
@@ -27,35 +24,40 @@ class Query:
 
     @strawberry.field
     async def events(
-        self, 
-        info, # strawberry passes info as the first arg in resolvers
-        aggregate_id: Optional[str] = None, 
-        limit: int = 100
+        self,
+        info,  # strawberry passes info as the first arg in resolvers
+        aggregate_id: Optional[str] = None,
+        limit: int = 100,
     ) -> List[EventType]:
         """Fetch events from database using EventService, optionally filtered by aggregate_id"""
-        async for db in get_db(): # get_db is an async_generator
+        async for db in get_db():  # get_db is an async_generator
             event_service = EventService(db)
-            domain_events = await event_service.get_events(aggregate_id=aggregate_id, limit=limit)
-            
+            domain_events = await event_service.get_events(
+                aggregate_id=aggregate_id, limit=limit
+            )
+
             # Since EventService returns DomainEvent, we need to map to EventType
             # Assuming EventType has a constructor that takes keyword arguments matching DomainEvent fields
             event_list = []
             for de in domain_events:
-                event_list.append(EventType(
-                    id=de.id,
-                    aggregateId=de.aggregateId,
-                    aggregateType=de.aggregateType,
-                    eventType=de.eventType,
-                    timestamp=de.timestamp,
-                    nodeId=de.nodeId,
-                    clock=de.clock,
-                    version=de.version,
-                    data=de.data,
-                    checksum=de.checksum,
-                    correlationId=de.correlationId,
-                    causationId=de.causationId,
-                 ))
+                event_list.append(
+                    EventType(
+                        id=de.id,
+                        aggregateId=de.aggregateId,
+                        aggregateType=de.aggregateType,
+                        eventType=de.eventType,
+                        timestamp=de.timestamp,
+                        nodeId=de.nodeId,
+                        clock=de.clock,
+                        version=de.version,
+                        data=de.data,
+                        checksum=de.checksum,
+                        correlationId=de.correlationId,
+                        causationId=de.causationId,
+                    )
+                )
             return event_list
+
 
 @strawberry.type
 class Mutation:
@@ -88,5 +90,6 @@ class Mutation:
                 correlationId=domain_event.correlationId,
                 causationId=domain_event.causationId,
             )
+
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)

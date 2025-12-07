@@ -2,6 +2,7 @@ import strawberry
 from typing import Optional
 from strawberry.scalars import JSON
 
+
 @strawberry.type
 class EventType:
     id: str

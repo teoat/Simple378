@@ -9,6 +9,7 @@ from langgraph.graph import StateGraph, END
 
 logger = logging.getLogger(__name__)
 
+
 # Define State
 class InvestigationState(TypedDict):
     subject_id: str
@@ -16,6 +17,7 @@ class InvestigationState(TypedDict):
     next_step: Optional[str]
     findings: Dict[str, Any]
     final_verdict: Optional[str]
+
 
 # Initialize LLM
 from app.core.config import settings  # noqa: E402
@@ -25,11 +27,17 @@ TEST_API_KEY_PLACEHOLDER = "test-key-not-real"
 
 # Only initialize LLM if API key is available and not a test placeholder
 llm = None
-if settings.ANTHROPIC_API_KEY and settings.ANTHROPIC_API_KEY != TEST_API_KEY_PLACEHOLDER:
+if (
+    settings.ANTHROPIC_API_KEY
+    and settings.ANTHROPIC_API_KEY != TEST_API_KEY_PLACEHOLDER
+):
     try:
-        llm = ChatAnthropic(model="claude-3-5-sonnet-20240620", api_key=settings.ANTHROPIC_API_KEY)
+        llm = ChatAnthropic(
+            model="claude-3-5-sonnet-20240620", api_key=settings.ANTHROPIC_API_KEY
+        )
     except Exception as e:
         logger.warning(f"Failed to initialize ChatAnthropic: {e}")
+
 
 # Define Nodes
 def supervisor_node(state: InvestigationState):
@@ -37,28 +45,40 @@ def supervisor_node(state: InvestigationState):
     # If no findings, ask Financial Analyst.
     # If financial findings but no graph, ask Graph Investigator.
     # If both, conclude.
-    
+
     if not state.get("findings"):
         return {"next_step": "Financial_Analyst"}
-    
-    if "financial_analysis" in state["findings"] and "graph_analysis" not in state["findings"]:
+
+    if (
+        "financial_analysis" in state["findings"]
+        and "graph_analysis" not in state["findings"]
+    ):
         return {"next_step": "Graph_Investigator"}
-        
+
     return {"next_step": "FINISH"}
+
 
 async def financial_analyst_node(state: InvestigationState):
     # In a real app, this would call the LLM with tools.
     # For MVP, we simulate the tool call and reasoning.
     return {
-        "messages": [SystemMessage(content="Analyzed transactions. Found high velocity.")],
-        "findings": {"financial_analysis": "High velocity detected."}
+        "messages": [
+            SystemMessage(content="Analyzed transactions. Found high velocity.")
+        ],
+        "findings": {"financial_analysis": "High velocity detected."},
     }
+
 
 async def graph_investigator_node(state: InvestigationState):
     return {
-        "messages": [SystemMessage(content="Analyzed graph. Found 2 connections to known bad actors.")],
-        "findings": {"graph_analysis": "Connected to bad actors."}
+        "messages": [
+            SystemMessage(
+                content="Analyzed graph. Found 2 connections to known bad actors."
+            )
+        ],
+        "findings": {"graph_analysis": "Connected to bad actors."},
     }
+
 
 # Build Graph
 workflow = StateGraph(InvestigationState)
@@ -74,8 +94,8 @@ workflow.add_conditional_edges(
     {
         "Financial_Analyst": "Financial_Analyst",
         "Graph_Investigator": "Graph_Investigator",
-        "FINISH": END
-    }
+        "FINISH": END,
+    },
 )
 
 workflow.add_edge("Financial_Analyst", "Supervisor")

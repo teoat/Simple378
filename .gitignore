@@ -41,3 +41,16 @@ logs/
 # Temporary files
 *.tmp
 .cache/
+
+# Archive and test reports
+archive/
+playwright-report/
+test-results/
+htmlcov/
+.coverage
+coverage.xml
+
+# Lint outputs
+lint_*.md
+lint_*.txt
+lint_*.json
