@@ -24,15 +24,20 @@ class AdjudicationDecision(BaseModel):
 async def get_adjudication_queue(
     page: int = 1,
     limit: int = 100,
+    status: Optional[str] = None,
     db: AsyncSession = Depends(deps.get_db),
     current_user=Depends(require_analyst),
 ):
     """
     Fetch cases that require adjudication (status='flagged' or 'pending').
-    Supports pagination.
+    Supports pagination and status filtering.
     """
-    # Base query
+    # Base query - load subject relationship for name
     query = select(models.AnalysisResult).where(models.AnalysisResult.decision is None)
+    
+    # Apply status filter if provided
+    if status and status != 'all':
+        query = query.where(models.AnalysisResult.adjudication_status == status)
 
     # Get total count
     from sqlalchemy import func
@@ -41,20 +46,43 @@ async def get_adjudication_queue(
     total_result = await db.execute(count_query)
     total = total_result.scalar_one()
 
-    # Apply pagination and fetch items
+    # Apply pagination and fetch items with relationships
     query = (
-        query.options(selectinload(models.AnalysisResult.indicators))
+        query.options(
+            selectinload(models.AnalysisResult.indicators),
+            selectinload(models.AnalysisResult.subject)
+        )
         .offset((page - 1) * limit)
         .limit(limit)
     )
 
     result = await db.execute(query)
     cases = result.scalars().all()
-
+    
+    # Transform to include subject_name and triggered_rules
     import math
+    items = []
+    for case in cases:
+        case_dict = {
+            "id": str(case.id),
+            "subject_id": str(case.subject_id),
+            "status": case.status,
+            "risk_score": float(case.risk_score),
+            "created_at": case.created_at,
+            "updated_at": case.updated_at,
+            "adjudication_status": case.adjudication_status or "pending",
+            "decision": case.decision,
+            "reviewer_notes": case.reviewer_notes,
+            "indicators": case.indicators,
+            # Extract subject name from encrypted PII
+            "subject_name": case.subject.encrypted_pii.get("name", "Unknown") if case.subject and case.subject.encrypted_pii else "Unknown",
+            # Extract triggered rules from indicators
+            "triggered_rules": [ind.type for ind in case.indicators] if case.indicators else []
+        }
+        items.append(case_dict)
 
     return {
-        "items": cases,
+        "items": items,
         "total": total,
         "page": page,
         "pages": math.ceil(total / limit) if limit > 0 else 1,

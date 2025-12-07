@@ -37,6 +37,13 @@ class AnalysisResult(AnalysisResultBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     indicators: List[Indicator] = []
+    adjudication_status: Optional[str] = "pending"
+    decision: Optional[str] = None
+    reviewer_notes: Optional[str] = None
+    
+    # Computed fields for frontend compatibility
+    subject_name: Optional[str] = None
+    triggered_rules: List[str] = []
 
 
 class PaginatedAnalysisResult(BaseModel):
