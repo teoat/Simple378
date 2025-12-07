@@ -1,6 +1,5 @@
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta
-import asyncio
 import json
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier, IsolationForest
@@ -8,14 +7,14 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.metrics import classification_report, roc_auc_score
 import joblib
-import os
 from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import func, desc, and_, or_
-from app.db.models import Subject, Transaction, AuditLog
+from sqlalchemy import and_
+from app.db.models import Subject, Transaction
 from app.db.models import AnalysisResult
 from app.services.ai.llm_service import LLMService
+
 
 class MLModelTrainer:
     """
@@ -41,7 +40,7 @@ class MLModelTrainer:
             return {
                 "status": "insufficient_data",
                 "message": "Need at least 100 cases for training",
-                "samples": len(X)
+                "samples": len(X),
             }
 
         # Split data
@@ -61,7 +60,7 @@ class MLModelTrainer:
             min_samples_split=5,
             min_samples_leaf=2,
             random_state=42,
-            n_jobs=-1
+            n_jobs=-1,
         )
 
         model.fit(X_train_scaled, y_train)
@@ -106,12 +105,12 @@ class MLModelTrainer:
                 "cv_mean": cv_scores.mean(),
                 "cv_std": cv_scores.std(),
                 "auc_score": auc_score,
-                "classification_report": classification_rep
+                "classification_report": classification_rep,
             },
-            "model_params": model.get_params()
+            "model_params": model.get_params(),
         }
 
-        with open(metadata_path, 'w') as f:
+        with open(metadata_path, "w") as f:
             json.dump(metadata, f, indent=2, default=str)
 
         # Update current model version
@@ -123,7 +122,7 @@ class MLModelTrainer:
             "metrics": metadata["metrics"],
             "feature_importance": feature_importance,
             "training_samples": len(X_train),
-            "test_samples": len(X_test)
+            "test_samples": len(X_test),
         }
 
     async def train_anomaly_detection_model(self, db: AsyncSession) -> Dict[str, Any]:
@@ -139,19 +138,21 @@ class MLModelTrainer:
             return {
                 "status": "insufficient_data",
                 "message": "Need at least 1000 transactions for anomaly detection",
-                "samples": len(transactions)
+                "samples": len(transactions),
             }
 
         # Prepare features for anomaly detection
         features = []
         for tx in transactions:
-            features.append([
-                tx['amount'],
-                tx['frequency_score'],
-                tx['amount_variability'],
-                tx['time_score'],
-                tx['merchant_score']
-            ])
+            features.append(
+                [
+                    tx["amount"],
+                    tx["frequency_score"],
+                    tx["amount_variability"],
+                    tx["time_score"],
+                    tx["merchant_score"],
+                ]
+            )
 
         X = np.array(features)
 
@@ -164,7 +165,7 @@ class MLModelTrainer:
             n_estimators=100,
             contamination=0.1,  # Assume 10% anomalies
             random_state=42,
-            n_jobs=-1
+            n_jobs=-1,
         )
 
         # Fit model
@@ -194,11 +195,11 @@ class MLModelTrainer:
             "anomaly_rate": anomaly_rate,
             "mean_score": mean_score,
             "std_score": std_score,
-            "contamination": 0.1
+            "contamination": 0.1,
         }
 
         metadata_path = self.model_dir / f"{model_version}_metadata.json"
-        with open(metadata_path, 'w') as f:
+        with open(metadata_path, "w") as f:
             json.dump(metadata, f, indent=2, default=str)
 
         return {
@@ -207,22 +208,27 @@ class MLModelTrainer:
             "training_samples": len(X),
             "anomaly_rate": anomaly_rate,
             "mean_score": mean_score,
-            "std_score": std_score
+            "std_score": std_score,
         }
 
-    async def _extract_training_features(self, db: AsyncSession) -> Tuple[np.ndarray, np.ndarray, List[str]]:
+    async def _extract_training_features(
+        self, db: AsyncSession
+    ) -> Tuple[np.ndarray, np.ndarray, List[str]]:
         """
         Extract features and labels for supervised learning.
         """
         # Get cases with known outcomes
-        query = select(Subject, AnalysisResult).outerjoin(
-            AnalysisResult, Subject.id == AnalysisResult.subject_id
-        ).where(
-            and_(
-                AnalysisResult.adjudication_status.isnot(None),
-                AnalysisResult.risk_score.isnot(None)
+        query = (
+            select(Subject, AnalysisResult)
+            .outerjoin(AnalysisResult, Subject.id == AnalysisResult.subject_id)
+            .where(
+                and_(
+                    AnalysisResult.adjudication_status.isnot(None),
+                    AnalysisResult.risk_score.isnot(None),
+                )
             )
-        ).limit(5000)  # Limit for training
+            .limit(5000)
+        )  # Limit for training
 
         result = await db.execute(query)
         rows = result.all()
@@ -240,35 +246,39 @@ class MLModelTrainer:
                 continue
 
             # Extract features
-            case_features = await self._extract_case_features(subject, transactions, analysis)
+            case_features = await self._extract_case_features(
+                subject, transactions, analysis
+            )
 
             # Determine label (fraudulent or legitimate)
             # This is a simplified labeling - in practice, this would come from verified case outcomes
             is_fraud = (
-                analysis.adjudication_status in ['escalated', 'confirmed_fraud'] or
-                analysis.risk_score > 80
+                analysis.adjudication_status in ["escalated", "confirmed_fraud"]
+                or analysis.risk_score > 80
             )
 
             features.append(case_features)
             labels.append(1 if is_fraud else 0)
 
         feature_names = [
-            'transaction_count',
-            'total_amount',
-            'avg_amount',
-            'amount_std',
-            'frequency_per_day',
-            'days_active',
-            'high_value_tx_count',
-            'unusual_hours_tx_count',
-            'merchant_diversity',
-            'amount_trend',
-            'risk_score'
+            "transaction_count",
+            "total_amount",
+            "avg_amount",
+            "amount_std",
+            "frequency_per_day",
+            "days_active",
+            "high_value_tx_count",
+            "unusual_hours_tx_count",
+            "merchant_diversity",
+            "amount_trend",
+            "risk_score",
         ]
 
         return np.array(features), np.array(labels), feature_names
 
-    async def _extract_case_features(self, subject: Subject, transactions: List, analysis: AnalysisResult) -> List[float]:
+    async def _extract_case_features(
+        self, subject: Subject, transactions: List, analysis: AnalysisResult
+    ) -> List[float]:
         """Extract numerical features from case data."""
         amounts = [float(tx.amount or 0) for tx in transactions]
 
@@ -302,8 +312,12 @@ class MLModelTrainer:
                 unusual_hours_count += 1
 
         # Merchant diversity (unique descriptions)
-        unique_merchants = len(set(tx.description for tx in transactions if tx.description))
-        merchant_diversity = unique_merchants / transaction_count if transaction_count > 0 else 0
+        unique_merchants = len(
+            set(tx.description for tx in transactions if tx.description)
+        )
+        merchant_diversity = (
+            unique_merchants / transaction_count if transaction_count > 0 else 0
+        )
 
         # Amount trend (simple linear trend)
         if len(amounts) > 1:
@@ -326,7 +340,7 @@ class MLModelTrainer:
             unusual_hours_count,
             merchant_diversity,
             amount_trend,
-            risk_score
+            risk_score,
         ]
 
     async def _get_transaction_features(self, db: AsyncSession) -> List[Dict[str, Any]]:
@@ -334,9 +348,9 @@ class MLModelTrainer:
         # Get recent transactions
         thirty_days_ago = datetime.utcnow() - timedelta(days=30)
 
-        query = select(Transaction).where(
-            Transaction.date >= thirty_days_ago
-        ).limit(10000)
+        query = (
+            select(Transaction).where(Transaction.date >= thirty_days_ago).limit(10000)
+        )
 
         result = await db.execute(query)
         transactions = result.scalars().all()
@@ -349,67 +363,77 @@ class MLModelTrainer:
 
             if subject_id not in subject_patterns:
                 subject_patterns[subject_id] = {
-                    'transactions': [],
-                    'total_amount': 0,
-                    'tx_count': 0
+                    "transactions": [],
+                    "total_amount": 0,
+                    "tx_count": 0,
                 }
 
-            subject_patterns[subject_id]['transactions'].append({
-                'amount': float(tx.amount or 0),
-                'date': tx.date,
-                'description': tx.description
-            })
-            subject_patterns[subject_id]['total_amount'] += float(tx.amount or 0)
-            subject_patterns[subject_id]['tx_count'] += 1
+            subject_patterns[subject_id]["transactions"].append(
+                {
+                    "amount": float(tx.amount or 0),
+                    "date": tx.date,
+                    "description": tx.description,
+                }
+            )
+            subject_patterns[subject_id]["total_amount"] += float(tx.amount or 0)
+            subject_patterns[subject_id]["tx_count"] += 1
 
         # Extract features for each subject
         features = []
         for subject_id, pattern in subject_patterns.items():
-            if pattern['tx_count'] < 5:  # Skip subjects with too few transactions
+            if pattern["tx_count"] < 5:  # Skip subjects with too few transactions
                 continue
 
-            amounts = [tx['amount'] for tx in pattern['transactions']]
+            amounts = [tx["amount"] for tx in pattern["transactions"]]
 
             # Frequency score (transactions per day over the period)
             days_active = 30  # Approximation
-            frequency_score = pattern['tx_count'] / days_active
+            frequency_score = pattern["tx_count"] / days_active
 
             # Amount variability
-            amount_variability = np.std(amounts) / np.mean(amounts) if np.mean(amounts) > 0 else 0
+            amount_variability = (
+                np.std(amounts) / np.mean(amounts) if np.mean(amounts) > 0 else 0
+            )
 
             # Time-based patterns (simplified)
             time_score = 0.5  # Placeholder for time-based anomaly scoring
 
             # Merchant diversity
-            merchants = [tx['description'] for tx in pattern['transactions'] if tx['description']]
+            merchants = [
+                tx["description"] for tx in pattern["transactions"] if tx["description"]
+            ]
             merchant_score = len(set(merchants)) / len(merchants) if merchants else 0
 
-            features.append({
-                'subject_id': subject_id,
-                'amount': pattern['total_amount'],
-                'frequency_score': frequency_score,
-                'amount_variability': amount_variability,
-                'time_score': time_score,
-                'merchant_score': merchant_score
-            })
+            features.append(
+                {
+                    "subject_id": subject_id,
+                    "amount": pattern["total_amount"],
+                    "frequency_score": frequency_score,
+                    "amount_variability": amount_variability,
+                    "time_score": time_score,
+                    "merchant_score": merchant_score,
+                }
+            )
 
         return features
 
     def _increment_version(self) -> str:
         """Increment model version."""
         try:
-            version_parts = self.current_model_version.split('.')
+            version_parts = self.current_model_version.split(".")
             version_parts[-1] = str(int(version_parts[-1]) + 1)
-            return '.'.join(version_parts)
+            return ".".join(version_parts)
         except:
             return "1.0.1"
 
-    async def get_model_performance(self, model_version: str) -> Optional[Dict[str, Any]]:
+    async def get_model_performance(
+        self, model_version: str
+    ) -> Optional[Dict[str, Any]]:
         """Get performance metrics for a trained model."""
         metadata_path = self.model_dir / f"{model_version}_metadata.json"
 
         if metadata_path.exists():
-            with open(metadata_path, 'r') as f:
+            with open(metadata_path, "r") as f:
                 return json.load(f)
 
         return None
@@ -420,10 +444,10 @@ class MLModelTrainer:
 
         for metadata_file in self.model_dir.glob("*_metadata.json"):
             try:
-                with open(metadata_file, 'r') as f:
+                with open(metadata_file, "r") as f:
                     metadata = json.load(f)
                     models.append(metadata)
             except:
                 continue
 
-        return sorted(models, key=lambda x: x.get('created_at', ''), reverse=True)
+        return sorted(models, key=lambda x: x.get("created_at", ""), reverse=True)

@@ -8,9 +8,9 @@ from app.services.meilisearch_service import meilisearch_service
 from app.db.models import Subject, Transaction
 from app.db import models
 from sqlalchemy.future import select
-import uuid
 
 router = APIRouter()
+
 
 class SearchRequest(BaseModel):
     query: str
@@ -20,14 +20,15 @@ class SearchRequest(BaseModel):
     filters: Optional[Dict[str, Any]] = None
     sort: Optional[List[str]] = None
 
+
 class SearchPreset(BaseModel):
     name: str
     config: Dict[str, Any]
 
+
 @router.post("/index-data", response_model=Dict[str, Any])
 async def index_all_data(
-    db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user)
+    db: AsyncSession = Depends(deps.get_db), current_user=Depends(deps.get_current_user)
 ):
     """
     Index all relevant data into Meilisearch for full-text search.
@@ -49,14 +50,22 @@ async def index_all_data(
             analysis = analysis_result.scalars().first()
 
             case_doc = {
-                'id': str(subject.id),
-                'name': subject.encrypted_pii.get('name', f'Subject {str(subject.id)[:8]}') if isinstance(subject.encrypted_pii, dict) else f'Subject {str(subject.id)[:8]}',
-                'type': 'case',
-                'status': 'active',  # Could be enhanced with actual status
-                'risk_score': analysis.risk_score if analysis else 0,
-                'created_at': subject.created_at.isoformat() if subject.created_at else None,
-                'updated_at': subject.updated_at.isoformat() if subject.updated_at else None,
-                'content': f"Case for {subject.encrypted_pii.get('name', 'Unknown') if isinstance(subject.encrypted_pii, dict) else 'Unknown'}"
+                "id": str(subject.id),
+                "name": (
+                    subject.encrypted_pii.get("name", f"Subject {str(subject.id)[:8]}")
+                    if isinstance(subject.encrypted_pii, dict)
+                    else f"Subject {str(subject.id)[:8]}"
+                ),
+                "type": "case",
+                "status": "active",  # Could be enhanced with actual status
+                "risk_score": analysis.risk_score if analysis else 0,
+                "created_at": (
+                    subject.created_at.isoformat() if subject.created_at else None
+                ),
+                "updated_at": (
+                    subject.updated_at.isoformat() if subject.updated_at else None
+                ),
+                "content": f"Case for {subject.encrypted_pii.get('name', 'Unknown') if isinstance(subject.encrypted_pii, dict) else 'Unknown'}",
             }
             case_documents.append(case_doc)
 
@@ -67,49 +76,51 @@ async def index_all_data(
         transaction_documents = []
         for tx in transactions:
             tx_doc = {
-                'id': str(tx.id),
-                'name': f"Transaction {str(tx.id)[:8]}",
-                'type': 'transaction',
-                'amount': float(tx.amount) if tx.amount else 0,
-                'date': tx.date.isoformat() if tx.date else None,
-                'description': tx.description or '',
-                'source_bank': tx.source_bank or '',
-                'subject_id': str(tx.subject_id),
-                'currency': tx.currency or 'USD',
-                'created_at': tx.created_at.isoformat() if tx.created_at else None,
-                'content': f"Transaction: {tx.description or ''} Amount: {tx.amount or 0} Bank: {tx.source_bank or ''}"
+                "id": str(tx.id),
+                "name": f"Transaction {str(tx.id)[:8]}",
+                "type": "transaction",
+                "amount": float(tx.amount) if tx.amount else 0,
+                "date": tx.date.isoformat() if tx.date else None,
+                "description": tx.description or "",
+                "source_bank": tx.source_bank or "",
+                "subject_id": str(tx.subject_id),
+                "currency": tx.currency or "USD",
+                "created_at": tx.created_at.isoformat() if tx.created_at else None,
+                "content": f"Transaction: {tx.description or ''} Amount: {tx.amount or 0} Bank: {tx.source_bank or ''}",
             }
             transaction_documents.append(tx_doc)
 
         # Create indexes and add documents
-        await meilisearch_service.create_index('cases')
-        await meilisearch_service.create_index('transactions')
-        await meilisearch_service.create_index('search_presets')
+        await meilisearch_service.create_index("cases")
+        await meilisearch_service.create_index("transactions")
+        await meilisearch_service.create_index("search_presets")
 
         # Configure indexes
-        await meilisearch_service.configure_index('cases')
-        await meilisearch_service.configure_index('transactions')
-        await meilisearch_service.configure_index('search_presets')
+        await meilisearch_service.configure_index("cases")
+        await meilisearch_service.configure_index("transactions")
+        await meilisearch_service.configure_index("search_presets")
 
         # Add documents
         if case_documents:
-            await meilisearch_service.add_documents('cases', case_documents)
+            await meilisearch_service.add_documents("cases", case_documents)
         if transaction_documents:
-            await meilisearch_service.add_documents('transactions', transaction_documents)
+            await meilisearch_service.add_documents(
+                "transactions", transaction_documents
+            )
 
         return {
             "message": "Data indexed successfully",
             "cases_indexed": len(case_documents),
-            "transactions_indexed": len(transaction_documents)
+            "transactions_indexed": len(transaction_documents),
         }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Indexing failed: {str(e)}")
 
+
 @router.post("/search", response_model=Dict[str, Any])
 async def search_all(
-    request: SearchRequest,
-    current_user = Depends(deps.get_current_user)
+    request: SearchRequest, current_user=Depends(deps.get_current_user)
 ):
     """
     Perform full-text search across all indexed data.
@@ -118,57 +129,66 @@ async def search_all(
         results = []
 
         # Search in cases index
-        if request.index in ['all', 'cases']:
+        if request.index in ["all", "cases"]:
             case_results = await meilisearch_service.search(
-                'cases',
+                "cases",
                 request.query,
                 limit=request.limit,
                 offset=request.offset,
-                filters=request.filters.get('cases') if request.filters else None,
-                sort=request.sort
+                filters=request.filters.get("cases") if request.filters else None,
+                sort=request.sort,
             )
-            results.extend([{
-                **hit,
-                '_index': 'cases',
-                '_formatted': hit.get('_formatted', {})
-            } for hit in case_results.get('hits', [])])
+            results.extend(
+                [
+                    {**hit, "_index": "cases", "_formatted": hit.get("_formatted", {})}
+                    for hit in case_results.get("hits", [])
+                ]
+            )
 
         # Search in transactions index
-        if request.index in ['all', 'transactions']:
+        if request.index in ["all", "transactions"]:
             tx_results = await meilisearch_service.search(
-                'transactions',
+                "transactions",
                 request.query,
                 limit=request.limit,
                 offset=request.offset,
-                filters=request.filters.get('transactions') if request.filters else None,
-                sort=request.sort
+                filters=(
+                    request.filters.get("transactions") if request.filters else None
+                ),
+                sort=request.sort,
             )
-            results.extend([{
-                **hit,
-                '_index': 'transactions',
-                '_formatted': hit.get('_formatted', {})
-            } for hit in tx_results.get('hits', [])])
+            results.extend(
+                [
+                    {
+                        **hit,
+                        "_index": "transactions",
+                        "_formatted": hit.get("_formatted", {}),
+                    }
+                    for hit in tx_results.get("hits", [])
+                ]
+            )
 
         # Sort combined results by relevance (estimated hits)
-        results.sort(key=lambda x: x.get('_rankingScore', 0), reverse=True)
-        results = results[:request.limit]
+        results.sort(key=lambda x: x.get("_rankingScore", 0), reverse=True)
+        results = results[: request.limit]
 
         return {
             "query": request.query,
             "hits": results,
             "total": len(results),
             "offset": request.offset,
-            "limit": request.limit
+            "limit": request.limit,
         }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
+
 @router.get("/suggestions", response_model=List[str])
 async def get_search_suggestions(
     q: str = Query(..., description="Search query"),
     limit: int = Query(5, description="Number of suggestions"),
-    current_user = Depends(deps.get_current_user)
+    current_user=Depends(deps.get_current_user),
 ):
     """
     Get search suggestions based on the query.
@@ -177,8 +197,10 @@ async def get_search_suggestions(
         # Get suggestions from all indexes
         all_suggestions = []
 
-        for index_name in ['cases', 'transactions']:
-            suggestions = await meilisearch_service.get_search_suggestions(index_name, q, limit)
+        for index_name in ["cases", "transactions"]:
+            suggestions = await meilisearch_service.get_search_suggestions(
+                index_name, q, limit
+            )
             all_suggestions.extend(suggestions)
 
         # Remove duplicates and limit
@@ -186,62 +208,61 @@ async def get_search_suggestions(
 
         return unique_suggestions
 
-    except Exception as e:
+    except Exception:
         return []
+
 
 @router.post("/presets", response_model=Dict[str, Any])
 async def save_search_preset(
-    preset: SearchPreset,
-    current_user = Depends(deps.get_current_user)
+    preset: SearchPreset, current_user=Depends(deps.get_current_user)
 ):
     """
     Save a search preset for the current user.
     """
     try:
         await meilisearch_service.save_search_preset(
-            str(current_user.id),
-            preset.name,
-            preset.config
+            str(current_user.id), preset.name, preset.config
         )
         return {"message": "Preset saved successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save preset: {str(e)}")
 
+
 @router.get("/presets", response_model=List[Dict[str, Any]])
-async def get_search_presets(
-    current_user = Depends(deps.get_current_user)
-):
+async def get_search_presets(current_user=Depends(deps.get_current_user)):
     """
     Get saved search presets for the current user.
     """
     try:
         presets = await meilisearch_service.get_search_presets(str(current_user.id))
         return presets
-    except Exception as e:
+    except Exception:
         return []
+
 
 @router.delete("/presets/{preset_name}")
 async def delete_search_preset(
-    preset_name: str,
-    current_user = Depends(deps.get_current_user)
+    preset_name: str, current_user=Depends(deps.get_current_user)
 ):
     """
     Delete a search preset.
     """
     try:
         await meilisearch_service.delete_documents(
-            'search_presets',
-            [f"preset_{current_user.id}_{preset_name}"]
+            "search_presets", [f"preset_{current_user.id}_{preset_name}"]
         )
         return {"message": "Preset deleted successfully"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete preset: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to delete preset: {str(e)}"
+        )
+
 
 @router.get("/facets/{index_name}", response_model=Dict[str, Any])
 async def get_facets(
     index_name: str,
     facet_name: str = Query(..., description="Facet field name"),
-    current_user = Depends(deps.get_current_user)
+    current_user=Depends(deps.get_current_user),
 ):
     """
     Get facet distribution for a specific field.
@@ -252,10 +273,10 @@ async def get_facets(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get facets: {str(e)}")
 
+
 @router.post("/advanced-search", response_model=Dict[str, Any])
 async def advanced_search(
-    request: SearchRequest,
-    current_user = Depends(deps.get_current_user)
+    request: SearchRequest, current_user=Depends(deps.get_current_user)
 ):
     """
     Perform advanced search with multiple filters and facets.
@@ -267,62 +288,67 @@ async def advanced_search(
             for field, value in request.filters.items():
                 if isinstance(value, list):
                     # Multiple values for the same field
-                    quoted_values = ', '.join(f'"{v}"' for v in value)
+                    quoted_values = ", ".join(f'"{v}"' for v in value)
                     filter_parts.append(f"{field} IN [{quoted_values}]")
                 elif isinstance(value, dict):
                     # Range filters
-                    if 'min' in value:
+                    if "min" in value:
                         filter_parts.append(f"{field} >= {value['min']}")
-                    if 'max' in value:
+                    if "max" in value:
                         filter_parts.append(f"{field} <= {value['max']}")
                 else:
                     # Exact match
-                    filter_parts.append(f"{field} = \"{value}\"")
+                    filter_parts.append(f'{field} = "{value}"')
 
         filter_string = " AND ".join(filter_parts) if filter_parts else None
 
         results = await meilisearch_service.search(
-            request.index if request.index != 'all' else 'cases',  # Default to cases for now
+            (
+                request.index if request.index != "all" else "cases"
+            ),  # Default to cases for now
             request.query,
             limit=request.limit,
             offset=request.offset,
             filters=filter_string,
             sort=request.sort,
-            attributes_to_highlight=['name', 'description', 'content']
+            attributes_to_highlight=["name", "description", "content"],
         )
 
         # Get facet distributions for common fields
         facets = {}
-        if request.index in ['all', 'cases']:
+        if request.index in ["all", "cases"]:
             try:
-                risk_facets = await meilisearch_service.get_facets('cases', 'risk_score')
-                type_facets = await meilisearch_service.get_facets('cases', 'type')
-                facets['cases'] = {
-                    'risk_score': risk_facets,
-                    'type': type_facets
-                }
+                risk_facets = await meilisearch_service.get_facets(
+                    "cases", "risk_score"
+                )
+                type_facets = await meilisearch_service.get_facets("cases", "type")
+                facets["cases"] = {"risk_score": risk_facets, "type": type_facets}
             except:
                 pass
 
-        if request.index in ['all', 'transactions']:
+        if request.index in ["all", "transactions"]:
             try:
-                amount_facets = await meilisearch_service.get_facets('transactions', 'amount')
-                bank_facets = await meilisearch_service.get_facets('transactions', 'source_bank')
-                facets['transactions'] = {
-                    'amount': amount_facets,
-                    'source_bank': bank_facets
+                amount_facets = await meilisearch_service.get_facets(
+                    "transactions", "amount"
+                )
+                bank_facets = await meilisearch_service.get_facets(
+                    "transactions", "source_bank"
+                )
+                facets["transactions"] = {
+                    "amount": amount_facets,
+                    "source_bank": bank_facets,
                 }
             except:
                 pass
 
         return {
             "query": request.query,
-            "hits": results.get('hits', []),
-            "total": results.get('estimatedTotalHits', 0),
+            "hits": results.get("hits", []),
+            "total": results.get("estimatedTotalHits", 0),
             "offset": request.offset,
             "limit": request.limit,
             "facets": facets,
-            "processing_time": results.get('processingTimeMs', 0)
+            "processing_time": results.get("processingTimeMs", 0),
         }
 
     except Exception as e:

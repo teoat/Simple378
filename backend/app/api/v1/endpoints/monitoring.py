@@ -3,19 +3,16 @@ Health monitoring endpoints for observability and SLA tracking.
 Provides real-time system health metrics, alerts, and performance data.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
-from sqlalchemy.orm import Session
-from typing import Dict, List, Optional
-from datetime import datetime, timedelta
-import time
+from fastapi import APIRouter, Depends, Query, Response
+from typing import Dict, Optional
+from datetime import datetime
 from app.api import deps
-from app.db.session import get_db
 from app.db.models import User
-from app.services.cache_service import cache
 from app.core.cache import set_cache_headers, add_etag
 from app.core.monitoring import global_metrics
 
 router = APIRouter(prefix="/monitoring", tags=["monitoring"])
+
 
 @router.get("/health")
 async def get_system_health(
@@ -24,7 +21,7 @@ async def get_system_health(
 ) -> Dict:
     """
     Get current system health status including metrics and alerts.
-    
+
     Returns:
         - status: 'healthy', 'degraded', or 'unhealthy'
         - response_time: Average response time in milliseconds
@@ -34,7 +31,7 @@ async def get_system_health(
         - timestamp: Time this health check was taken
         - alerts: List of active alerts
     """
-    
+
     # Get system metrics (non-blocking)
     sys_stats = await global_metrics.get_system_stats()
     cpu_percent = sys_stats["cpu_percent"]
@@ -43,7 +40,7 @@ async def get_system_health(
     response_time_ms = await global_metrics.get_average_response_time() or 125
     error_rate = (await global_metrics.get_error_rate()) * 100
     uptime = (await global_metrics.get_uptime()) * 100
-    
+
     # Determine health status
     if error_rate > 5 or response_time_ms > 1000 or uptime < 99:
         status_str = "unhealthy"
@@ -51,62 +48,74 @@ async def get_system_health(
         status_str = "degraded"
     else:
         status_str = "healthy"
-    
+
     # Generate alerts
     alerts = []
     if response_time_ms > 1000:
-        alerts.append({
-            "severity": "error",
-            "message": f"High response time: {response_time_ms:.0f}ms",
-            "threshold": 1000,
-        })
+        alerts.append(
+            {
+                "severity": "error",
+                "message": f"High response time: {response_time_ms:.0f}ms",
+                "threshold": 1000,
+            }
+        )
     if error_rate > 5:
-        alerts.append({
-            "severity": "error",
-            "message": f"High error rate: {error_rate:.2f}%",
-            "threshold": 5,
-        })
+        alerts.append(
+            {
+                "severity": "error",
+                "message": f"High error rate: {error_rate:.2f}%",
+                "threshold": 5,
+            }
+        )
     if uptime < 99:
-        alerts.append({
-            "severity": "error",
-            "message": f"Low uptime: {uptime:.2f}%",
-            "threshold": 99,
-        })
+        alerts.append(
+            {
+                "severity": "error",
+                "message": f"Low uptime: {uptime:.2f}%",
+                "threshold": 99,
+            }
+        )
     if response_time_ms > 500:
-        alerts.append({
-            "severity": "warning",
-            "message": f"Elevated response time: {response_time_ms:.0f}ms",
-            "threshold": 500,
-        })
+        alerts.append(
+            {
+                "severity": "warning",
+                "message": f"Elevated response time: {response_time_ms:.0f}ms",
+                "threshold": 500,
+            }
+        )
     if cpu_percent > 80:
-        alerts.append({
-            "severity": "warning",
-            "message": f"High CPU usage: {cpu_percent:.1f}%",
-            "threshold": 80,
-        })
+        alerts.append(
+            {
+                "severity": "warning",
+                "message": f"High CPU usage: {cpu_percent:.1f}%",
+                "threshold": 80,
+            }
+        )
     if memory_percent > 85:
-        alerts.append({
-            "severity": "warning",
-            "message": f"High memory usage: {memory_percent:.1f}%",
-            "threshold": 85,
-        })
-    
+        alerts.append(
+            {
+                "severity": "warning",
+                "message": f"High memory usage: {memory_percent:.1f}%",
+                "threshold": 85,
+            }
+        )
+
     health_data = {
         "status": status_str,
         "response_time": response_time_ms,
         "error_rate": error_rate,
         "uptime": uptime,
-        "active_users": 24, # Placeholder
+        "active_users": 24,  # Placeholder
         "cpu_usage": cpu_percent,
         "memory_usage": memory_percent,
         "alerts": alerts,
         "timestamp": datetime.utcnow().isoformat(),
     }
-    
+
     # Set cache headers - health data valid for 30 seconds
     set_cache_headers(response, max_age=30, is_public=False)
     add_etag(response, health_data)
-    
+
     return health_data
 
 
@@ -117,10 +126,10 @@ async def get_detailed_metrics(
 ) -> Dict:
     """
     Get detailed performance metrics for a time range.
-    
+
     Args:
         time_range_minutes: Number of minutes of historical data (default 60)
-    
+
     Returns:
         - metrics by time period
         - trends
@@ -150,7 +159,7 @@ async def get_sla_status(
 ) -> Dict:
     """
     Get SLA compliance status for each service component.
-    
+
     Returns:
         - service uptime percentages
         - monthly SLA compliance
@@ -197,14 +206,14 @@ async def submit_custom_metric(
 ) -> Dict:
     """
     Submit custom application metrics for monitoring.
-    
+
     Args:
         metric_data: Dict containing:
             - name: Metric name
             - value: Metric value
             - tags: Optional dict of tags
             - timestamp: Optional ISO timestamp
-    
+
     Example:
         {
             "name": "case_processing_time",
@@ -215,7 +224,7 @@ async def submit_custom_metric(
     """
     if not metric_data:
         metric_data = {}
-    
+
     # In production, this would persist to time-series database (InfluxDB, Prometheus, etc)
     return {
         "recorded": True,
@@ -228,25 +237,27 @@ async def submit_custom_metric(
 @router.get("/alerts")
 async def get_active_alerts(
     current_user: User = Depends(deps.get_current_user),
-    severity: Optional[str] = Query(None, enum=["info", "warning", "error", "critical"]),
+    severity: Optional[str] = Query(
+        None, enum=["info", "warning", "error", "critical"]
+    ),
 ) -> Dict:
     """
     Get list of active alerts, optionally filtered by severity.
-    
+
     Args:
         severity: Filter by alert severity level
-    
+
     Returns:
         - alerts: List of active alerts with details
         - count: Total active alert count
     """
     health = await get_system_health(Response(), current_user)
-    
+
     all_alerts = health.get("alerts", [])
-    
+
     if severity:
         all_alerts = [a for a in all_alerts if a["severity"] == severity]
-    
+
     return {
         "alerts": all_alerts,
         "count": len(all_alerts),
@@ -280,7 +291,7 @@ async def get_status_page(
     Shows overall system status and component status.
     """
     health = await get_system_health(Response(), current_user)
-    
+
     components = {
         "api": "operational",
         "web": "operational",
@@ -289,7 +300,7 @@ async def get_status_page(
         "storage": "operational",
         "analytics": "operational",
     }
-    
+
     return {
         "status": health["status"],
         "components": components,

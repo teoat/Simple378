@@ -1,6 +1,7 @@
 """
 Cache control utilities for HTTP response headers
 """
+
 from typing import Any, Dict
 from fastapi import Response, Request, HTTPException, status
 import hashlib
@@ -15,15 +16,16 @@ CACHE_PRESETS: Dict[str, Dict[str, Any]] = {
     "case_list": {"max_age": 30, "must_revalidate": True},
 }
 
+
 def set_cache_headers(
     response: Response,
     max_age: int = 300,  # seconds
     is_public: bool = False,
-    must_revalidate: bool = False
+    must_revalidate: bool = False,
 ) -> Response:
     """
     Set appropriate cache headers on response
-    
+
     Args:
         response: FastAPI Response object
         max_age: How long to cache (seconds)
@@ -31,17 +33,18 @@ def set_cache_headers(
         must_revalidate: If True, must validate before using stale copy
     """
     cache_control = f"max-age={max_age}"
-    
+
     if is_public:
         cache_control = f"public, {cache_control}"
     else:
         cache_control = f"private, {cache_control}"
-    
+
     if must_revalidate:
         cache_control += ", must-revalidate"
-    
+
     response.headers["Cache-Control"] = cache_control
     return response
+
 
 def set_no_cache(response: Response) -> None:
     """Set headers to prevent caching"""
@@ -49,10 +52,12 @@ def set_no_cache(response: Response) -> None:
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
 
+
 def apply_cache_preset(response: Response, preset_name: str) -> None:
     """Apply a predefined cache preset"""
     preset = CACHE_PRESETS.get(preset_name, CACHE_PRESETS["default"])
     set_cache_headers(response, **preset)
+
 
 def generate_etag(data: Any) -> str:
     """
@@ -62,8 +67,9 @@ def generate_etag(data: Any) -> str:
         data = json.dumps(data, sort_keys=True, default=str)
     elif not isinstance(data, str):
         data = str(data)
-    
+
     return f'"{hashlib.md5(data.encode()).hexdigest()}"'
+
 
 def add_etag(response: Response, data: Any) -> Response:
     """
@@ -73,6 +79,7 @@ def add_etag(response: Response, data: Any) -> Response:
     response.headers["ETag"] = etag
     return response
 
+
 def check_etag_match(request: Request, data: Any) -> None:
     """
     Check if If-None-Match header matches current ETag.
@@ -81,10 +88,9 @@ def check_etag_match(request: Request, data: Any) -> None:
     if_none_match = request.headers.get("if-none-match")
     if not if_none_match:
         return
-        
+
     current_etag = generate_etag(data)
     if if_none_match == current_etag:
         raise HTTPException(
-            status_code=status.HTTP_304_NOT_MODIFIED,
-            detail="Not Modified"
+            status_code=status.HTTP_304_NOT_MODIFIED, detail="Not Modified"
         )

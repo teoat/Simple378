@@ -6,13 +6,16 @@ from app.services.ai.orchestrator import Orchestrator
 router = APIRouter()
 orchestrator = Orchestrator()
 
+
 class InvestigationRequest(BaseModel):
     initial_message: str
+
 
 class InvestigationResponse(BaseModel):
     case_id: str
     status: str
     results: List[Dict[str, Any]]
+
 
 @router.post("/run/{case_id}", response_model=InvestigationResponse)
 async def run_investigation(case_id: str, request: InvestigationRequest):
@@ -23,11 +26,12 @@ async def run_investigation(case_id: str, request: InvestigationRequest):
         results = await orchestrator.run_investigation(case_id, request.initial_message)
         return {
             "case_id": case_id,
-            "status": "completed", # Simplified for MVP
-            "results": results
+            "status": "completed",  # Simplified for MVP
+            "results": results,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/state/{case_id}")
 async def get_investigation_state(case_id: str):
@@ -36,6 +40,7 @@ async def get_investigation_state(case_id: str):
     (Placeholder for MVP - would typically fetch from Postgres checkpoint)
     """
     return {"case_id": case_id, "state": "active", "step": "supervisor"}
+
 
 @router.post("/intervene/{case_id}")
 async def intervene_investigation(case_id: str, feedback: str):

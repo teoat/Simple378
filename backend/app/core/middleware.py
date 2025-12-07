@@ -5,15 +5,17 @@ from typing import Callable
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Add security headers to all responses"""
-    
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         response = await call_next(request)
-        
+
         # Security headers
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
         # Improved CSP - removed unsafe-inline and unsafe-eval for better security
         # Note: If inline scripts/styles are needed, use nonces or hashes
         response.headers["Content-Security-Policy"] = (
@@ -28,17 +30,19 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "form-action 'self'"
         )
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-        
+        response.headers["Permissions-Policy"] = (
+            "geolocation=(), microphone=(), camera=()"
+        )
+
         return response
 
 
 class RateLimitHeadersMiddleware(BaseHTTPMiddleware):
     """Add rate limit headers to responses"""
-    
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         response = await call_next(request)
-        
+
         # Add rate limit headers if available from slowapi
         if hasattr(request.state, "view_rate_limit"):
             try:
@@ -51,5 +55,5 @@ class RateLimitHeadersMiddleware(BaseHTTPMiddleware):
             except Exception:
                 # Fail silently for rate limit headers to avoid breaking the request
                 pass
-        
+
         return response

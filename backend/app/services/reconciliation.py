@@ -5,8 +5,6 @@ from app.db.models import Transaction, Match, TransactionSourceType, MatchStatus
 from app.services.ai.llm_service import LLMService
 from langchain_core.messages import HumanMessage
 import uuid
-from datetime import datetime, timedelta
-import math
 import json
 
 
@@ -17,21 +15,21 @@ class ReconciliationService:
 
     @staticmethod
     async def ml_based_matching(
-        db: AsyncSession,
-        threshold: float = 0.8,
-        date_buffer_days: int = 3
+        db: AsyncSession, threshold: float = 0.8, date_buffer_days: int = 3
     ) -> Dict[str, Any]:
         """
         Use ML/AI to match transactions based on multiple features.
         """
         # Get unmatched transactions
-        unmatched_internals, unmatched_externals = await ReconciliationService._get_unmatched_transactions(db)
+        unmatched_internals, unmatched_externals = (
+            await ReconciliationService._get_unmatched_transactions(db)
+        )
 
         if not unmatched_internals or not unmatched_externals:
             return {
                 "matched": 0,
                 "conflicts": 0,
-                "message": "No unmatched transactions to reconcile"
+                "message": "No unmatched transactions to reconcile",
             }
 
         # Use AI to find matches
@@ -43,10 +41,10 @@ class ReconciliationService:
         created_matches = 0
         for match in matches:
             db_match = Match(
-                internal_transaction_id=match['internal_id'],
-                external_transaction_id=match['external_id'],
+                internal_transaction_id=match["internal_id"],
+                external_transaction_id=match["external_id"],
                 status=MatchStatus.MATCHED,
-                confidence=match['confidence']
+                confidence=match["confidence"],
             )
             db.add(db_match)
             created_matches += 1
@@ -56,11 +54,13 @@ class ReconciliationService:
         return {
             "matched": created_matches,
             "conflicts": 0,  # For now, no conflict detection
-            "message": f"ML-based matching completed: {created_matches} matches found"
+            "message": f"ML-based matching completed: {created_matches} matches found",
         }
 
     @staticmethod
-    async def _get_unmatched_transactions(db: AsyncSession) -> Tuple[List[Transaction], List[Transaction]]:
+    async def _get_unmatched_transactions(
+        db: AsyncSession,
+    ) -> Tuple[List[Transaction], List[Transaction]]:
         """Get all unmatched internal and external transactions."""
         # Get all existing matches
         matches_result = await db.execute(select(Match))
@@ -94,7 +94,7 @@ class ReconciliationService:
         internals: List[Transaction],
         externals: List[Transaction],
         threshold: float,
-        date_buffer_days: int
+        date_buffer_days: int,
     ) -> List[Dict[str, Any]]:
         """
         Use AI to analyze transactions and find matches based on multiple criteria.
@@ -104,23 +104,27 @@ class ReconciliationService:
         # Prepare transaction data for AI analysis
         internal_data = []
         for tx in internals:
-            internal_data.append({
-                'id': str(tx.id),
-                'date': tx.date.isoformat() if tx.date else '',
-                'amount': float(tx.amount) if tx.amount else 0.0,
-                'description': tx.description or '',
-                'bank': tx.source_bank or ''
-            })
+            internal_data.append(
+                {
+                    "id": str(tx.id),
+                    "date": tx.date.isoformat() if tx.date else "",
+                    "amount": float(tx.amount) if tx.amount else 0.0,
+                    "description": tx.description or "",
+                    "bank": tx.source_bank or "",
+                }
+            )
 
         external_data = []
         for tx in externals:
-            external_data.append({
-                'id': str(tx.id),
-                'date': tx.date.isoformat() if tx.date else '',
-                'amount': float(tx.amount) if tx.amount else 0.0,
-                'description': tx.description or '',
-                'bank': tx.source_bank or ''
-            })
+            external_data.append(
+                {
+                    "id": str(tx.id),
+                    "date": tx.date.isoformat() if tx.date else "",
+                    "amount": float(tx.amount) if tx.amount else 0.0,
+                    "description": tx.description or "",
+                    "bank": tx.source_bank or "",
+                }
+            )
 
         # Create prompt for AI matching
         prompt = f"""You are an expert financial reconciliation specialist. Your task is to match internal transactions with external transactions based on multiple criteria.
@@ -170,22 +174,28 @@ Focus on high-confidence matches first."""
             used_external_ids = set()
 
             for match in matches:
-                if isinstance(match, dict) and all(k in match for k in ['internal_id', 'external_id', 'confidence']):
-                    internal_id = match['internal_id']
-                    external_id = match['external_id']
-                    confidence = float(match.get('confidence', 0.0))
+                if isinstance(match, dict) and all(
+                    k in match for k in ["internal_id", "external_id", "confidence"]
+                ):
+                    internal_id = match["internal_id"]
+                    external_id = match["external_id"]
+                    confidence = float(match.get("confidence", 0.0))
 
                     # Check if IDs are valid and not already used
-                    if (confidence >= threshold and
-                        internal_id not in used_internal_ids and
-                        external_id not in used_external_ids):
+                    if (
+                        confidence >= threshold
+                        and internal_id not in used_internal_ids
+                        and external_id not in used_external_ids
+                    ):
 
-                        validated_matches.append({
-                            'internal_id': uuid.UUID(internal_id),
-                            'external_id': uuid.UUID(external_id),
-                            'confidence': confidence,
-                            'reasoning': match.get('reasoning', '')
-                        })
+                        validated_matches.append(
+                            {
+                                "internal_id": uuid.UUID(internal_id),
+                                "external_id": uuid.UUID(external_id),
+                                "confidence": confidence,
+                                "reasoning": match.get("reasoning", ""),
+                            }
+                        )
 
                         used_internal_ids.add(internal_id)
                         used_external_ids.add(external_id)
@@ -195,14 +205,16 @@ Focus on high-confidence matches first."""
         except Exception as e:
             print(f"AI matching failed: {e}")
             # Fallback to basic matching
-            return ReconciliationService._fallback_matching(internals, externals, threshold, date_buffer_days)
+            return ReconciliationService._fallback_matching(
+                internals, externals, threshold, date_buffer_days
+            )
 
     @staticmethod
     def _fallback_matching(
         internals: List[Transaction],
         externals: List[Transaction],
         threshold: float,
-        date_buffer_days: int
+        date_buffer_days: int,
     ) -> List[Dict[str, Any]]:
         """
         Basic rule-based matching as fallback when AI fails.
@@ -214,25 +226,31 @@ Focus on high-confidence matches first."""
             best_score = 0.0
 
             for external in externals:
-                score = ReconciliationService._calculate_match_score(internal, external, date_buffer_days)
+                score = ReconciliationService._calculate_match_score(
+                    internal, external, date_buffer_days
+                )
                 if score > best_score and score >= threshold:
                     best_match = external
                     best_score = score
 
             if best_match:
-                matches.append({
-                    'internal_id': internal.id,
-                    'external_id': best_match.id,
-                    'confidence': best_score,
-                    'reasoning': 'Fallback rule-based matching'
-                })
+                matches.append(
+                    {
+                        "internal_id": internal.id,
+                        "external_id": best_match.id,
+                        "confidence": best_score,
+                        "reasoning": "Fallback rule-based matching",
+                    }
+                )
                 # Remove matched external to prevent duplicates
                 externals.remove(best_match)
 
         return matches
 
     @staticmethod
-    def _calculate_match_score(internal: Transaction, external: Transaction, date_buffer_days: int) -> float:
+    def _calculate_match_score(
+        internal: Transaction, external: Transaction, date_buffer_days: int
+    ) -> float:
         """
         Calculate a match score based on multiple criteria.
         """

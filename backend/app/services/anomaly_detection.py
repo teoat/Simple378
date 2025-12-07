@@ -1,10 +1,8 @@
-from typing import List, Dict, Any, Tuple
-from datetime import datetime, timedelta
+from typing import List, Dict, Any
 from statistics import mean, stdev
 from app.services.ai.llm_service import LLMService
 from langchain_core.messages import HumanMessage
 import json
-import math
 
 
 class AnomalyDetectionService:
@@ -14,8 +12,7 @@ class AnomalyDetectionService:
 
     @staticmethod
     async def detect_anomalies(
-        transactions: List[Dict[str, Any]],
-        subject_info: Dict[str, Any] = None
+        transactions: List[Dict[str, Any]], subject_info: Dict[str, Any] = None
     ) -> List[Dict[str, Any]]:
         """
         Detect anomalies in transaction data using AI analysis.
@@ -24,17 +21,23 @@ class AnomalyDetectionService:
             return []
 
         # First, do basic statistical analysis
-        basic_anomalies = AnomalyDetectionService._basic_statistical_analysis(transactions)
+        basic_anomalies = AnomalyDetectionService._basic_statistical_analysis(
+            transactions
+        )
 
         # Then, use AI for more sophisticated pattern recognition
-        ai_anomalies = await AnomalyDetectionService._ai_pattern_analysis(transactions, subject_info or {})
+        ai_anomalies = await AnomalyDetectionService._ai_pattern_analysis(
+            transactions, subject_info or {}
+        )
 
         # Combine and deduplicate
         all_anomalies = basic_anomalies + ai_anomalies
         return AnomalyDetectionService._deduplicate_anomalies(all_anomalies)
 
     @staticmethod
-    def _basic_statistical_analysis(transactions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _basic_statistical_analysis(
+        transactions: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
         """
         Basic statistical anomaly detection.
         """
@@ -44,7 +47,11 @@ class AnomalyDetectionService:
             return anomalies
 
         # Extract amounts
-        amounts = [abs(tx.get('amount', 0)) for tx in transactions if tx.get('amount') is not None]
+        amounts = [
+            abs(tx.get("amount", 0))
+            for tx in transactions
+            if tx.get("amount") is not None
+        ]
 
         if not amounts:
             return anomalies
@@ -57,24 +64,26 @@ class AnomalyDetectionService:
         threshold = avg_amount + 3 * std_amount
 
         for tx in transactions:
-            amount = abs(tx.get('amount', 0))
+            amount = abs(tx.get("amount", 0))
             if amount > threshold and amount > 1000:  # Minimum threshold
-                anomalies.append({
-                    'id': f"statistical_{tx.get('id', 'unknown')}",
-                    'type': 'Amount Outlier',
-                    'severity': 'medium' if amount > threshold * 1.5 else 'low',
-                    'description': f'Unusually large transaction: ${amount:,.2f} (avg: ${avg_amount:,.2f})',
-                    'amount': amount,
-                    'count': 1,
-                    'trend': 'stable',
-                    'confidence': 0.8,
-                    'detection_method': 'statistical'
-                })
+                anomalies.append(
+                    {
+                        "id": f"statistical_{tx.get('id', 'unknown')}",
+                        "type": "Amount Outlier",
+                        "severity": "medium" if amount > threshold * 1.5 else "low",
+                        "description": f"Unusually large transaction: ${amount:,.2f} (avg: ${avg_amount:,.2f})",
+                        "amount": amount,
+                        "count": 1,
+                        "trend": "stable",
+                        "confidence": 0.8,
+                        "detection_method": "statistical",
+                    }
+                )
 
         # Detect velocity anomalies (transactions per day)
         date_groups = {}
         for tx in transactions:
-            date_str = tx.get('date', '').split('T')[0] if tx.get('date') else 'unknown'
+            date_str = tx.get("date", "").split("T")[0] if tx.get("date") else "unknown"
             if date_str not in date_groups:
                 date_groups[date_str] = []
             date_groups[date_str].append(tx)
@@ -83,25 +92,26 @@ class AnomalyDetectionService:
 
         for date, txs in date_groups.items():
             if len(txs) > avg_daily_tx * 3:  # 3x average daily transactions
-                total_amount = sum(abs(tx.get('amount', 0)) for tx in txs)
-                anomalies.append({
-                    'id': f"velocity_{date}",
-                    'type': 'Velocity Spike',
-                    'severity': 'high' if len(txs) > avg_daily_tx * 5 else 'medium',
-                    'description': f'High transaction frequency on {date}: {len(txs)} transactions (avg: {avg_daily_tx:.1f}/day)',
-                    'amount': total_amount,
-                    'count': len(txs),
-                    'trend': 'up',
-                    'confidence': 0.9,
-                    'detection_method': 'statistical'
-                })
+                total_amount = sum(abs(tx.get("amount", 0)) for tx in txs)
+                anomalies.append(
+                    {
+                        "id": f"velocity_{date}",
+                        "type": "Velocity Spike",
+                        "severity": "high" if len(txs) > avg_daily_tx * 5 else "medium",
+                        "description": f"High transaction frequency on {date}: {len(txs)} transactions (avg: {avg_daily_tx:.1f}/day)",
+                        "amount": total_amount,
+                        "count": len(txs),
+                        "trend": "up",
+                        "confidence": 0.9,
+                        "detection_method": "statistical",
+                    }
+                )
 
         return anomalies
 
     @staticmethod
     async def _ai_pattern_analysis(
-        transactions: List[Dict[str, Any]],
-        subject_info: Dict[str, Any]
+        transactions: List[Dict[str, Any]], subject_info: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """
         Use AI to detect complex patterns and anomalies.
@@ -111,12 +121,16 @@ class AnomalyDetectionService:
         # Prepare transaction summary for AI
         tx_summary = []
         for tx in transactions[-50:]:  # Last 50 transactions for context
-            tx_summary.append({
-                'date': tx.get('date', ''),
-                'amount': tx.get('amount', 0),
-                'description': tx.get('description', '')[:100],  # Truncate long descriptions
-                'source_bank': tx.get('source_bank', '')
-            })
+            tx_summary.append(
+                {
+                    "date": tx.get("date", ""),
+                    "amount": tx.get("amount", 0),
+                    "description": tx.get("description", "")[
+                        :100
+                    ],  # Truncate long descriptions
+                    "source_bank": tx.get("source_bank", ""),
+                }
+            )
 
         prompt = f"""You are an expert financial fraud investigator. Analyze the following transaction data for suspicious patterns and anomalies.
 
@@ -156,18 +170,22 @@ Return your findings as a JSON array. Only include genuine anomalies, not normal
             # Format the findings
             formatted_anomalies = []
             for finding in ai_findings:
-                if isinstance(finding, dict) and 'type' in finding:
-                    formatted_anomalies.append({
-                        'id': f"ai_{finding['type'].lower().replace(' ', '_')}_{len(formatted_anomalies)}",
-                        'type': finding['type'],
-                        'severity': finding.get('severity', 'medium'),
-                        'description': finding.get('description', 'AI-detected anomaly'),
-                        'amount': float(finding.get('amount', 0)),
-                        'count': int(finding.get('count', 1)),
-                        'trend': 'stable',  # AI doesn't specify trend
-                        'confidence': float(finding.get('confidence', 0.7)),
-                        'detection_method': 'ai'
-                    })
+                if isinstance(finding, dict) and "type" in finding:
+                    formatted_anomalies.append(
+                        {
+                            "id": f"ai_{finding['type'].lower().replace(' ', '_')}_{len(formatted_anomalies)}",
+                            "type": finding["type"],
+                            "severity": finding.get("severity", "medium"),
+                            "description": finding.get(
+                                "description", "AI-detected anomaly"
+                            ),
+                            "amount": float(finding.get("amount", 0)),
+                            "count": int(finding.get("count", 1)),
+                            "trend": "stable",  # AI doesn't specify trend
+                            "confidence": float(finding.get("confidence", 0.7)),
+                            "detection_method": "ai",
+                        }
+                    )
 
             return formatted_anomalies
 
@@ -202,21 +220,21 @@ Return your findings as a JSON array. Only include genuine anomalies, not normal
 
         score = 10.0  # Base score
 
-        severity_weights = {
-            'high': 20,
-            'medium': 10,
-            'low': 5
-        }
+        severity_weights = {"high": 20, "medium": 10, "low": 5}
 
         confidence_multiplier = {
-            'ai': 1.2,  # AI detections get higher weight
-            'statistical': 1.0
+            "ai": 1.2,  # AI detections get higher weight
+            "statistical": 1.0,
         }
 
         for anomaly in anomalies:
-            severity_weight = severity_weights.get(anomaly.get('severity', 'medium'), 10)
-            method_multiplier = confidence_multiplier.get(anomaly.get('detection_method', 'statistical'), 1.0)
-            confidence = anomaly.get('confidence', 0.5)
+            severity_weight = severity_weights.get(
+                anomaly.get("severity", "medium"), 10
+            )
+            method_multiplier = confidence_multiplier.get(
+                anomaly.get("detection_method", "statistical"), 1.0
+            )
+            confidence = anomaly.get("confidence", 0.5)
 
             score += severity_weight * method_multiplier * confidence
 

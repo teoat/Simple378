@@ -21,6 +21,7 @@ from app.db.models import (
     ActionType,
 )
 
+
 async def _apply_processing_stub(db: AsyncSession, evidence: Evidence) -> Evidence:
     """Simulate processing and populate basic metadata for each evidence type."""
     evidence.processing_status = ProcessingStatus.PROCESSING
@@ -33,7 +34,9 @@ async def _apply_processing_stub(db: AsyncSession, evidence: Evidence) -> Eviden
         document = evidence.document or Document(id=evidence.id)
         size_val = float(evidence.size_bytes or 0)
         document.page_count = document.page_count or max(1, int(size_val / 50_000))
-        document.extracted_text = document.extracted_text or "Processing stub: text extracted."
+        document.extracted_text = (
+            document.extracted_text or "Processing stub: text extracted."
+        )
         document.ocr_confidence = document.ocr_confidence or 0.92
         db.add(document)
     elif evidence.type == EvidenceType.CHAT:
@@ -56,11 +59,15 @@ async def _apply_processing_stub(db: AsyncSession, evidence: Evidence) -> Eviden
 
     evidence.processing_status = ProcessingStatus.COMPLETED
     evidence.processed_at = now
-    evidence.metadata_ = evidence.metadata_ or {"stub": True, "processed_at": now.isoformat()}
+    evidence.metadata_ = evidence.metadata_ or {
+        "stub": True,
+        "processed_at": now.isoformat(),
+    }
 
     await db.commit()
     await db.refresh(evidence)
     return evidence
+
 
 router = APIRouter()
 
@@ -70,6 +77,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 def _serialize_evidence(ev: Evidence) -> dict:
     """Normalize evidence response payload."""
+
     def _to_number(value):
         try:
             return float(value) if value is not None else None
@@ -85,7 +93,11 @@ def _serialize_evidence(ev: Evidence) -> dict:
         "mime_type": ev.mime_type,
         "uploaded_at": ev.uploaded_at.isoformat() if ev.uploaded_at else None,
         "uploaded_by": str(ev.uploaded_by) if ev.uploaded_by else None,
-        "status": ev.processing_status.value if hasattr(ev.processing_status, "value") else ev.processing_status,
+        "status": (
+            ev.processing_status.value
+            if hasattr(ev.processing_status, "value")
+            else ev.processing_status
+        ),
         "processed_at": ev.processed_at.isoformat() if ev.processed_at else None,
         "metadata": ev.metadata_,
         "tags": ev.tags or [],
@@ -105,6 +117,7 @@ async def _ensure_case(db: AsyncSession, case_id: str) -> uuid.UUID:
         raise HTTPException(status_code=404, detail="Case not found")
     return case_uuid
 
+
 @router.post("/{case_id}/evidence", response_model=dict)
 async def upload_evidence(
     case_id: str,
@@ -112,7 +125,7 @@ async def upload_evidence(
     type: EvidenceType = Form(...),
     tags: Optional[str] = Form(None),
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user),
+    current_user=Depends(deps.get_current_user),
 ):
     """Upload evidence to a case."""
     case_uuid = await _ensure_case(db, case_id)
@@ -157,7 +170,11 @@ async def upload_evidence(
         actor_id=current_user.id,
         action=ActionType.EDIT,
         resource_id=case_uuid,
-        details={"action": "evidence_uploaded", "filename": file.filename, "type": type.value},
+        details={
+            "action": "evidence_uploaded",
+            "filename": file.filename,
+            "type": type.value,
+        },
     )
     db.add(audit_log)
 
@@ -166,12 +183,13 @@ async def upload_evidence(
 
     return _serialize_evidence(evidence)
 
+
 @router.get("/{case_id}/evidence", response_model=List[dict])
 async def list_evidence(
     case_id: str,
     type: Optional[EvidenceType] = None,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user),
+    current_user=Depends(deps.get_current_user),
 ):
     """List evidence for a case."""
     case_uuid = await _ensure_case(db, case_id)
@@ -187,11 +205,12 @@ async def list_evidence(
 
     return [_serialize_evidence(ev) for ev in evidence_list]
 
+
 @router.get("/{evidence_id}", response_model=dict)
 async def get_evidence(
     evidence_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user),
+    current_user=Depends(deps.get_current_user),
 ):
     """Get evidence details."""
     try:
@@ -211,7 +230,7 @@ async def get_evidence(
 async def process_evidence(
     evidence_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user),
+    current_user=Depends(deps.get_current_user),
 ):
     """Trigger evidence processing (stubbed pipeline)."""
     try:
@@ -246,7 +265,7 @@ async def process_evidence(
 async def reprocess_evidence(
     evidence_id: str,
     db: AsyncSession = Depends(deps.get_db),
-    current_user = Depends(deps.get_current_user),
+    current_user=Depends(deps.get_current_user),
 ):
     """Reset status and re-run stub processing."""
     try:

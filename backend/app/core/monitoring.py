@@ -1,4 +1,3 @@
-
 import json
 import time
 import psutil
@@ -7,8 +6,10 @@ from typing import Dict
 from datetime import datetime, timezone
 from app.services.cache_service import cache
 
+
 class HealthMetrics:
     """Persistent system health metrics using Redis"""
+
     METRICS_KEY = "health_metrics"
     RESPONSE_TIMES_KEY = "response_times"
 
@@ -24,14 +25,14 @@ class HealthMetrics:
             return {
                 "total_requests": 0,
                 "total_errors": 0,
-                "start_time": self.start_time.isoformat()
+                "start_time": self.start_time.isoformat(),
             }
         except Exception:
             # Fallback to in-memory if Redis fails
             return {
                 "total_requests": 0,
                 "total_errors": 0,
-                "start_time": self.start_time.isoformat()
+                "start_time": self.start_time.isoformat(),
             }
 
     async def _save_metrics(self, metrics: Dict):
@@ -48,14 +49,18 @@ class HealthMetrics:
             metrics["total_requests"] += 1
             if is_error:
                 metrics["total_errors"] += 1
-            
+
             # Store response time in a separate sorted set for percentile calculations
             if cache.redis_client:
                 timestamp = str(time.time())
-                await cache.redis_client.zadd(self.RESPONSE_TIMES_KEY, {timestamp: response_time_ms})
+                await cache.redis_client.zadd(
+                    self.RESPONSE_TIMES_KEY, {timestamp: response_time_ms}
+                )
                 # Keep only last 1000 response times to manage memory
-                await cache.redis_client.zremrangebyrank(self.RESPONSE_TIMES_KEY, 0, -1001)
-                
+                await cache.redis_client.zremrangebyrank(
+                    self.RESPONSE_TIMES_KEY, 0, -1001
+                )
+
             await self._save_metrics(metrics)
         except Exception:
             pass
@@ -65,7 +70,9 @@ class HealthMetrics:
         try:
             if not cache.redis_client:
                 return 0
-            response_times = await cache.redis_client.zrange(self.RESPONSE_TIMES_KEY, 0, -1, withscores=True)
+            response_times = await cache.redis_client.zrange(
+                self.RESPONSE_TIMES_KEY, 0, -1, withscores=True
+            )
             if not response_times:
                 return 0
             return sum(score for _, score in response_times) / len(response_times)
@@ -97,15 +104,13 @@ class HealthMetrics:
     async def get_system_stats(self) -> Dict:
         """Get system stats in a non-blocking way"""
         loop = asyncio.get_event_loop()
-        
+
         # CPU percent is blocking, run in executor
         cpu_percent = await loop.run_in_executor(None, psutil.cpu_percent, 0.1)
         memory_info = await loop.run_in_executor(None, psutil.virtual_memory)
-        
-        return {
-            "cpu_percent": cpu_percent,
-            "memory_percent": memory_info.percent
-        }
+
+        return {"cpu_percent": cpu_percent, "memory_percent": memory_info.percent}
+
 
 # Global metrics instance
 global_metrics = HealthMetrics()

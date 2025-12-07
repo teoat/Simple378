@@ -15,6 +15,7 @@ reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/access-token"
 )
 
+
 async def get_current_user(
     db: AsyncSession = Depends(get_db), token: str = Depends(reusable_oauth2)
 ) -> User:
@@ -25,12 +26,12 @@ async def get_current_user(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has been revoked",
             )
-        
+
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         token_data = TokenPayload(**payload)
-        
+
         # Ensure it's an access token, not a refresh token
         if payload.get("type") != "access":
             raise HTTPException(
@@ -42,37 +43,38 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",
         )
-    
+
     import uuid
+
     try:
         user_id = uuid.UUID(token_data.sub)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid user ID format")
-        
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
-    
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-async def verify_active_analyst(
-    current_user: User = Depends(get_current_user)
-) -> User:
+
+async def verify_active_analyst(current_user: User = Depends(get_current_user)) -> User:
     """
     Verify user has at least analyst role
     """
     if current_user.role not in ["analyst", "admin", "superadmin"]:
-         raise HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="The user doesn't have enough privileges",
         )
     return current_user
 
+
 async def verify_subject_access(
     subject_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(verify_active_analyst)
+    current_user: User = Depends(verify_active_analyst),
 ) -> None:
     """
     Verify potential specific access rights to a subject.

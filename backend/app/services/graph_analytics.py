@@ -1,9 +1,10 @@
 import networkx as nx
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict
 from app.schemas.analysis import CommunityResult, CentralityResult, ShortestPathResult
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 class GraphAnalyticsService:
     def __init__(self):
@@ -17,9 +18,9 @@ class GraphAnalyticsService:
         """
         self.graph.clear()
         for n in nodes:
-            self.graph.add_node(n['id'], **n)
+            self.graph.add_node(n["id"], **n)
         for e in edges:
-            self.graph.add_edge(e['source'], e['target'], **e)
+            self.graph.add_edge(e["source"], e["target"], **e)
 
     def detect_communities(self) -> List[CommunityResult]:
         """
@@ -53,11 +54,15 @@ class GraphAnalyticsService:
         try:
             centrality_scores = nx.betweenness_centrality(self.graph)
             # Sort by score desc to assign rank
-            sorted_scores = sorted(centrality_scores.items(), key=lambda x: x[1], reverse=True)
-            
+            sorted_scores = sorted(
+                centrality_scores.items(), key=lambda x: x[1], reverse=True
+            )
+
             results = []
             for rank, (node_id, score) in enumerate(sorted_scores):
-                results.append(CentralityResult(node_id=node_id, score=score, rank=rank+1))
+                results.append(
+                    CentralityResult(node_id=node_id, score=score, rank=rank + 1)
+                )
             return results
         except Exception as e:
             logger.error(f"Centrality calculation failed: {e}")
@@ -69,7 +74,7 @@ class GraphAnalyticsService:
         """
         try:
             path = nx.shortest_path(self.graph, source=source_id, target=target_id)
-            return ShortestPathResult(path=path, length=len(path)-1)
+            return ShortestPathResult(path=path, length=len(path) - 1)
         except nx.NetworkXNoPath:
             return ShortestPathResult(path=[], length=-1)
         except Exception as e:

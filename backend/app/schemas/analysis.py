@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 
+
 class HeuristicRule(BaseModel):
     id: str
     name: str
@@ -9,6 +10,7 @@ class HeuristicRule(BaseModel):
     severity: str = Field(..., pattern="^(low|medium|high|critical)$")
     logic: str  # simpleeval expression
     enabled: bool = True
+
 
 class RuleResult(BaseModel):
     rule_id: str
@@ -18,9 +20,11 @@ class RuleResult(BaseModel):
     severity: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+
 class RiskForecastRequest(BaseModel):
     subject_id: str
     history_days: int = 90
+
 
 class RiskForecast(BaseModel):
     subject_id: str
@@ -30,25 +34,31 @@ class RiskForecast(BaseModel):
     confidence: float
     projected_date: datetime
 
+
 class CommunityResult(BaseModel):
     node_id: str
     cluster_id: int
+
 
 class CentralityResult(BaseModel):
     node_id: str
     score: float
     rank: int
 
+
 class ShortestPathRequest(BaseModel):
     source_id: str
     target_id: str
+
 
 class ShortestPathResult(BaseModel):
     path: List[str]
     length: int
 
+
 class AnalysisResultResponse(BaseModel):
     """Response schema for analysis results"""
+
     id: str
     subject_id: str
     status: str = "pending"
@@ -59,11 +69,13 @@ class AnalysisResultResponse(BaseModel):
     decision: Optional[str] = None
     reviewer_notes: Optional[str] = None
     reviewer_id: Optional[str] = None
-    
+
     model_config = ConfigDict(from_attributes=True)  # Allows conversion from ORM models
+
 
 class AnalysisResult(BaseModel):
     """Schema for analysis evaluation results"""
+
     subject_id: str
     risk_score: float
     triggered_rules: List[RuleResult] = []

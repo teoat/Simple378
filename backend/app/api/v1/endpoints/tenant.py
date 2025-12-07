@@ -3,11 +3,11 @@ Tenant management endpoints for multi-tenant SaaS features.
 Provides tenant configuration, feature flags, data residency, and usage quotas.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import Dict, List, Optional
-from app.schemas.tenant import TenantCreate, TenantUpdate, TenantResponse, TenantConfigUpdate
+from typing import Dict, List
 from app.api import deps
+
 # from app.core.auth import get_current_user # Fixed bad import
 from app.db.session import get_db
 from app.db.models import User
@@ -19,6 +19,7 @@ router = APIRouter(prefix="/tenant", tags=["tenant"])
 
 class TenantConfig:
     """Represents tenant configuration"""
+
     def __init__(
         self,
         id: str,
@@ -35,29 +36,35 @@ class TenantConfig:
         self.plan = plan
         self.features = features or self._get_default_features(plan)
         self.limits = limits or self._get_default_limits(plan)
-        self.compliance_standards = compliance_standards or self._get_default_compliance()
+        self.compliance_standards = (
+            compliance_standards or self._get_default_compliance()
+        )
 
     @staticmethod
     def _get_default_features(plan: str) -> List[str]:
         """Get default feature flags by plan tier"""
         base_features = ["basic_analytics", "audit_logs", "user_management"]
-        
+
         if plan in ["professional", "enterprise"]:
-            base_features.extend([
-                "advanced_analytics",
-                "ai_orchestration",
-                "custom_integrations",
-                "api_access",
-            ])
-        
+            base_features.extend(
+                [
+                    "advanced_analytics",
+                    "ai_orchestration",
+                    "custom_integrations",
+                    "api_access",
+                ]
+            )
+
         if plan == "enterprise":
-            base_features.extend([
-                "real_time_collaboration",
-                "sso",
-                "dedicated_support",
-                "custom_training",
-            ])
-        
+            base_features.extend(
+                [
+                    "real_time_collaboration",
+                    "sso",
+                    "dedicated_support",
+                    "custom_training",
+                ]
+            )
+
         return base_features
 
     @staticmethod
@@ -124,7 +131,7 @@ def get_tenant_config(tenant_id: str) -> TenantConfig:
     plan = os.getenv("TENANT_PLAN", "professional")
     region = os.getenv("TENANT_REGION", "us-east")
     name = os.getenv("TENANT_NAME", f"Tenant {tenant_id}")
-    
+
     return TenantConfig(
         id=tenant_id,
         name=name,
@@ -140,7 +147,7 @@ async def get_tenant_configuration(
 ) -> Dict:
     """
     Get current tenant configuration including feature flags, limits, and compliance info.
-    
+
     Returns:
         - id: Tenant identifier
         - name: Tenant display name
@@ -165,7 +172,7 @@ async def get_tenant_features(
     """
     tenant_id = get_tenant_id_from_env()
     tenant_config = get_tenant_config(tenant_id)
-    
+
     return {
         "features": tenant_config.features,
         "plan": tenant_config.plan,
@@ -179,19 +186,19 @@ async def check_feature_enabled(
 ) -> Dict:
     """
     Check if a specific feature is enabled for this tenant.
-    
+
     Args:
         feature_name: Name of the feature to check (e.g., 'ai_orchestration')
-    
+
     Returns:
         - enabled: Boolean indicating if feature is available
         - feature: The feature name
     """
     tenant_id = get_tenant_id_from_env()
     tenant_config = get_tenant_config(tenant_id)
-    
+
     is_enabled = feature_name in tenant_config.features
-    
+
     return {
         "feature": feature_name,
         "enabled": is_enabled,
@@ -207,7 +214,7 @@ async def get_tenant_limits(
     """
     tenant_id = get_tenant_id_from_env()
     tenant_config = get_tenant_config(tenant_id)
-    
+
     return {
         "limits": tenant_config.limits,
         "plan": tenant_config.plan,
@@ -222,14 +229,14 @@ async def get_tenant_usage(
     """
     Get current usage against limits for this tenant.
     Aggregates data from audit logs and usage tracking tables.
-    
+
     In production, this would query usage tracking tables.
     For now, returns mock usage data.
     """
     tenant_id = get_tenant_id_from_env()
     tenant_config = get_tenant_config(tenant_id)
     limits = tenant_config.limits
-    
+
     # Mock usage calculation
     usage = {
         "api_calls_this_month": 450_000,
@@ -241,7 +248,7 @@ async def get_tenant_usage(
         "cases_created": 24,
         "cases_limit": limits.get("cases"),
     }
-    
+
     return {
         "usage": usage,
         "plan": tenant_config.plan,
@@ -258,7 +265,7 @@ async def get_tenant_compliance(
     """
     tenant_id = get_tenant_id_from_env()
     tenant_config = get_tenant_config(tenant_id)
-    
+
     return {
         "compliance_standards": tenant_config.compliance_standards,
         "data_residency_region": tenant_config.region,
@@ -275,17 +282,17 @@ async def get_api_endpoint_for_region(
 ) -> Dict:
     """
     Get the appropriate API endpoint for a given feature based on tenant's data residency region.
-    
+
     Args:
         feature_path: The API endpoint path (e.g., 'cases', 'forensics')
-    
+
     Returns:
         - url: Full URL for the regional API endpoint
         - region: Data residency region being used
     """
     tenant_id = get_tenant_id_from_env()
     tenant_config = get_tenant_config(tenant_id)
-    
+
     region_urls = {
         "us-east": "https://api-us-east.example.com/v1",
         "us-west": "https://api-us-west.example.com/v1",
@@ -293,9 +300,9 @@ async def get_api_endpoint_for_region(
         "eu-central": "https://api-eu-central.example.com/v1",
         "ap-southeast": "https://api-ap-southeast.example.com/v1",
     }
-    
+
     base_url = region_urls.get(tenant_config.region, region_urls["us-east"])
-    
+
     return {
         "url": f"{base_url}/{feature_path}",
         "region": tenant_config.region,
