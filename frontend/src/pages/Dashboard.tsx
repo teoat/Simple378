@@ -61,31 +61,37 @@ export function Dashboard() {
     }
   }, [lastMessage, queryClient]);
 
-  const { data: dashboardData, isLoading } = useQuery<DashboardData>({
+  const { data: dashboardData, isLoading, error } = useQuery<DashboardData>({
     queryKey: ['dashboard'],
     queryFn: async () => {
-      // Parallel fetch implementation
-      const [metrics, activity, charts] = await Promise.all([
-        api.get<DashboardMetrics>('/dashboard/metrics'),
-        api.get<ActivityItem[]>('/dashboard/activity'),
-        api.get<DashboardChartData>('/dashboard/charts'),
-      ]);
-      
-      // Mock pipeline data for now until we have dedicated endpoint
-      const pipeline: DashboardPipelineStatus = {
-        stages: [
-          { id: '1', name: 'Ingestion', status: 'healthy', metric: '1,245', metricLabel: 'Records' },
-          { id: '2', name: 'Categorize', status: 'warning', metric: '89%', metricLabel: 'Complete' },
-          { id: '3', name: 'Reconcile', status: 'healthy', metric: '94%', metricLabel: 'Match Rate' },
-          { id: '4', name: 'Adjudicate', status: 'critical', metric: '12', metricLabel: 'Pending' },
-          { id: '5', name: 'Visualize', status: 'healthy', metric: 'Ready', metricLabel: 'Status' }
-        ]
-      };
+      try {
+        // Parallel fetch implementation with better error handling
+        const [metrics, activity, charts] = await Promise.all([
+          api.get<DashboardMetrics>('/dashboard/metrics'),
+          api.get<ActivityItem[]>('/dashboard/activity'),
+          api.get<DashboardChartData>('/dashboard/charts'),
+        ]);
+        
+        // Mock pipeline data for now until we have dedicated endpoint
+        const pipeline: DashboardPipelineStatus = {
+          stages: [
+            { id: '1', name: 'Ingestion', status: 'healthy', metric: '1,245', metricLabel: 'Records' },
+            { id: '2', name: 'Categorize', status: 'warning', metric: '89%', metricLabel: 'Complete' },
+            { id: '3', name: 'Reconcile', status: 'healthy', metric: '94%', metricLabel: 'Match Rate' },
+            { id: '4', name: 'Adjudicate', status: 'critical', metric: '12', metricLabel: 'Pending' },
+            { id: '5', name: 'Visualize', status: 'healthy', metric: 'Ready', metricLabel: 'Status' }
+          ]
+        };
 
-      return { metrics, activity, charts, pipeline };
+        return { metrics, activity, charts, pipeline };
+      } catch (err) {
+        console.error('Dashboard data fetch error:', err);
+        throw err;
+      }
     },
     refetchInterval: 30000,
-    retry: false
+    retry: 2,
+    retryDelay: 1000,
   });
 
   const alerts: DataQualityAlert[] = useMemo(() => {
@@ -154,8 +160,35 @@ export function Dashboard() {
     },
   ];
 
+  if (error) {
+    return (
+      <div className="p-6 flex flex-col items-center justify-center h-screen">
+        <div className="text-center max-w-md">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+            Dashboard Unavailable
+          </h2>
+          <p className="text-slate-600 dark:text-slate-400 mb-4">
+            Unable to load dashboard data. Please check your connection and try again.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Reload Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoading && !dashboardData) {
-    return <div className="p-6 flex items-center justify-center h-screen text-slate-500 dark:text-slate-400">Loading Dashboard...</div>;
+    return (
+      <div className="p-6 flex flex-col items-center justify-center h-screen text-slate-500 dark:text-slate-400">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+        <p className="text-lg">Loading Dashboard...</p>
+      </div>
+    );
   }
 
   return (
