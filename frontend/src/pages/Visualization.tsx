@@ -10,7 +10,6 @@ import {
   RefreshCw,
   Share2
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { MilestoneTracker } from '../components/visualization/MilestoneTracker';
@@ -20,8 +19,6 @@ import { VisualizationNetwork, GraphData, FinancialData } from '../components/vi
 import { Modal } from '../components/ui/Modal';
 import { PhaseControlPanel } from '../components/visualization/PhaseControlPanel';
 import { api } from '../lib/api';
-
-type ViewType = 'cashflow' | 'milestones' | 'fraud' | 'graphs';
 
 interface CategoryData {
   id: string;
@@ -70,7 +67,6 @@ interface FullFinancialData extends FinancialData {
 
 export function Visualization() {
   const { caseId } = useParams<{ caseId: string }>();
-  const [view, setView] = useState<ViewType>('cashflow');
   const [selectedMilestone, setSelectedMilestone] = useState<FullFinancialData['milestones'][0] | null>(null);
 
   // Fetch financial visualization data
@@ -86,13 +82,6 @@ export function Visualization() {
     queryFn: () => api.get<GraphData>(`/graph/${caseId}`),
     enabled: !!caseId
   });
-
-  const tabs: Array<{ id: ViewType; label: string; icon: typeof DollarSign }> = [
-    { id: 'cashflow', label: 'Cashflow Analysis', icon: DollarSign },
-    { id: 'milestones', label: 'Milestone Tracker', icon: Calendar },
-    { id: 'fraud', label: 'Fraud Detection', icon: AlertTriangle },
-    { id: 'graphs', label: 'Network & Flow', icon: Share2 }
-  ];
 
   const handleExport = () => {
     if (!data) return;
@@ -227,146 +216,145 @@ export function Visualization() {
           </div>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card data-testid="kpi-card" className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/10 border-green-200 dark:border-green-800">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">Total Inflow</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-500" />
+        {/* KPI Summary Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              📊 KPI Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div data-testid="kpi-card" className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/10 border-2 border-green-200 dark:border-green-800 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-green-700 dark:text-green-300">Total Inflow</span>
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                </div>
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  ${(data?.total_inflow || 0).toLocaleString()}
+                </div>
+                <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-1">All incoming transactions</p>
+              </div>
+
+              <div data-testid="kpi-card" className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/10 border-2 border-red-200 dark:border-red-800 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-red-700 dark:text-red-300">Total Outflow</span>
+                  <TrendingUp className="h-4 w-4 text-red-500 rotate-180" />
+                </div>
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                  ${(data?.total_outflow || 0).toLocaleString()}
+                </div>
+                <p className="text-xs text-red-600/70 dark:text-red-400/70 mt-1">All outgoing transactions</p>
+              </div>
+
+              <div data-testid="kpi-card" className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/10 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Net Cashflow</span>
+                  <DollarSign className="h-4 w-4 text-blue-500" />
+                </div>
+                <div className={`text-2xl font-bold ${(data?.net_cashflow || 0) >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
+                  ${Math.abs(data?.net_cashflow || 0).toLocaleString()}
+                </div>
+                <p className="text-xs text-blue-600/70 dark:text-blue-400/70 mt-1">
+                  {(data?.net_cashflow || 0) >= 0 ? 'Surplus' : 'Deficit'}
+                </p>
+              </div>
+
+              <div data-testid="kpi-card" className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/10 border-2 border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-amber-700 dark:text-amber-300">Suspect Items</span>
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                </div>
+                <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                  {data?.suspect_transactions || 0}
+                </div>
+                <p className="text-xs text-amber-600/70 dark:text-amber-400/70 mt-1">Flagged transactions</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Main Content Grid - 2x2 Layout as per spec */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Cashflow Balance Section */}
+          <Card className="lg:col-span-1">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-green-500" />
+                💸 Cashflow Balance
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                ${(data?.total_inflow || 0).toLocaleString()}
-              </div>
-              <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-1">All incoming transactions</p>
+              {data && <VisualizationDashboard data={data} />}
             </CardContent>
           </Card>
 
-          <Card data-testid="kpi-card" className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/10 border-red-200 dark:border-red-800">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300">Total Outflow</CardTitle>
-              <TrendingUp className="h-4 w-4 text-red-500 rotate-180" />
+          {/* Milestone Tracker Section */}
+          <Card className="lg:col-span-1">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-purple-500" />
+                🏁 Milestone Tracker
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                ${(data?.total_outflow || 0).toLocaleString()}
-              </div>
-              <p className="text-xs text-red-600/70 dark:text-red-400/70 mt-1">All outgoing transactions</p>
+              <MilestoneTracker 
+                milestones={data?.milestones}
+                onMilestoneClick={(milestone) => setSelectedMilestone(milestone)}
+              />
             </CardContent>
           </Card>
 
-          <Card data-testid="kpi-card" className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/10 border-blue-200 dark:border-blue-800">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Net Cashflow</CardTitle>
-              <DollarSign className="h-4 w-4 text-blue-500" />
+          {/* Fraud Detection Section */}
+          <Card className="lg:col-span-1">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                🕵️‍♂️ Fraud Detection
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${(data?.net_cashflow || 0) >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
-                ${Math.abs(data?.net_cashflow || 0).toLocaleString()}
-              </div>
-              <p className="text-xs text-blue-600/70 dark:text-blue-400/70 mt-1">
-                {(data?.net_cashflow || 0) >= 0 ? 'Surplus' : 'Deficit'}
-              </p>
+              <FraudDetectionPanel 
+                indicators={data?.fraud_indicators}
+                riskScore={data?.risk_score}
+              />
             </CardContent>
           </Card>
 
-          <Card data-testid="kpi-card" className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/10 border-amber-200 dark:border-amber-800">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-amber-700 dark:text-amber-300">Suspect Items</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
+          {/* Network & Flow Section */}
+          <Card className="lg:col-span-1">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Share2 className="h-5 w-5 text-indigo-500" />
+                📊 Network & Flow
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                {data?.suspect_transactions || 0}
-              </div>
-              <p className="text-xs text-amber-600/70 dark:text-amber-400/70 mt-1">Flagged transactions</p>
+              <VisualizationNetwork 
+                graphData={graphData} 
+                financialData={data} 
+                isLoading={graphLoading} 
+              />
             </CardContent>
           </Card>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setView(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
-                  view === tab.id
-                    ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Content Area */}
-        <motion.div
-          key={view}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
+        {/* Milestone Action Modal */}
+        <Modal
+          isOpen={!!selectedMilestone}
+          onClose={() => setSelectedMilestone(null)}
+          title="Manage Milestone Phase"
         >
-          {view === 'cashflow' && data && (
-            <VisualizationDashboard data={data} />
-          )}
-
-          {view === 'milestones' && (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-purple-500" />
-                    Financial Milestones
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <MilestoneTracker 
-                    milestones={data?.milestones}
-                    onMilestoneClick={(milestone) => setSelectedMilestone(milestone)}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Milestone Action Modal */}
-              <Modal
-                isOpen={!!selectedMilestone}
-                onClose={() => setSelectedMilestone(null)}
-                title="Manage Milestone Phase"
-              >
-                {selectedMilestone && (
-                  <PhaseControlPanel 
-                    milestone={selectedMilestone} 
-                    onStatusUpdate={() => {
-                      refetch();
-                      setSelectedMilestone(null);
-                    }} 
-                  />
-                )}
-              </Modal>
-            </>
-          )}
-
-          {view === 'fraud' && (
-            <FraudDetectionPanel 
-              indicators={data?.fraud_indicators}
-              riskScore={data?.risk_score}
+          {selectedMilestone && (
+            <PhaseControlPanel 
+              milestone={selectedMilestone} 
+              onStatusUpdate={() => {
+                refetch();
+                setSelectedMilestone(null);
+              }} 
             />
           )}
-
-          {view === 'graphs' && (
-            <VisualizationNetwork 
-              graphData={graphData} 
-              financialData={data} 
-              isLoading={graphLoading} 
-            />
-          )}
-        </motion.div>
+        </Modal>
       </div>
     </div>
   );
