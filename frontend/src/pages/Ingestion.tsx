@@ -66,7 +66,7 @@ export function Ingestion() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Fetch Subjects
-  const { data: subjectsData, isError: subjectsError, error: subjectsErrorDetails } = useQuery({
+  const { data: subjectsData, isError: subjectsError } = useQuery({
     queryKey: ['subjects'],
     queryFn: () => subjectsApi.getSubjects({ limit: 100 }),
     retry: 2,
@@ -135,7 +135,7 @@ export function Ingestion() {
   });
 
   // Preview Query
-  const { data: previewResponse, isLoading: isLoadingPreview, isError: previewError, error: previewErrorDetails } = useQuery({
+  const { data: previewResponse, isLoading: isLoadingPreview, isError: previewError } = useQuery({
     queryKey: ['ingestion', 'preview', fileId, columnMappings],
     queryFn: async () => {
       if (!fileId) return null;
