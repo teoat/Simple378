@@ -44,13 +44,24 @@ interface GraphLink {
 }
 
 interface EntityResolutionRequest {
-  entity_id: string;
-  search_criteria: Record<string, unknown>;
+  entities: Array<{
+    id: string;
+    name: string;
+    type: string;
+    aliases: string[];
+    context: string;
+    metadata: Record<string, unknown>;
+  }>;
+  context_data?: Record<string, unknown>;
 }
 
-interface EntityResolutionResponse {
-  matches: ForensicEntity[];
-  confidence: number;
+interface EntityMatch {
+  entity_id_a: string;
+  entity_name_a: string;
+  entity_id_b: string;
+  entity_name_b: string;
+  similarity_score: number;
+  reason: string;
 }
 
 export function Forensics() {
@@ -67,7 +78,7 @@ export function Forensics() {
   // Entity Forensics State
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntity, setSelectedEntity] = useState<ForensicEntity | null>(null);
-  const [entityMatches, setEntityMatches] = useState<ForensicEntity[]>([]);
+  const [entityMatches, setEntityMatches] = useState<EntityMatch[]>([]);
 
   // Calculate generic graph data based on selected entity
   const [graphData, setGraphData] = useState<{ nodes: GraphNode[]; links: GraphLink[] }>({ nodes: [], links: [] });
@@ -114,12 +125,12 @@ export function Forensics() {
 
   // AI Entity Resolution mutation
   const entityResolutionMutation = useMutation({
-    mutationFn: (entityData: EntityResolutionRequest) => apiRequest<EntityResolutionResponse>('/forensics/entity-resolution', {
+    mutationFn: (entityData: EntityResolutionRequest) => apiRequest<EntityMatch[]>('/forensics/entity-resolution', {
       method: 'POST',
       body: JSON.stringify(entityData),
     }),
-    onSuccess: (data: EntityResolutionResponse) => {
-      setEntityMatches(data.matches);
+    onSuccess: (data: EntityMatch[]) => {
+      setEntityMatches(data);
       toast.success('Entity resolution complete');
     },
     onError: (error: unknown) => {
@@ -196,14 +207,22 @@ export function Forensics() {
               Deep dive analysis for entities and documents
             </p>
           </div>
-          <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+          <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg" role="tablist">
               <button 
+                id="entity-tab"
+                role="tab"
+                aria-selected={activeTab === 'entity'}
+                aria-controls="entity-panel"
                 onClick={() => setActiveTab('entity')}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'entity' ? 'bg-white dark:bg-slate-700 shadow text-slate-900 dark:text-white' : 'text-slate-500'}`}
               >
                   Entity Resolution
               </button>
               <button 
+                id="document-tab"
+                role="tab"
+                aria-selected={activeTab === 'document'}
+                aria-controls="document-panel"
                 onClick={() => setActiveTab('document')}
                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'document' ? 'bg-white dark:bg-slate-700 shadow text-slate-900 dark:text-white' : 'text-slate-500'}`}
               >
@@ -213,7 +232,7 @@ export function Forensics() {
         </div>
 
         {activeTab === 'entity' ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div id="entity-panel" role="tabpanel" aria-labelledby="entity-tab" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Entity List */}
           <div className="lg:col-span-1 space-y-4">
             {/* Search */}
@@ -243,20 +262,17 @@ export function Forensics() {
               <button
                 onClick={() => {
                   const entityData: EntityResolutionRequest = {
-                    entity_id: 'some-id',
-                    search_criteria: {
-                      entities: displayEntities.map(e => ({
-                        id: e.id,
-                        name: e.name,
-                        type: e.type,
-                        aliases: [],
-                        context: `Risk score: ${e.risk_score}, connections: ${e.connections}`,
-                        metadata: { risk_score: e.risk_score, connections: e.connections }
-                      })),
-                      context_data: {
-                        investigation_type: 'fraud_detection',
-                        total_entities: displayEntities.length
-                      }
+                    entities: displayEntities.map(e => ({
+                      id: e.id,
+                      name: e.name,
+                      type: e.type,
+                      aliases: [],
+                      context: `Risk score: ${e.risk_score}, connections: ${e.connections}`,
+                      metadata: { risk_score: e.risk_score, connections: e.connections }
+                    })),
+                    context_data: {
+                      investigation_type: 'fraud_detection',
+                      total_entities: displayEntities.length
                     }
                   };
                   entityResolutionMutation.mutate(entityData);
@@ -425,7 +441,7 @@ export function Forensics() {
         </div>
         ) : (
             // Document Forensics Content
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div id="document-panel" role="tabpanel" aria-labelledby="document-tab" className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                  <div className="space-y-6">
                     <div className="bg-white dark:bg-slate-900 p-8 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-center hover:border-blue-500 transition-colors">
                         <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
