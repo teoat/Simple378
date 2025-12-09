@@ -80,7 +80,7 @@ export function CaseList() {
       else if (riskFilter === 'low') params.append('max_risk', '39');
     }
 
-    return apiRequest<CaseListResponse>('/cases/?' + params.toString());
+    return apiRequest<CaseListResponse>(`/cases?${params.toString()}`);
   };
 
   const { data, isLoading, error, refetch } = useQuery({

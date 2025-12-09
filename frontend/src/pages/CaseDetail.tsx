@@ -40,7 +40,7 @@ interface PredictiveResponse {
 
   const { data: aiRiskPrediction, isLoading: predictionLoading } = useQuery({
     queryKey: ['case', id, 'ai-risk-prediction'],
-    queryFn: () => apiRequest<PredictiveResponse>(`/cases/${id}/ai-risk-prediction`),
+    queryFn: () => apiRequest<PredictiveResponse>(`/cases/${id}/ai-risk-prediction`, { method: 'POST' }),
     retry: false,
     enabled: !!id,
   });

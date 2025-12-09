@@ -25,6 +25,10 @@ export async function apiRequest<T = any>(
 ): Promise<T> {
   const method = options?.method?.toUpperCase() || 'GET';
 
+  // Prepend base URL if URL is relative
+  const BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+  const fullUrl = url.startsWith('http') ? url : `${BASE_URL}${url}`;
+
   // Prepare headers
   const headers = new Headers(options?.headers);
   if (!headers.has('Content-Type')) {
@@ -66,7 +70,7 @@ export async function apiRequest<T = any>(
     requestOptions.body = options.body;
   }
 
-  const response = await fetch(url, requestOptions);
+  const response = await fetch(fullUrl, requestOptions);
 
   if (!response.ok) {
     await response.text().catch(() => 'Unknown error');
