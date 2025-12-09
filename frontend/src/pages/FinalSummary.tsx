@@ -1,7 +1,7 @@
 import { FC, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FileInput, GitMerge, Gavel, ArrowLeft, TrendingUp, Clock } from 'lucide-react';
+import { FileInput, GitMerge, Gavel, TrendingUp, Clock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 import { SuccessBanner } from '../components/summary/SuccessBanner';
@@ -10,7 +10,6 @@ import { KeyFindings, Finding } from '../components/summary/KeyFindings';
 import { ChartEmbed } from '../components/summary/ChartEmbed';
 import { PDFGenerator } from '../components/summary/PDFGenerator';
 import { ActionButtons } from '../components/summary/ActionButtons';
-import { Button } from '../components/ui/Button';
 import { Breadcrumbs } from '../components/ui/Breadcrumbs';
 import { Badge } from '../components/ui/Badge';
 import { Tooltip } from '../components/ui/Tooltip';
