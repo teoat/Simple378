@@ -280,19 +280,19 @@ export const FinalSummary: FC = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-blue-700 dark:text-blue-300">Status</span>
                     <Badge 
-                      variant={data.status === 'success' ? 'success' : data.status === 'partial' ? 'warning' : 'error'} 
+                      variant={data?.status === 'success' ? 'success' : data?.status === 'partial' ? 'warning' : 'error'} 
                       size="sm"
                     >
-                      {data.status}
+                      {data?.status || 'Unknown'}
                     </Badge>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-blue-700 dark:text-blue-300">Data Quality</span>
-                    <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">{data.dataQuality}%</span>
+                    <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">{data?.dataQuality || 0}%</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-blue-700 dark:text-blue-300">Time to Resolve</span>
-                    <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">{data.daysToResolution} days</span>
+                    <span className="text-sm font-semibold text-blue-900 dark:text-blue-100">{data?.daysToResolution || 0} days</span>
                   </div>
                 </div>
              </motion.div>

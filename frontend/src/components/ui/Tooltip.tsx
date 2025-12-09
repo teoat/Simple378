@@ -11,7 +11,9 @@ interface TooltipProps {
 /**
  * Tooltip component for displaying contextual help
  * 
- * Supports keyboard navigation - press Escape to close
+ * Keyboard navigation:
+ * - Press Enter or Space to toggle tooltip visibility
+ * - Press Escape to close the tooltip
  */
 export const Tooltip: FC<TooltipProps> = ({
   content,
@@ -31,6 +33,9 @@ export const Tooltip: FC<TooltipProps> = ({
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       setIsVisible(false);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setIsVisible(prev => !prev);
     }
   };
 

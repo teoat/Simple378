@@ -21,7 +21,12 @@ export const LoadingSkeleton: FC<LoadingSkeletonProps> = ({
   className,
   count = 1,
 }) => {
-  const baseClasses = 'animate-ui-shimmer bg-gradient-to-r from-slate-200 via-slate-300 to-slate-200 dark:from-slate-700 dark:via-slate-600 dark:to-slate-700';
+  const baseClasses = [
+    'animate-ui-shimmer',
+    'bg-gradient-to-r',
+    'from-slate-200 via-slate-300 to-slate-200',
+    'dark:from-slate-700 dark:via-slate-600 dark:to-slate-700'
+  ].join(' ');
   
   const variants = {
     text: 'rounded h-4',
