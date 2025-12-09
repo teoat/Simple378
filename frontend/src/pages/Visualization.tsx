@@ -8,11 +8,18 @@ import {
   Calendar,
   Download,
   RefreshCw,
-  Share2
+  Share2,
+  Info,
+  ArrowUpRight,
+  ArrowDownRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import { Breadcrumbs } from '../components/ui/Breadcrumbs';
+import { Tooltip } from '../components/ui/Tooltip';
+import { Badge } from '../components/ui/Badge';
+import { LoadingSkeleton } from '../components/ui/LoadingSkeleton';
 import { MilestoneTracker } from '../components/visualization/MilestoneTracker';
 import { FraudDetectionPanel } from '../components/visualization/FraudDetectionPanel';
 import { VisualizationDashboard } from '../components/visualization/VisualizationDashboard';
@@ -170,10 +177,28 @@ export function Visualization() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="h-12 w-12 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-slate-600 dark:text-slate-400">Loading visualization...</p>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-8">
+        <div className="container mx-auto max-w-7xl space-y-6">
+          {/* Header Skeleton */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <LoadingSkeleton variant="text" width="300px" height="32px" />
+              <LoadingSkeleton variant="text" width="450px" height="20px" />
+            </div>
+            <div className="flex gap-3">
+              <LoadingSkeleton variant="rectangular" width="100px" height="40px" />
+              <LoadingSkeleton variant="rectangular" width="100px" height="40px" />
+              <LoadingSkeleton variant="rectangular" width="100px" height="40px" />
+            </div>
+          </div>
+          
+          {/* KPI Cards Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <LoadingSkeleton variant="card" count={4} />
+          </div>
+          
+          {/* Content Skeleton */}
+          <LoadingSkeleton variant="card" height="400px" />
         </div>
       </div>
     );
@@ -201,85 +226,151 @@ export function Visualization() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-8">
       <div className="container mx-auto max-w-7xl space-y-6">
+        {/* Breadcrumbs */}
+        <Breadcrumbs 
+          items={[
+            { label: 'Cases', href: '/cases' },
+            { label: `Case ${caseId}`, href: `/cases/${caseId}` },
+            { label: 'Financial Visualization' }
+          ]} 
+        />
+        
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-              Financial Visualization
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+                Financial Visualization
+              </h1>
+              <Badge variant="info" size="sm">
+                Live Data
+              </Badge>
+            </div>
             <p className="text-slate-500 dark:text-slate-400 mt-2">
               Case {caseId} - Interactive financial analysis and fraud detection
             </p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-            <Button variant="outline" onClick={handleShare}>
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </Button>
-            <Button onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
+            <Tooltip content="Refresh all data">
+              <Button variant="outline" onClick={() => refetch()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </Tooltip>
+            <Tooltip content="Share visualization">
+              <Button variant="outline" onClick={handleShare}>
+                <Share2 className="h-4 w-4 mr-2" />
+                Share
+              </Button>
+            </Tooltip>
+            <Tooltip content="Export to PDF & CSV">
+              <Button onClick={handleExport}>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </Tooltip>
           </div>
         </div>
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card data-testid="kpi-card" className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/10 border-green-200 dark:border-green-800">
+          <Card data-testid="kpi-card" className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/10 border-green-200 dark:border-green-800 hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">Total Inflow</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-500" />
+              <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300 flex items-center gap-2">
+                Total Inflow
+                <Tooltip content="Sum of all incoming transactions">
+                  <Info className="h-3 w-3 text-green-500/70" />
+                </Tooltip>
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                <TrendingUp className="h-4 w-4 text-green-500" />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                 ${(data?.total_inflow || 0).toLocaleString()}
               </div>
-              <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-1">All incoming transactions</p>
+              <div className="flex items-center gap-2 mt-1">
+                <ArrowUpRight className="h-3 w-3 text-green-600 dark:text-green-400" />
+                <p className="text-xs text-green-600/70 dark:text-green-400/70">All incoming transactions</p>
+              </div>
             </CardContent>
           </Card>
 
-          <Card data-testid="kpi-card" className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/10 border-red-200 dark:border-red-800">
+          <Card data-testid="kpi-card" className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/10 border-red-200 dark:border-red-800 hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300">Total Outflow</CardTitle>
-              <TrendingUp className="h-4 w-4 text-red-500 rotate-180" />
+              <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300 flex items-center gap-2">
+                Total Outflow
+                <Tooltip content="Sum of all outgoing transactions">
+                  <Info className="h-3 w-3 text-red-500/70" />
+                </Tooltip>
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+                <TrendingUp className="h-4 w-4 text-red-500 rotate-180" />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                 ${(data?.total_outflow || 0).toLocaleString()}
               </div>
-              <p className="text-xs text-red-600/70 dark:text-red-400/70 mt-1">All outgoing transactions</p>
+              <div className="flex items-center gap-2 mt-1">
+                <ArrowDownRight className="h-3 w-3 text-red-600 dark:text-red-400" />
+                <p className="text-xs text-red-600/70 dark:text-red-400/70">All outgoing transactions</p>
+              </div>
             </CardContent>
           </Card>
 
-          <Card data-testid="kpi-card" className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/10 border-blue-200 dark:border-blue-800">
+          <Card data-testid="kpi-card" className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/10 border-blue-200 dark:border-blue-800 hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Net Cashflow</CardTitle>
-              <DollarSign className="h-4 w-4 text-blue-500" />
+              <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                Net Cashflow
+                <Tooltip content="Difference between inflow and outflow">
+                  <Info className="h-3 w-3 text-blue-500/70" />
+                </Tooltip>
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                <DollarSign className="h-4 w-4 text-blue-500" />
+              </div>
             </CardHeader>
             <CardContent>
               <div className={`text-2xl font-bold ${(data?.net_cashflow || 0) >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}`}>
                 ${Math.abs(data?.net_cashflow || 0).toLocaleString()}
               </div>
-              <p className="text-xs text-blue-600/70 dark:text-blue-400/70 mt-1">
-                {(data?.net_cashflow || 0) >= 0 ? 'Surplus' : 'Deficit'}
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant={(data?.net_cashflow || 0) >= 0 ? 'success' : 'warning'} size="sm">
+                  {(data?.net_cashflow || 0) >= 0 ? 'Surplus' : 'Deficit'}
+                </Badge>
+              </div>
             </CardContent>
           </Card>
 
-          <Card data-testid="kpi-card" className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/10 border-amber-200 dark:border-amber-800">
+          <Card data-testid="kpi-card" className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/10 border-amber-200 dark:border-amber-800 hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-amber-700 dark:text-amber-300">Suspect Items</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <CardTitle className="text-sm font-medium text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                Suspect Items
+                <Tooltip content="Transactions flagged for review">
+                  <Info className="h-3 w-3 text-amber-500/70" />
+                </Tooltip>
+              </CardTitle>
+              <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
                 {data?.suspect_transactions || 0}
               </div>
-              <p className="text-xs text-amber-600/70 dark:text-amber-400/70 mt-1">Flagged transactions</p>
+              <div className="flex items-center gap-2 mt-1">
+                {(data?.suspect_transactions || 0) > 0 ? (
+                  <Badge variant="warning" size="sm" animated>
+                    Needs Review
+                  </Badge>
+                ) : (
+                  <Badge variant="success" size="sm">
+                    All Clear
+                  </Badge>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
