@@ -8,6 +8,14 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const { isAuthenticated, isLoading } = useAuth();
+  
+  // Check if authentication is disabled for development
+  const authDisabled = import.meta.env.VITE_DISABLE_AUTH === 'true';
+  
+  if (authDisabled) {
+    // Skip authentication check in development mode
+    return <>{children}</>;
+  }
 
   if (isLoading) {
     return (

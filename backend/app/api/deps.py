@@ -12,13 +12,35 @@ from app.db.models import User
 from app.schemas.token import TokenPayload
 
 reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/login/access-token"
+    tokenUrl=f"{settings.API_V1_STR}/login/access-token",
+    auto_error=not settings.DISABLE_AUTH  # Don't auto-error if auth is disabled
 )
+
+
+def get_mock_user() -> User:
+    """
+    Returns a mock user for development when authentication is disabled.
+    WARNING: Only use this in development environments!
+    """
+    import uuid
+    mock_user = User(
+        id=uuid.UUID("00000000-0000-0000-0000-000000000001"),
+        email="dev@example.com",
+        name="Development User",
+        role="admin",
+        hashed_password="mock_password_hash",
+        is_active=True
+    )
+    return mock_user
 
 
 async def get_current_user(
     db: AsyncSession = Depends(get_db), token: str = Depends(reusable_oauth2)
 ) -> User:
+    # If authentication is disabled for development, return a mock user
+    if settings.DISABLE_AUTH:
+        return get_mock_user()
+    
     try:
         # Check if token is blacklisted
         if await security.is_token_blacklisted(token):

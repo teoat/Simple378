@@ -21,7 +21,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   // Initialize loading state based on token existence
-  const [isLoading, setIsLoading] = useState(() => !!localStorage.getItem('auth_token'));
+  const [isLoading, setIsLoading] = useState(() => {
+    // If auth is disabled, don't show loading state
+    if (import.meta.env.VITE_DISABLE_AUTH === 'true') {
+      return false;
+    }
+    return !!localStorage.getItem('auth_token');
+  });
 
   const login = async (email: string, password: string) => {
     try {
@@ -79,6 +85,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // If authentication is disabled for development, set a mock user
+    if (import.meta.env.VITE_DISABLE_AUTH === 'true') {
+      setUser({
+        id: '00000000-0000-0000-0000-000000000001',
+        email: 'dev@example.com',
+        name: 'Development User',
+        role: 'admin'
+      });
+      setIsLoading(false);
+      return;
+    }
+    
     // Check for existing secure session
     const secureToken = localStorage.getItem('auth_token');
     const userSession = sessionStorage.getItem('user_session');
