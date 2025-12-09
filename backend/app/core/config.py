@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://localhost:4317"
     ENVIRONMENT: str = "development"
+    
+    # Development flag to disable authentication
+    DISABLE_AUTH: bool = False
 
     ANTHROPIC_API_KEY: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None

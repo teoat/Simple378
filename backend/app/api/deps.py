@@ -4,6 +4,7 @@ from jose import jwt, JWTError
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+import uuid
 
 from app.core import security
 from app.core.config import settings
@@ -11,14 +12,41 @@ from app.db.session import get_db
 from app.db.models import User
 from app.schemas.token import TokenPayload
 
+# Mock user constants for development mode
+MOCK_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
+MOCK_USER_EMAIL = "dev@example.com"
+MOCK_USER_NAME = "Development User"
+MOCK_USER_ROLE = "admin"
+
 reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/login/access-token"
+    tokenUrl=f"{settings.API_V1_STR}/login/access-token",
+    auto_error=not settings.DISABLE_AUTH  # Don't auto-error if auth is disabled
 )
+
+
+def get_mock_user() -> User:
+    """
+    Returns a mock user for development when authentication is disabled.
+    WARNING: Only use this in development environments!
+    """
+    mock_user = User(
+        id=MOCK_USER_ID,
+        email=MOCK_USER_EMAIL,
+        name=MOCK_USER_NAME,
+        role=MOCK_USER_ROLE,
+        hashed_password="mock_password_hash",
+        is_active=True
+    )
+    return mock_user
 
 
 async def get_current_user(
     db: AsyncSession = Depends(get_db), token: str = Depends(reusable_oauth2)
 ) -> User:
+    # If authentication is disabled for development, return a mock user
+    if settings.DISABLE_AUTH:
+        return get_mock_user()
+    
     try:
         # Check if token is blacklisted
         if await security.is_token_blacklisted(token):
@@ -43,8 +71,6 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",
         )
-
-    import uuid
 
     try:
         user_id = uuid.UUID(token_data.sub)
