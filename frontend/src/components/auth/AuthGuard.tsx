@@ -8,6 +8,12 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const { isAuthenticated, isLoading } = useAuth();
+  const disableAuth = import.meta.env.VITE_DISABLE_AUTH === 'true';
+
+  // Bypass auth if disabled
+  if (disableAuth) {
+    return <>{children}</>;
+  }
 
   if (isLoading) {
     return (

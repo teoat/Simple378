@@ -20,16 +20,55 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  // Initialize loading state based on token existence
-  const [isLoading, setIsLoading] = useState(() => !!localStorage.getItem('auth_token'));
+  const disableAuth = import.meta.env.VITE_DISABLE_AUTH === 'true';
+  
+  // Initialize loading state based on token existence or auth bypass
+  const [isLoading, setIsLoading] = useState(() => {
+    if (disableAuth) return false;
+    return !!localStorage.getItem('auth_token');
+  });
+
+  // Auto-login with mock user if auth is disabled
+  useEffect(() => {
+    if (disableAuth && !user) {
+      const mockUser: User = {
+        id: 'mock-user-1',
+        email: 'mock@example.com',
+        name: 'Mock User',
+        role: 'admin'
+      };
+      setUser(mockUser);
+      setIsLoading(false);
+    }
+  }, [disableAuth, user]);
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await apiRequest<{ access_token: string; user: User }>(
-        '/auth/login',
+      // If auth is disabled, auto-login with mock user
+      if (disableAuth) {
+        const mockUser: User = {
+          id: 'mock-user-1',
+          email: email || 'mock@example.com',
+          name: 'Mock User',
+          role: 'admin'
+        };
+        setUser(mockUser);
+        return;
+      }
+
+      // Create form data for OAuth2PasswordRequestForm
+      const formData = new URLSearchParams();
+      formData.append('username', email);
+      formData.append('password', password);
+
+      const response = await apiRequest<{ access_token: string; token_type: string }>(
+        '/login/access-token',
         {
           method: 'POST',
-          body: JSON.stringify({ email, password }),
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: formData.toString(),
         }
       );
 
@@ -42,8 +81,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }));
 
       localStorage.setItem('auth_token', secureToken);
-      sessionStorage.setItem('user_session', JSON.stringify(response.user));
-      setUser(response.user);
+      
+      // Create a mock user since backend doesn't return user info
+      const mockUser: User = {
+        id: '1',
+        email: email,
+        name: 'Test User',
+        role: 'admin'
+      };
+      sessionStorage.setItem('user_session', JSON.stringify(mockUser));
+      setUser(mockUser);
 
     } catch (error) {
       // Enhanced error handling with specific error types
