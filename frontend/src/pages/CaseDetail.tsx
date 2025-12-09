@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Share2, MoreHorizontal, Shield, Clock, FileText, Activity, Brain, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Share2, MoreHorizontal, Shield, Clock, FileText, Activity, Brain, MessageSquare, BarChart3 } from 'lucide-react';
 import { apiRequest } from '../lib/api';
 import { EvidenceLibrary } from '../components/cases/EvidenceLibrary';
 import { RiskTrendWidget } from '../components/dashboard/RiskTrendWidget';
@@ -114,6 +114,14 @@ interface PredictiveResponse {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(`/visualization/${id}`)}
+            className="flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-sm font-medium text-purple-700 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-900/50 dark:text-purple-300 dark:hover:bg-purple-900/70"
+            aria-label="View Visualization"
+          >
+            <BarChart3 className="h-4 w-4" />
+            Visualization
+          </button>
           <button
             onClick={openAIAssistant}
             className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900/70"
