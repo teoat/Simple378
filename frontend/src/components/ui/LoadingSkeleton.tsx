@@ -9,6 +9,11 @@ interface LoadingSkeletonProps {
   count?: number;
 }
 
+/**
+ * LoadingSkeleton component for showing loading states
+ * 
+ * Note: Uses the 'animate-ui-shimmer' CSS class defined in src/index.css
+ */
 export const LoadingSkeleton: FC<LoadingSkeletonProps> = ({
   variant = 'rectangular',
   width,

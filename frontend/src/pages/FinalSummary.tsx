@@ -164,12 +164,12 @@ export const FinalSummary: FC = () => {
             <Badge variant="neutral" size="md">
               {caseId}
             </Badge>
-            <Tooltip content={`Data quality: ${data.dataQuality}%`}>
+            <Tooltip content={data ? `Data quality: ${data.dataQuality}%` : 'Loading...'}>
               <Badge 
-                variant={data.dataQuality >= 90 ? 'success' : data.dataQuality >= 70 ? 'info' : 'warning'} 
+                variant={data && data.dataQuality >= 90 ? 'success' : data && data.dataQuality >= 70 ? 'info' : 'warning'} 
                 size="sm"
               >
-                {data.dataQuality}% Quality
+                {data ? `${data.dataQuality}% Quality` : 'Loading...'}
               </Badge>
             </Tooltip>
           </div>
@@ -177,7 +177,7 @@ export const FinalSummary: FC = () => {
             <Tooltip content="Days to resolution">
               <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg">
                 <Clock className="h-4 w-4" />
-                <span className="font-medium">{data.daysToResolution} days</span>
+                <span className="font-medium">{data ? `${data.daysToResolution} days` : 'Loading...'}</span>
               </div>
             </Tooltip>
           </div>

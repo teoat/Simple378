@@ -1,4 +1,4 @@
-import { FC, ReactNode, useState } from 'react';
+import { FC, ReactNode, useState, KeyboardEvent } from 'react';
 import { cn } from '../../lib/utils';
 
 interface TooltipProps {
@@ -8,6 +8,11 @@ interface TooltipProps {
   className?: string;
 }
 
+/**
+ * Tooltip component for displaying contextual help
+ * 
+ * Supports keyboard navigation - press Escape to close
+ */
 export const Tooltip: FC<TooltipProps> = ({
   content,
   children,
@@ -23,6 +28,12 @@ export const Tooltip: FC<TooltipProps> = ({
     right: 'left-full top-1/2 -translate-y-1/2 ml-2',
   };
 
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setIsVisible(false);
+    }
+  };
+
   return (
     <div className="relative inline-block">
       <div
@@ -30,6 +41,7 @@ export const Tooltip: FC<TooltipProps> = ({
         onMouseLeave={() => setIsVisible(false)}
         onFocus={() => setIsVisible(true)}
         onBlur={() => setIsVisible(false)}
+        onKeyDown={handleKeyDown}
       >
         {children}
       </div>

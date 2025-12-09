@@ -9,6 +9,12 @@ interface BadgeProps {
   animated?: boolean;
 }
 
+/**
+ * Badge component for displaying status indicators
+ * 
+ * Note: The animated prop uses the 'animate-ui-pulse-glow' CSS class
+ * which is defined in src/index.css
+ */
 export const Badge: FC<BadgeProps> = ({
   children,
   variant = 'default',
