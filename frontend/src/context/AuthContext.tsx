@@ -1,6 +1,14 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiRequest } from '../lib/api';
 
+// Mock user constants for development mode
+const MOCK_USER = {
+  id: '00000000-0000-0000-0000-000000000001',
+  email: 'dev@example.com',
+  name: 'Development User',
+  role: 'admin'
+};
+
 interface User {
   id: string;
   email: string;
@@ -87,12 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // If authentication is disabled for development, set a mock user
     if (import.meta.env.VITE_DISABLE_AUTH === 'true') {
-      setUser({
-        id: '00000000-0000-0000-0000-000000000001',
-        email: 'dev@example.com',
-        name: 'Development User',
-        role: 'admin'
-      });
+      setUser(MOCK_USER);
       setIsLoading(false);
       return;
     }
