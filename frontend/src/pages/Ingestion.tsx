@@ -66,9 +66,13 @@ export function Ingestion() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Fetch Subjects
-  const { data: subjectsData } = useQuery({
+  const { data: subjectsData, isError: subjectsError } = useQuery({
     queryKey: ['subjects'],
     queryFn: () => subjectsApi.getSubjects({ limit: 100 }),
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    // Don't fail silently - allow component to render even if query fails
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // WebSocket Listener
@@ -131,7 +135,7 @@ export function Ingestion() {
   });
 
   // Preview Query
-  const { data: previewResponse, isLoading: isLoadingPreview } = useQuery({
+  const { data: previewResponse, isLoading: isLoadingPreview, isError: previewError } = useQuery({
     queryKey: ['ingestion', 'preview', fileId, columnMappings],
     queryFn: async () => {
       if (!fileId) return null;
@@ -151,7 +155,9 @@ export function Ingestion() {
         })
       });
     },
-    enabled: currentStep === 3 && !!fileId
+    enabled: currentStep === 3 && !!fileId,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   // Submit Mutation
@@ -273,21 +279,47 @@ export function Ingestion() {
                 {/* Step 1: Upload */}
                 {currentStep === 1 && (
                   <div className="space-y-6 max-w-xl mx-auto">
+                    {/* Error Alert for Subject Loading */}
+                    {subjectsError && (
+                      <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/50 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-amber-900 dark:text-amber-100 text-sm">Unable to Load Subjects</h4>
+                            <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                              The backend service is unavailable. You can still continue by entering a subject ID manually below.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Select Subject</label>
-                        <select
-                            className="w-full p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            value={subjectId}
-                            onChange={(e) => setSubjectId(e.target.value)}
-                        >
-                            <option value="">Select a subject...</option>
-                            {((subjectsData as any)?.items || (subjectsData as any) || []).map((subject: any) => (
-                                <option key={subject.id} value={subject.id}>
-                                    {subject.subject_name || subject.id}
-                                </option>
-                            ))}
-                        </select>
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          {subjectsError ? 'Enter Subject ID' : 'Select Subject'}
+                        </label>
+                        {subjectsError ? (
+                          <Input 
+                            placeholder="Enter subject ID manually" 
+                            value={subjectId} 
+                            onChange={e => setSubjectId(e.target.value)} 
+                            className="bg-white dark:bg-slate-900"
+                          />
+                        ) : (
+                          <select
+                              className="w-full p-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              value={subjectId}
+                              onChange={(e) => setSubjectId(e.target.value)}
+                          >
+                              <option value="">Select a subject...</option>
+                              {((subjectsData as any)?.items || (subjectsData as any) || []).map((subject: any) => (
+                                  <option key={subject.id} value={subject.id}>
+                                      {subject.subject_name || subject.id}
+                                  </option>
+                              ))}
+                          </select>
+                        )}
                         <p className="text-xs text-slate-500">Target subject for these transactions.</p>
                       </div>
                       <div className="space-y-2">
@@ -375,7 +407,28 @@ export function Ingestion() {
                 {/* Step 3: Preview */}
                 {currentStep === 3 && (
                   <div className="space-y-6">
-                    {isLoadingPreview ? (
+                    {previewError ? (
+                      <div className="flex flex-col items-center justify-center py-24">
+                        <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/50 rounded-lg p-6 max-w-md">
+                          <div className="flex items-start gap-3">
+                            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                            <div>
+                              <h4 className="font-semibold text-red-900 dark:text-red-100 mb-2">Preview Failed</h4>
+                              <p className="text-sm text-red-700 dark:text-red-300 mb-4">
+                                Unable to generate preview. The backend service may be unavailable.
+                              </p>
+                              <Button 
+                                onClick={() => handlePrevious()} 
+                                variant="outline"
+                                className="w-full"
+                              >
+                                <ArrowLeft className="mr-2 h-4 w-4" /> Go Back
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : isLoadingPreview ? (
                       <div className="flex flex-col items-center justify-center py-24 text-slate-500">
                         <Loader2 className="animate-spin h-8 w-8 mb-4 text-blue-600" />
                         <p>Generating preview...</p>
@@ -415,7 +468,21 @@ export function Ingestion() {
                 {/* Step 4: Validate */}
                 {currentStep === 4 && (
                    <div className="max-w-xl mx-auto space-y-8 py-8">
-                     {isLoadingPreview ? (
+                     {previewError ? (
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/50 rounded-lg p-6">
+                            <div className="flex items-start gap-3">
+                              <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                              <div>
+                                <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">Validation Unavailable</h4>
+                                <p className="text-sm text-amber-700 dark:text-amber-300 mb-4">
+                                  Unable to validate data. You can skip validation and proceed to processing at your own risk.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                     ) : isLoadingPreview ? (
                         <div className="flex justify-center"><Loader2 className="animate-spin" /></div>
                      ) : (
                         <>
