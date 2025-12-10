@@ -72,6 +72,11 @@ export function AdjudicationQueue() {
         sort_order: sortOrder
       });
       
+      // Add status filter if not 'all'
+      if (statusFilter !== 'all') {
+        params.append('status', statusFilter);
+      }
+      
       return apiRequest<QueueResponse>(`/adjudication/queue?${params}`);
     },
     refetchInterval: 30000, // Auto-refresh every 30s
