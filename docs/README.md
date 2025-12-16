@@ -9,7 +9,7 @@ Welcome to the Fraud Detection System documentation!
 - 📊 **[Latest Status](status-reports/WORK_SESSION_SUMMARY.md)** - What's happening now
 - 🔍 **[Diagnostic Report](diagnostics/DIAGNOSTIC_ANALYSIS_REPORT.md)** - Gap analysis
 - 📅 **[Implementation Plan](planning/ACTION_ITEMS_IMPLEMENTATION_PLAN.md)** - Roadmap
-- 🏗️ **[Architecture](architecture/ARCHITECTURE_AND_SYNC_DIAGRAMS.md)** - System design
+- 🏗️ **[Architecture](architecture/CONSOLIDATED_ARCHITECTURE_SPEC.md)** - System design (consolidated spec)
 - 🔌 **[API Docs](api/GRAPHQL_API.md)** - GraphQL API
 - 🚀 **[Deployment](deployment/DEPLOYMENT.md)** - How to deploy
 - 📖 **[Guides](guides/)** - Development guides
@@ -21,7 +21,7 @@ docs/
 ├── INDEX.md                    # Master index (start here!)
 ├── README.md                   # This file
 ├── api/                        # API documentation (2 files)
-├── architecture/               # System architecture (22 files)
+├── architecture/               # System architecture (24 files)
 ├── deployment/                 # Deployment guides (2 files)
 ├── diagnostics/                # System diagnostics (6 files)
 ├── guides/                     # Development guides (6 files)
@@ -33,8 +33,8 @@ docs/
 └── frontend/                   # Frontend-specific (1 file)
 ```
 
-**Total:** 83 organized documents
+**Total:** 85 organized documents
 
 ---
 
-**Last Updated:** December 7, 2025
+**Last Updated:** December 16, 2025

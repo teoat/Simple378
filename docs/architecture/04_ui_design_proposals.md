@@ -1,5 +1,19 @@
 # UI Design Proposals
 
+> **⚠️ DOCUMENT STATUS: SUPERSEDED**  
+> **Date Superseded:** 2025-12-16  
+> **Replaced By:** [CONSOLIDATED_ARCHITECTURE_SPEC.md](./CONSOLIDATED_ARCHITECTURE_SPEC.md)  
+> **Closure Report:** [CONSOLIDATION_CLOSURE_REPORT.md](./CONSOLIDATION_CLOSURE_REPORT.md)  
+>
+> This document has been consolidated into the unified architecture specification.  
+> All content has been integrated, conflicts resolved, and implementation status updated.  
+> Please refer to the consolidated document for current architecture decisions.  
+> This file is retained for historical reference only.
+
+---
+
+# UI Design Proposals (HISTORICAL)
+
 ## 1. Login & Authentication
 **Goal:** Secure, professional entry point.
 - **Design:**
