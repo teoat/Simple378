@@ -1,6 +1,6 @@
 # Documentation Index
 **Fraud Detection System - Documentation Hub**  
-**Last Updated:** December 7, 2025
+**Last Updated:** December 16, 2025
 
 ---
 
@@ -81,6 +81,12 @@ Located in: `docs/diagnostics/`
 Located in: `docs/architecture/`
 
 **Core Architecture:**
+- **[Consolidated Architecture Spec](architecture/CONSOLIDATED_ARCHITECTURE_SPEC.md)** ⭐ NEW
+  - Unified architecture specification
+  - Consolidates all design proposals and orchestration docs
+  - Single source of truth for system design
+  - See also: [Consolidation Closure Report](architecture/CONSOLIDATION_CLOSURE_REPORT.md)
+
 - **[Architecture & Sync Diagrams](architecture/ARCHITECTURE_AND_SYNC_DIAGRAMS.md)**
   - System architecture overview
   - Component interaction diagrams
@@ -89,8 +95,14 @@ Located in: `docs/architecture/`
   - Frenly AI architecture
   - 4 personas: analyst, legal, cfo, investigator
 
+**Detailed Design Orchestration:**
+- Files 11-16: Authentication, Dashboard, Cases, Adjudication, Forensics, AI Assistant
+
+**Historical Proposals:**
+- Files 03-04: Original proposals (now superseded by consolidated spec)
+
 **Additional Architecture Docs:**
-- Total files: 22 (organized by component)
+- Total files: 24 (organized by component)
 
 ---
 
@@ -243,7 +255,7 @@ Located in: `docs/frontend/`
 
 **Project roadmap?** → `planning/MASTER_ROADMAP.md`
 
-**System architecture?** → `architecture/ARCHITECTURE_AND_SYNC_DIAGRAMS.md`
+**System architecture?** → `architecture/CONSOLIDATED_ARCHITECTURE_SPEC.md` or `architecture/ARCHITECTURE_AND_SYNC_DIAGRAMS.md`
 
 **Recent diagnostic?** → `diagnostics/DIAGNOSTIC_ANALYSIS_REPORT.md`
 
@@ -261,7 +273,7 @@ Located in: `docs/frontend/`
 | **diagnostics** | 6 | System analysis & gap reports |
 | **planning** | 3 | Roadmaps & implementation plans |
 | **guides** | 6 | Development & operational guides |
-| **architecture** | 22 | System design & component docs |
+| **architecture** | 24 | System design & component docs |
 | **api** | 2 | API specifications |
 | **deployment** | 2 | Deployment procedures |
 | **implementation** | 1 | Feature implementation details |
@@ -293,7 +305,13 @@ Located in: `docs/frontend/`
 
 ## 📝 Documentation Maintenance
 
-**Last Major Reorganization:** December 7, 2025
+**Last Major Reorganization:** December 16, 2025
+
+**Recent Changes:**
+- ✅ Consolidated architecture proposals into single specification
+- ✅ Resolved conflicts between proposals and orchestration docs
+- ✅ Added comprehensive cross-references
+- ✅ Marked superseded documents with clear status
 
 **Organization Structure:**
 - ✅ Active documents in categorized folders

@@ -1,5 +1,7 @@
 # Executive Master Plan
 
+> **📋 Note:** For detailed architecture specifications, see [CONSOLIDATED_ARCHITECTURE_SPEC.md](./CONSOLIDATED_ARCHITECTURE_SPEC.md) which consolidates all design proposals and orchestration documents.
+
 ## 1. Orchestration Goals
 - **Reconcile:** Phase-based fund releases vs expenses; expose fraud via weighted matching and evidence scoring.
 - **Ingest:** Analyze multi-modal evidence (PDFs, images, chat logs) with EXIF/OCR/forensics; maintain chain-of-custody.
